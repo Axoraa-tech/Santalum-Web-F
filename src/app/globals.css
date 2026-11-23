@@ -1,26 +1,93 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* Santalum Maison palette — from client "Brand Colours" PDFs. Never pure white or pure black. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-night: #1c1410; /* Santalum Night — deep heartwood, primary background */
+  --color-charcoal: #1f2123; /* Deep Charcoal */
+  --color-amber: #8b5e3c; /* Amber Maison */
+  --color-dust: #c4975a; /* Dust Gold */
+  --color-linen: #f5f0e8; /* Linen White */
+  --color-pale: #e8e0d0; /* Pale Maison */
+  --color-sand: #c8b89a; /* Warm Sand */
+  --color-wood: #8b5a2b; /* Natural Wood */
+  --color-walnut: #5c4331; /* Walnut Brown */
+  --color-brass: #b08d57; /* Antique Brass */
+  --color-forest: #374038; /* Forest Shadow */
+  --color-stone: #a7a29a; /* Stone Grey */
+  --color-rakta: #6e2a1f; /* red sandalwood heartwood */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-serif: var(--font-cormorant);
+  --font-sans: var(--font-alegreya);
+  --font-deva: var(--font-tiro);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-night);
+  color: var(--color-linen);
+  font-family: var(--font-alegreya), "Gill Sans", Optima, sans-serif;
+  font-weight: 400;
+}
+
+::selection {
+  background: var(--color-dust);
+  color: var(--color-night);
+}
+
+/* ---------- motion ---------- */
+@keyframes flicker {
+  0%, 100% { transform: scale(1, 1) skewX(0deg); }
+  20% { transform: scale(0.96, 1.05) skewX(2deg); }
+  45% { transform: scale(1.03, 0.96) skewX(-1.5deg); }
+  70% { transform: scale(0.98, 1.04) skewX(1deg); }
+}
+@keyframes glow {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.85; }
+}
+@keyframes draw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes turn {
+  to { transform: rotate(360deg); }
+}
+
+.flame {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: flicker 2.8s ease-in-out infinite;
+}
+.glow {
+  animation: glow 3.4s ease-in-out infinite;
+}
+.draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw 2.6s cubic-bezier(0.6, 0, 0.3, 1) forwards;
+}
+.rise {
+  opacity: 0;
+  animation: rise 1.2s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+.fade {
+  opacity: 0;
+  animation: fade 1.6s ease forwards;
+}
+.turn-slow {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: turn 300s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flame, .glow, .turn-slow { animation: none; }
+  .draw { animation: none; stroke-dashoffset: 0; }
+  .rise, .fade { animation: none; opacity: 1; transform: none; }
 }
