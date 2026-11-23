@@ -20,6 +20,11 @@ export function Lotus({ className = "" }: { className?: string }) {
   );
 }
 
+/** Text-only wordmark. */
+export function Mark({ className = "" }: { className?: string }) {
+  return <span className={`whitespace-nowrap font-serif text-[15px] tracking-[0.32em] ${className}`}>SANTALUM MAISON</span>;
+}
+
 /** Lotus + wordmark. */
 export function Wordmark({ className = "", markClass = "" }: { className?: string; markClass?: string }) {
   return (
