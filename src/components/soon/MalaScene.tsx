@@ -546,55 +546,158 @@ function angleAt(i: number, gap: number) {
   return FRONT + gap / 2 + ((Math.PI * 2 - gap) * i) / (N - 1);
 }
 
-/**
- * The camera rides low beside the light while it threads, swings round and pulls back to the
- * full frame for the knot and the rest, then follows the light back round as the beads return.
- */
+/* =====================================================================
+   Camera: one continuous take, shot like a film. Each "rig" is a camera
+   move (position, target, roll, lens); the timeline cross-fades between
+   them, and a gimbal float keeps it alive.
+   descend  drone comes down with the light from the ray
+   gimbal   low tracking shot beside the light, at bead height
+   orbit    drone rises and arcs across the circle, banking into the turn
+   lead     macro, low ahead of the light: beads come toward the lens
+   wide     crane up to the full page for the knot; slow drone drift at rest
+   top      bird's-eye, rising as the beads return to the light
+   ===================================================================== */
+
+type Rig = { pos: THREE.Vector3; look: THREE.Vector3; roll: number; fov: number };
+const mkRig = (): Rig => ({ pos: new THREE.Vector3(), look: new THREE.Vector3(), roll: 0, fov: 30 });
+
+function blendInto(out: Rig, a: Rig, b: Rig, k: number) {
+  out.pos.lerpVectors(a.pos, b.pos, k);
+  out.look.lerpVectors(a.look, b.look, k);
+  out.roll = lerp(a.roll, b.roll, k);
+  out.fov = lerp(a.fov, b.fov, k);
+  // Lift the path between two moves so a blend never dips through the mala.
+  out.pos.y += Math.sin(k * Math.PI) * 0.35;
+  return out;
+}
+
+/** 0 → 1 across [a, b], eased. */
+const win = (t: number, a: number, b: number) => easeInOut(clamp01((t - a) / (b - a)));
+
 function Camera({ mobile, focus }: { mobile: boolean; focus: (d: number) => void }) {
-  const look = useMemo(() => new THREE.Vector3(), []);
-  const trackPos = useMemo(() => new THREE.Vector3(), []);
-  const trackLook = useMemo(() => new THREE.Vector3(), []);
-  const wide = useMemo(() => new THREE.Vector3(0, mobile ? 6.6 : 3.7, mobile ? 7.8 : 7.9), [mobile]);
-  const wideLook = useMemo(() => new THREE.Vector3(0, mobile ? -1.5 : -1.05, mobile ? 1.9 : 1.5), [mobile]);
+  const store = useRef<{ rigs: Record<string, Rig>; spark: THREE.Vector3 } | null>(null);
+
   useFrame((state) => {
+    store.current ??= {
+      rigs: { descend: mkRig(), gimbal: mkRig(), orbit: mkRig(), lead: mkRig(), wide: mkRig(), top: mkRig(), a: mkRig(), out: mkRig() },
+      spark: new THREE.Vector3(),
+    };
+    const { rigs, spark } = store.current;
     const t = shot.t;
+    const T = shot.total;
+    const far = mobile ? 1.5 : 1; // phones stand further back
     const tieP = smooth(clamp01((t - TIE0) / TIE));
     const gap = lerp(0.42, (GAP / R) * 0.98, tieP);
-
-    // Which bead the light is at, and which way it travels (-1 forward, +1 back).
-    let idx: number;
-    let side: number;
-    if (t < RET0) {
-      idx = clamp01((t - DRAW0) / DRAW) * (N - 1);
-      // Before the first bead, swing from the side the return left us on.
-      side = shot.total < DRAW0 ? -1 : lerp(1, -1, smooth(clamp01(t / DRAW0)));
-    } else {
-      idx = (N - 1) * (1 - clamp01((t - RET0) / (RET * 0.8)));
-      side = 1;
-    }
-    const track =
-      t < RET0
-        ? 1 - easeInOut(clamp01((t - (TIE0 - 0.9)) / (TIE + 1.2)))
-        : easeInOut(clamp01((t - RET0) / 1.1));
-
+    const returning = t >= RET0;
+    const idx = returning
+      ? (N - 1) * (1 - clamp01((t - RET0) / (RET * 0.8)))
+      : clamp01((t - DRAW0) / DRAW) * (N - 1);
     const ang = angleAt(idx, gap);
-    const dist = R + (mobile ? 2.3 : 1.55);
-    const camAng = ang + side * 0.62;
-    trackPos.set(Math.cos(camAng) * dist, mobile ? 1.35 : 0.85, Math.sin(camAng) * dist);
-    const ahead = ang - side * 0.22;
-    trackLook.set(Math.cos(ahead) * R * 0.96, 0.04, Math.sin(ahead) * R * 0.96);
+    const dir = returning ? -1 : 1; // travel: +1 = increasing angle
+    spark.set(Math.cos(ang) * R, Y, Math.sin(ang) * R);
+    // While descending, the light is still up the ray.
+    const descend = returning ? 1 : easeOut(clamp01((t - (DRAW0 - 0.9)) / 0.9));
+    const sparkAir = rigs.a.look.copy(spark).lerp(SOURCE, 0.5 * (1 - descend));
 
-    const cam = state.camera;
-    const k = track;
-    cam.position.lerpVectors(wide, trackPos, k);
-    // Lift the path between the two framings so it never dips through the mala.
-    cam.position.y += Math.sin(k * Math.PI) * 0.9;
-    const free = (1 - k) * (shot.dragging < 0 ? 1 : 0);
-    cam.position.x += state.pointer.x * 0.18 * free + Math.sin(shot.total * 0.07) * 0.25 * (1 - k);
-    cam.position.y += state.pointer.y * 0.08 * free;
-    look.lerpVectors(wideLook, trackLook, k);
-    cam.lookAt(look);
-    focus(cam.position.distanceTo(look));
+    // descend: high drone above the landing point, sinking and turning as the light falls
+    {
+      const r = rigs.descend;
+      const k = clamp01(t / (DRAW0 + 0.4));
+      const a = ang - 0.9 + k * 0.6;
+      r.pos.set(spark.x + Math.cos(a) * 2.2 * far, lerp(6.5, 2.4, easeInOut(k)) * far, spark.z + Math.sin(a) * 2.2 * far);
+      r.look.copy(sparkAir);
+      r.roll = 0;
+      r.fov = 34;
+    }
+    // gimbal: low beside and behind the light
+    {
+      const r = rigs.gimbal;
+      const ca = ang - dir * 0.62;
+      const d = R + 1.55 * far;
+      r.pos.set(Math.cos(ca) * d, 0.8 * far, Math.sin(ca) * d);
+      const la = ang + dir * 0.22;
+      r.look.set(Math.cos(la) * R * 0.96, 0.05, Math.sin(la) * R * 0.96);
+      r.roll = -dir * 0.03;
+      r.fov = 32;
+    }
+    // orbit: drone across the circle, rising, banking into the turn
+    {
+      const r = rigs.orbit;
+      const ca = ang + Math.PI * 0.78 + Math.sin(T * 0.2) * 0.05;
+      const d = R + 2.6 * far;
+      r.pos.set(Math.cos(ca) * d, 2.5 * far, Math.sin(ca) * d);
+      r.look.copy(spark).multiplyScalar(0.7);
+      r.roll = dir * 0.09;
+      r.fov = 30;
+    }
+    // lead: macro, very low, ahead of the light, looking back at it
+    {
+      const r = rigs.lead;
+      const ca = ang + dir * 0.42;
+      const d = R + 0.55 * far;
+      r.pos.set(Math.cos(ca) * d, 0.3 * far, Math.sin(ca) * d);
+      r.look.set(spark.x, 0.07, spark.z);
+      r.roll = dir * 0.02;
+      r.fov = 38;
+    }
+    // wide: the full page, with a slow drone drift
+    {
+      const r = rigs.wide;
+      const sway = Math.sin(T * 0.05) * 0.16;
+      const y = mobile ? 6.6 : 3.7;
+      const z = mobile ? 7.8 : 7.9;
+      r.pos.set(Math.sin(sway) * z, y, Math.cos(sway) * z);
+      r.look.set(0, mobile ? -1.5 : -1.05, mobile ? 1.9 : 1.5);
+      r.roll = 0;
+      r.fov = 30;
+    }
+    // top: bird's-eye, rising and turning as the beads go back to the light
+    {
+      const r = rigs.top;
+      const k = clamp01((t - RET0) / (LOOP - RET0));
+      const a = T * 0.06;
+      r.pos.set(Math.sin(a) * 0.9, lerp(7, 9.5, k) * far, Math.cos(a) * 0.9 + 0.6);
+      r.look.set(0, 0, 0);
+      r.roll = 0;
+      r.fov = 34;
+    }
+
+    // ---------- the timeline ----------
+    const out = rigs.out;
+    const p = (t - DRAW0) / DRAW; // draw progress
+    if (t < RET0) {
+      // Start of a cycle: from the bird's-eye of the last return into the descent (first visit starts on the descent).
+      const fromTop = shot.total > LOOP ? 1 - win(t, 0, 1.1) : 0;
+      blendInto(out, rigs.descend, rigs.top, fromTop);
+      blendInto(out, out, rigs.gimbal, win(p, -0.06, 0.1));
+      blendInto(out, out, rigs.orbit, win(p, 0.32, 0.46));
+      blendInto(out, out, rigs.lead, win(p, 0.66, 0.8));
+      blendInto(out, out, rigs.wide, win(t, TIE0 - 0.7, REST0 + 0.4));
+    } else {
+      const q = (t - RET0) / (RET * 0.8); // return progress
+      blendInto(out, rigs.wide, rigs.gimbal, win(t, RET0, RET0 + 1.1));
+      blendInto(out, out, rigs.top, win(q, 0.45, 0.9));
+    }
+
+    // ---------- gimbal float: tiny, slow, never shaky ----------
+    const cam = state.camera as THREE.PerspectiveCamera;
+    cam.position.copy(out.pos);
+    cam.position.x += Math.sin(T * 0.71) * 0.025 + Math.sin(T * 0.23) * 0.04;
+    cam.position.y += Math.sin(T * 1.13) * 0.015;
+    cam.position.z += Math.cos(T * 0.83) * 0.025;
+    const wideK = t >= REST0 - 0.3 && t < RET0 ? 1 : 0;
+    if (shot.dragging < 0 && wideK) {
+      cam.position.x += state.pointer.x * 0.18;
+      cam.position.y += state.pointer.y * 0.08;
+    }
+    cam.lookAt(out.look);
+    cam.rotateZ(out.roll + Math.sin(T * 0.37) * 0.006);
+    const fov = out.fov + (mobile ? 12 : 0);
+    if (Math.abs(cam.fov - fov) > 0.01) {
+      cam.fov = fov;
+      cam.updateProjectionMatrix();
+    }
+    focus(cam.position.distanceTo(out.look));
   });
   return null;
 }
