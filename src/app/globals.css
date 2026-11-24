@@ -1,31 +1,49 @@
 @import "tailwindcss";
 
-/* Santalum Maison palette — from client "Brand Colours" PDFs. Never pure white or pure black. */
+/* ============================================================
+   Santalum palette — from the client "Brand Colours" PDFs.
+   Used by the coming-soon pages; never pure white or black.
+   ============================================================ */
 @theme inline {
-  --color-night: #1c1410; /* Santalum Night — deep heartwood, primary background */
-  --color-charcoal: #1f2123; /* Deep Charcoal */
-  --color-amber: #8b5e3c; /* Amber Maison */
-  --color-dust: #c4975a; /* Dust Gold */
-  --color-linen: #f5f0e8; /* Linen White */
-  --color-pale: #e8e0d0; /* Pale Maison */
-  --color-sand: #c8b89a; /* Warm Sand */
-  --color-wood: #8b5a2b; /* Natural Wood */
-  --color-walnut: #5c4331; /* Walnut Brown */
-  --color-brass: #b08d57; /* Antique Brass */
-  --color-forest: #374038; /* Forest Shadow */
-  --color-stone: #a7a29a; /* Stone Grey */
-  --color-rakta: #6e2a1f; /* red sandalwood heartwood */
+  --color-night: #1c1410;
+  --color-charcoal: #1f2123;
+  --color-amber: #8b5e3c;
+  --color-dust: #c4975a;
+  --color-linen: #f5f0e8;
+  --color-pale: #e8e0d0;
+  --color-sand: #c8b89a;
+  --color-wood: #8b5a2b;
+  --color-walnut: #5c4331;
+  --color-brass: #b08d57;
+  --color-forest: #374038;
+  --color-stone: #a7a29a;
+  --color-rakta: #6e2a1f;
 
   --font-serif: var(--font-cormorant);
   --font-sans: var(--font-alegreya);
   --font-deva: var(--font-tiro);
+
+  /* ---- Maison website ---- */
+  --color-paper: #f6f4f0;
+  --color-paper-2: #ece8e1;
+  --color-paper-3: #e1dcd3;
+  --color-ink: #17130f;
+  --color-ink-2: #5d544b;
+  --color-ink-3: #968c81;
+  --color-hair: rgb(23 19 15 / 0.09);
+  --color-accent: var(--m-accent);
+  --color-accent-soft: var(--m-accent-soft);
+
+  --font-display: var(--font-fraunces);
+  --font-ui: var(--font-instrument);
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 body {
   background: var(--color-night);
   color: var(--color-linen);
   font-family: var(--font-alegreya), "Gill Sans", Optima, sans-serif;
-  font-weight: 400;
 }
 
 ::selection {
@@ -33,61 +51,140 @@ body {
   color: var(--color-night);
 }
 
-/* ---------- motion ---------- */
-@keyframes flicker {
-  0%, 100% { transform: scale(1, 1) skewX(0deg); }
-  20% { transform: scale(0.96, 1.05) skewX(2deg); }
-  45% { transform: scale(1.03, 0.96) skewX(-1.5deg); }
-  70% { transform: scale(0.98, 1.04) skewX(1deg); }
+/* ============================================================
+   Maison: the background stays paper-white in both woods.
+   Only the accent and the wood itself change, and they ease.
+   ============================================================ */
+@property --m-accent {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #9b3520;
 }
-@keyframes glow {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 0.85; }
+@property --m-accent-soft {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #efdcd3;
 }
-@keyframes draw {
-  to { stroke-dashoffset: 0; }
+:root {
+  --m-accent: #9b3520; /* red sandalwood */
+  --m-accent-soft: #efdcd3;
+  transition:
+    --m-accent 0.9s var(--ease-out-soft),
+    --m-accent-soft 0.9s var(--ease-out-soft);
 }
-@keyframes rise {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: none; }
-}
-@keyframes fade {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@keyframes turn {
-  to { transform: rotate(360deg); }
+html[data-wood="white"] {
+  --m-accent: #a57a38; /* white sandalwood */
+  --m-accent-soft: #f0e4cd;
 }
 
-.flame {
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
-  animation: flicker 2.8s ease-in-out infinite;
+.maison {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "ss01", "cv11";
 }
-.glow {
-  animation: glow 3.4s ease-in-out infinite;
+.maison ::selection {
+  background: var(--m-accent);
+  color: var(--color-paper);
 }
-.draw {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation: draw 2.6s cubic-bezier(0.6, 0, 0.3, 1) forwards;
+.font-display {
+  font-variation-settings: "SOFT" 100, "WONK" 0;
 }
-.rise {
-  opacity: 0;
-  animation: rise 1.2s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+
+/* Content that exists in both woods is rendered twice; only the current wood shows. */
+.w-red,
+.w-white {
+  display: contents;
 }
-.fade {
-  opacity: 0;
-  animation: fade 1.6s ease forwards;
+.w-white {
+  display: none;
 }
-.turn-slow {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: turn 300s linear infinite;
+html[data-wood="white"] .w-red {
+  display: none;
+}
+html[data-wood="white"] .w-white {
+  display: contents;
+}
+
+/* Wood switch: a soft cross-dissolve of the whole page (see src/lib/wood.ts). */
+html.wood-vt::view-transition-old(root),
+html.wood-vt::view-transition-new(root) {
+  animation-duration: 0.65s;
+  animation-timing-function: var(--ease-out-soft);
+}
+
+/* Small wood-ring swatches (toggle knob, logo mark). */
+.ring-red {
+  background:
+    radial-gradient(circle at 46% 44%, #4a1209 0 3%, transparent 4%),
+    repeating-radial-gradient(circle at 46% 44%, #8a2a17 0 2px, #b2482b 2px 4.5px, #9a3520 4.5px 6px, #c0583a 6px 9px);
+}
+.ring-white {
+  background:
+    radial-gradient(circle at 46% 44%, #8a6534 0 3%, transparent 4%),
+    repeating-radial-gradient(circle at 46% 44%, #c49d63 0 1.5px, #e6cd9f 1.5px 4.5px, #d4b47f 4.5px 6px, #efdcb6 6px 9px);
+}
+
+/* Lenis smooth scroll */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis:not(.lenis-autoToggle).lenis-stopped {
+  overflow: clip;
+}
+.lenis [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+/* Range inputs used in the grain studio */
+.grain-range {
+  appearance: none;
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+}
+.grain-range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--m-accent) var(--fill, 50%), var(--color-paper-3) var(--fill, 50%));
+}
+.grain-range::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--m-accent) var(--fill, 50%), var(--color-paper-3) var(--fill, 50%));
+}
+.grain-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -8px;
+  border-radius: 999px;
+  background: var(--color-paper);
+  border: 1px solid rgb(23 19 15 / 0.14);
+  box-shadow: 0 2px 8px rgb(23 19 15 / 0.18);
+  transition: transform 0.2s var(--ease-out-soft);
+}
+.grain-range:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+.grain-range::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--color-paper);
+  border: 1px solid rgb(23 19 15 / 0.14);
+  box-shadow: 0 2px 8px rgb(23 19 15 / 0.18);
+}
+.grain-range:focus-visible {
+  outline: 2px solid var(--m-accent);
+  outline-offset: 4px;
+  border-radius: 999px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .flame, .glow, .turn-slow { animation: none; }
-  .draw { animation: none; stroke-dashoffset: 0; }
-  .rise, .fade { animation: none; opacity: 1; transform: none; }
+  html.wood-vt::view-transition-old(root),
+  html.wood-vt::view-transition-new(root) {
+    animation: none;
+  }
 }

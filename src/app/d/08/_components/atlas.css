@@ -1,0 +1,359 @@
+/* Design 08, Atlas: drafting paper, ink, and one wood-aware accent for pins and routes. */
+
+.a8-root {
+  --a-paper: #f5f4ef;
+  --a-paper-2: #ecebe3;
+  --a-card: #fbfaf7;
+  --a-ink: #1f1d1a;
+  --a-ink-2: #46423b;
+  --a-muted: #77736b;
+  --a-line: rgb(31 29 26 / 0.13);
+  --a-line-2: rgb(31 29 26 / 0.26);
+  --a-red: #9b3520;
+  --a-brass: #a57a38;
+  --a-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  background: var(--a-paper);
+  color: var(--a-ink);
+  font-family: var(--font-a8-text), ui-sans-serif, system-ui, sans-serif;
+  min-height: 100svh;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01";
+}
+.a8-root ::selection {
+  background: var(--m-accent);
+  color: #fff;
+}
+.a8-root :focus-visible {
+  outline: 2px solid var(--m-accent);
+  outline-offset: 3px;
+}
+
+.a8-serif {
+  font-family: var(--font-a8-display), var(--font-tiro), Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.a8-deva {
+  font-family: var(--font-tiro), var(--font-a8-display), serif;
+}
+
+/* Static drafting paper for the list, product and checkout pages. */
+.a8-paper {
+  background-color: var(--a-paper);
+  background-image:
+    radial-gradient(circle, rgb(31 29 26 / 0.12) 1px, transparent 1.3px),
+    radial-gradient(circle, rgb(31 29 26 / 0.2) 1.3px, transparent 1.6px);
+  background-size: 24px 24px, 96px 96px;
+  background-position: 12px 12px, 12px 12px;
+}
+
+/* ---------------- the canvas ---------------- */
+.a8-viewport {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  overscroll-behavior: none;
+  background: var(--a-paper);
+}
+.a8-viewport[data-dragging] {
+  cursor: grabbing;
+}
+.a8-viewport[data-dragging] * {
+  cursor: grabbing !important;
+}
+.a8-viewport img {
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+.a8-selectable {
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: auto;
+}
+.a8-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-size: 18px 18px, 72px 72px;
+  background-image:
+    radial-gradient(circle, rgb(31 29 26 / 0.15) 1px, transparent 1.25px),
+    radial-gradient(circle, rgb(31 29 26 / 0.26) 1.35px, transparent 1.7px);
+}
+.a8-world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  opacity: 0;
+}
+
+/* Pinned product cards: slightly rotated, they straighten and lift under the pointer. */
+.a8-card {
+  position: absolute;
+  background: var(--a-card);
+  border: 1px solid var(--a-line);
+  box-shadow:
+    0 1px 0 rgb(31 29 26 / 0.05),
+    0 22px 44px -30px rgb(31 29 26 / 0.5);
+  transform: rotate(var(--rot, 0deg));
+  transition:
+    transform 0.55s var(--a-ease),
+    box-shadow 0.55s var(--a-ease);
+}
+.a8-card:hover,
+.a8-card:focus-within {
+  transform: rotate(0deg) translateY(-8px);
+  box-shadow:
+    0 1px 0 rgb(31 29 26 / 0.05),
+    0 40px 70px -34px rgb(31 29 26 / 0.55);
+}
+.a8-card:active {
+  transform: rotate(0deg) translateY(-3px) scale(0.995);
+}
+.a8-card[data-open="true"] {
+  transform: rotate(0deg) translateY(-8px);
+  z-index: 40;
+  box-shadow:
+    0 0 0 2px var(--m-accent),
+    0 40px 70px -34px rgb(31 29 26 / 0.55);
+}
+.a8-pinHead {
+  position: absolute;
+  left: 50%;
+  top: -9px;
+  width: 16px;
+  height: 16px;
+  margin-left: -8px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 35% 32%, rgb(255 255 255 / 0.55), transparent 42%), var(--m-accent);
+  box-shadow: 0 3px 4px -1px rgb(31 29 26 / 0.45);
+  transform: translateY(-4px) scale(0.6);
+  opacity: 0;
+  transition:
+    transform 0.45s var(--a-ease),
+    opacity 0.3s;
+}
+.a8-card:hover .a8-pinHead,
+.a8-card:focus-within .a8-pinHead,
+.a8-card[data-open="true"] .a8-pinHead {
+  transform: none;
+  opacity: 1;
+}
+.a8-photoZoom {
+  transition: transform 0.9s var(--a-ease);
+}
+.a8-card:hover .a8-photoZoom {
+  transform: scale(1.045);
+}
+
+/* Lines on the board */
+.a8-leader {
+  fill: none;
+  stroke: var(--a-ink);
+  stroke-width: 1.6;
+  stroke-opacity: 0.7;
+}
+.a8-leaderDot {
+  fill: var(--a-card);
+  stroke: var(--a-ink);
+  stroke-width: 2;
+}
+.a8-routeRed,
+.a8-routeWhite {
+  fill: none;
+  stroke: var(--a-ink);
+  stroke-opacity: 0.3;
+  stroke-width: 3;
+  stroke-dasharray: 3 11;
+  stroke-linecap: round;
+  transition:
+    stroke-opacity 0.6s,
+    stroke-width 0.6s;
+}
+html:not([data-wood="white"]) .a8-routeRed,
+html[data-wood="white"] .a8-routeWhite {
+  stroke: var(--m-accent);
+  stroke-opacity: 1;
+  stroke-width: 4;
+  stroke-dasharray: 14 12;
+  animation: a8-flow 1.8s linear infinite;
+}
+.a8-making {
+  fill: none;
+  stroke: var(--m-accent);
+  stroke-width: 4;
+  stroke-dasharray: 16 14;
+  stroke-linecap: round;
+  animation: a8-flow 2.4s linear infinite;
+}
+@keyframes a8-flow {
+  to {
+    stroke-dashoffset: -52;
+  }
+}
+
+.a8-contourRed,
+.a8-contourWhite {
+  fill: none;
+  stroke-width: 2.5;
+  transition: stroke-opacity 0.8s var(--a-ease);
+}
+.a8-contourRed {
+  stroke: var(--a-red);
+  stroke-opacity: 0.13;
+}
+.a8-contourWhite {
+  stroke: var(--a-brass);
+  stroke-opacity: 0.16;
+}
+html:not([data-wood="white"]) .a8-contourRed {
+  stroke-opacity: 0.32;
+}
+html[data-wood="white"] .a8-contourWhite {
+  stroke-opacity: 0.4;
+}
+.a8-fillRed {
+  fill: var(--a-red);
+  fill-opacity: 0.035;
+}
+.a8-fillWhite {
+  fill: var(--a-brass);
+  fill-opacity: 0.05;
+}
+
+/* The map pins on the board breathe once in a while; only the current wood's. */
+.a8-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: a8-pulse 2.6s var(--a-ease) infinite;
+}
+@keyframes a8-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.6;
+  }
+  70%,
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* Vault tokens */
+.a8-token {
+  transition:
+    transform 0.4s var(--a-ease),
+    background-color 0.3s,
+    color 0.3s;
+}
+.a8-token:hover,
+.a8-token:focus-visible {
+  transform: scale(1.14);
+}
+
+/* Shared buttons */
+.a8-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  transition:
+    transform 0.35s var(--a-ease),
+    background-color 0.25s,
+    color 0.25s,
+    border-color 0.25s,
+    box-shadow 0.35s var(--a-ease);
+}
+.a8-btn:active {
+  transform: scale(0.97);
+}
+.a8-btnInk {
+  background: var(--a-ink);
+  color: var(--a-paper);
+}
+.a8-btnInk:hover {
+  background: #000;
+  box-shadow: 0 10px 24px -12px rgb(31 29 26 / 0.6);
+}
+.a8-btnLine {
+  border: 1px solid var(--a-line-2);
+  color: var(--a-ink);
+  background: var(--a-card);
+}
+.a8-btnLine:hover {
+  border-color: var(--a-ink);
+}
+.a8-link {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+  text-decoration-color: var(--a-line-2);
+  transition: text-decoration-color 0.25s;
+}
+.a8-link:hover {
+  text-decoration-color: var(--m-accent);
+}
+
+/* Chips in the top bar and on the controls */
+.a8-chip {
+  background: rgb(251 250 247 / 0.94);
+  border: 1px solid var(--a-line);
+  box-shadow: 0 10px 28px -18px rgb(31 29 26 / 0.45);
+}
+
+/* Inputs */
+.a8-field {
+  width: 100%;
+  border: 1px solid var(--a-line-2);
+  background: var(--a-card);
+  border-radius: 10px;
+  padding: 0.7em 0.85em;
+  font-size: 16px;
+  color: var(--a-ink);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.a8-field:hover {
+  border-color: rgb(31 29 26 / 0.45);
+}
+.a8-field:focus {
+  outline: none;
+  border-color: var(--m-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--m-accent) 22%, transparent);
+}
+.a8-field:user-invalid {
+  border-color: #b3261e;
+}
+
+/* List view: dashed routes for the making steps */
+.a8-hroute {
+  background-image: linear-gradient(to right, var(--m-accent) 50%, transparent 50%);
+  background-size: 22px 3px;
+  background-repeat: repeat-x;
+}
+.a8-vroute {
+  background-image: linear-gradient(to bottom, var(--m-accent) 50%, transparent 50%);
+  background-size: 3px 22px;
+  background-repeat: repeat-y;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .a8-routeRed,
+  .a8-routeWhite,
+  .a8-making,
+  .a8-pulse {
+    animation: none !important;
+  }
+  .a8-card,
+  .a8-photoZoom,
+  .a8-token,
+  .a8-btn {
+    transition: none;
+  }
+}

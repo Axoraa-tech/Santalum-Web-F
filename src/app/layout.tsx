@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Alegreya_Sans, Cormorant_Garamond, Tiro_Devanagari_Sanskrit } from "next/font/google";
+import { Alegreya_Sans, Cormorant_Garamond, Fraunces, Instrument_Sans, Tiro_Devanagari_Sanskrit } from "next/font/google";
+import { WOOD_BOOT_SCRIPT } from "@/lib/wood-boot";
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({
@@ -21,6 +22,18 @@ const tiro = Tiro_Devanagari_Sanskrit({
   weight: "400",
 });
 
+/* The Maison website: a soft, curved display serif and one clean sans. */
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+  axes: ["SOFT", "WONK", "opsz"],
+});
+
+const instrument = Instrument_Sans({
+  variable: "--font-instrument",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: "Santalum Maison — Opening Soon",
   description:
@@ -31,8 +44,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${cormorant.variable} ${alegreya.variable} ${tiro.variable} h-full antialiased`}
+      suppressHydrationWarning /* the Maison sets data-wood before hydration */
+      className={`${cormorant.variable} ${alegreya.variable} ${tiro.variable} ${fraunces.variable} ${instrument.variable} h-full antialiased`}
     >
+      <head>
+        {/* Sets <html data-wood> before first paint so the Maison shows the remembered wood with no flash. */}
+        <script dangerouslySetInnerHTML={{ __html: WOOD_BOOT_SCRIPT }} />
+      </head>
       <body className="min-h-full">{children}</body>
     </html>
   );

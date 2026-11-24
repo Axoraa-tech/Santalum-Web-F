@@ -1,0 +1,475 @@
+/* Design 03, Strand. Everything is scoped under .s3 or prefixed s3- so it can't touch the other designs. */
+
+@property --s3-bead {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #7a2a1d;
+}
+
+@keyframes s3-cue {
+  0% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  70% {
+    transform: translateX(36px);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(36px);
+    opacity: 0;
+  }
+}
+
+/* In the components layer, so Tailwind utilities on the same element still win. */
+@layer components {
+  .s3 {
+    --linen: #f6f1e9;
+    --warm: #fbf8f3;
+    --ink: #22180f;
+    --muted: #7b6e62;
+    --thread: #b08d57;
+    --line: rgb(34 24 15 / 0.12);
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --s3-bead: #7a2a1d;
+    background: var(--linen);
+    color: var(--ink);
+    font-family: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+    overflow-x: clip;
+    transition: --s3-bead 0.9s var(--ease);
+  }
+  html[data-wood="white"] .s3 {
+    --s3-bead: #cfae7d;
+  }
+  .s3 ::selection {
+    background: var(--thread);
+    color: var(--warm);
+  }
+  .s3-serif {
+    font-family: var(--font-gloock), Georgia, serif;
+    font-weight: 400;
+  }
+  .s3 :focus-visible {
+    outline: 2px solid var(--m-accent);
+    outline-offset: 3px;
+  }
+  .s3 button {
+    cursor: pointer;
+  }
+
+  /* ---------- beads drawn in the DOM ---------- */
+  .s3-bead {
+    display: inline-block;
+    border-radius: 999px;
+    background:
+      radial-gradient(circle at 32% 28%, rgb(255 255 255 / 0.5), transparent 36%),
+      radial-gradient(circle at 66% 74%, rgb(0 0 0 / 0.3), transparent 64%),
+      var(--bead, var(--s3-bead));
+    box-shadow: inset 0 -1px 2px rgb(0 0 0 / 0.2);
+  }
+  .s3-bead[data-w="red"] {
+    --bead: #7a2a1d;
+  }
+  .s3-bead[data-w="white"] {
+    --bead: #d4b383;
+  }
+  .s3-knot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    background: radial-gradient(circle at 35% 30%, #d9bd8c, #8f6c3c 70%);
+  }
+
+  /* ---------- buttons and links ---------- */
+  .s3-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 46px;
+    padding: 0 20px;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.1;
+    white-space: nowrap;
+    transition:
+      transform 0.35s var(--ease),
+      background-color 0.3s var(--ease),
+      color 0.3s var(--ease),
+      border-color 0.3s var(--ease);
+  }
+  .s3-btn:active {
+    transform: scale(0.97);
+  }
+  .s3-btn-dark {
+    background: var(--ink);
+    color: var(--warm);
+  }
+  .s3-btn-dark:hover {
+    background: color-mix(in oklab, var(--ink) 78%, var(--m-accent));
+  }
+  .s3-btn-line {
+    border: 1px solid rgb(34 24 15 / 0.28);
+    color: var(--ink);
+  }
+  .s3-btn-line:hover {
+    border-color: var(--ink);
+    background: rgb(34 24 15 / 0.04);
+  }
+  .s3-btn-bead {
+    width: 10px;
+    height: 10px;
+    flex: none;
+    transition: transform 0.5s var(--ease);
+  }
+  .s3-btn:hover .s3-btn-bead {
+    transform: translateX(3px);
+  }
+  .s3-btn:disabled {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  .s3-link {
+    color: var(--ink);
+    padding-bottom: 2px;
+    background: linear-gradient(var(--thread), var(--thread)) 0 100% / 100% 1px no-repeat;
+    transition:
+      color 0.3s var(--ease),
+      background-size 0.45s var(--ease);
+  }
+  .s3-link:hover {
+    color: var(--m-accent);
+    background-image: linear-gradient(var(--m-accent), var(--m-accent));
+  }
+  .s3-link:active {
+    opacity: 0.7;
+  }
+
+  /* ---------- the strand (pinned 3D) ---------- */
+  .s3-cue {
+    position: relative;
+    display: inline-block;
+    width: 46px;
+    height: 10px;
+  }
+  .s3-cue::before {
+    content: "";
+    position: absolute;
+    inset: 50% 0 auto 0;
+    height: 1px;
+    background: var(--thread);
+  }
+  .s3-cue .s3-bead {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 10px;
+    height: 10px;
+    animation: s3-cue 2.6s var(--ease) infinite;
+  }
+
+  .s3-hero-veil {
+    background: linear-gradient(rgb(246 241 233 / 0) 30%, rgb(246 241 233 / 0.86) 62%);
+  }
+  @media (min-width: 768px) {
+    .s3-hero-veil {
+      background: radial-gradient(130% 100% at 0% 100%, rgb(246 241 233 / 0.94) 0%, rgb(246 241 233 / 0.8) 42%, rgb(246 241 233 / 0) 74%);
+    }
+  }
+
+  .s3-tag {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+    color: var(--ink);
+    text-align: center;
+    user-select: none;
+  }
+  .s3-tag-name {
+    font-family: var(--font-gloock), Georgia, serif;
+    font-size: 17px;
+    line-height: 1.1;
+  }
+  .s3-tag-price {
+    font-family: var(--font-figtree), system-ui, sans-serif;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .s3-rail-knot {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+  }
+  .s3-rail-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--linen);
+    border: 1px solid var(--thread);
+    transition:
+      transform 0.3s var(--ease),
+      background-color 0.3s var(--ease);
+  }
+  .s3-rail-knot:hover .s3-rail-dot,
+  .s3-rail-knot:focus-visible .s3-rail-dot {
+    transform: scale(1.6);
+    background: var(--thread);
+  }
+  .s3-rail-knot:active .s3-rail-dot {
+    transform: scale(1.2);
+  }
+  .s3-rail-tip {
+    position: absolute;
+    right: 28px;
+    top: 50%;
+    translate: 0 -50%;
+    white-space: nowrap;
+    font-size: 13px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    background: var(--warm);
+    border: 1px solid var(--line);
+    opacity: 0;
+    transform: translateX(6px);
+    transition:
+      opacity 0.25s var(--ease),
+      transform 0.35s var(--ease);
+    pointer-events: none;
+  }
+  .s3-rail-knot:hover .s3-rail-tip,
+  .s3-rail-knot:focus-visible .s3-rail-tip {
+    opacity: 1;
+    transform: none;
+  }
+
+  .s3-piece {
+    background: var(--warm);
+    border: 1px solid var(--line);
+    border-radius: 200px 200px 26px 26px;
+    overflow: hidden;
+    box-shadow: 0 34px 70px -44px rgb(34 24 15 / 0.5);
+  }
+  .s3-piece-photo {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 0.9;
+    border-radius: 200px 200px 0 0;
+    overflow: hidden;
+  }
+  .s3-piece-photo img {
+    transition: transform 1.2s var(--ease);
+  }
+  .s3-piece-photo:hover img {
+    transform: scale(1.04);
+  }
+
+  /* ---------- nav ---------- */
+  .s3-head {
+    background: linear-gradient(var(--linen) 35%, rgb(246 241 233 / 0));
+  }
+  .s3-wt {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 84px;
+    height: 36px;
+  }
+  .s3-wt::before {
+    content: "";
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    top: 50%;
+    height: 1px;
+    background: var(--thread);
+  }
+  .s3-wt-knot {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    translate: -50% -50%;
+    border-radius: 999px;
+    background: #8f6c3c;
+  }
+  .s3-wt-b {
+    position: absolute;
+    top: 50%;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    margin-top: -15px;
+    transition: transform 0.7s var(--ease);
+  }
+  .s3-wt-b .s3-bead {
+    width: 15px;
+    height: 15px;
+    transition:
+      transform 0.7s var(--ease),
+      opacity 0.4s var(--ease);
+  }
+  .s3-wt-b[aria-pressed="false"] .s3-bead {
+    transform: scale(0.72);
+    opacity: 0.72;
+  }
+  .s3-wt-b[aria-pressed="false"]:hover .s3-bead {
+    transform: scale(0.9);
+    opacity: 1;
+  }
+  .s3-wt-b:active .s3-bead {
+    transform: scale(0.8);
+  }
+
+  .s3-bagbtn svg {
+    overflow: visible;
+  }
+
+  /* ---------- menu ---------- */
+  .s3-menu-item {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    translate: -7px -50%;
+  }
+  .s3-menu-item .s3-bead {
+    width: 14px;
+    height: 14px;
+    flex: none;
+    transition: transform 0.4s var(--ease);
+  }
+  .s3-menu-item a,
+  .s3-menu-item button {
+    font-family: var(--font-gloock), Georgia, serif;
+    font-size: clamp(1.9rem, 3.4vw, 3.4rem);
+    line-height: 1;
+    transition:
+      color 0.3s var(--ease),
+      transform 0.5s var(--ease);
+  }
+  .s3-menu-item:hover .s3-bead {
+    transform: scale(1.35);
+  }
+  .s3-menu-item:hover a,
+  .s3-menu-item:hover button {
+    color: var(--m-accent);
+    transform: translateX(4px);
+  }
+
+  /* ---------- sections ---------- */
+  .s3-h2 {
+    font-family: var(--font-gloock), Georgia, serif;
+    font-weight: 400;
+    font-size: clamp(2.6rem, 6vw, 6rem);
+    line-height: 0.95;
+    letter-spacing: -0.01em;
+  }
+  .s3-lede {
+    font-size: clamp(1.05rem, 1.35vw, 1.25rem);
+    line-height: 1.6;
+    color: rgb(34 24 15 / 0.82);
+  }
+  .s3-hang-thread {
+    width: 1.25px;
+    background: var(--thread);
+    margin: 0 auto;
+  }
+  .s3-cap {
+    display: block;
+    width: 22px;
+    height: 10px;
+    margin: -1px auto 0;
+    border-radius: 6px 6px 12px 12px;
+    background: linear-gradient(#d8bb84, #96733f);
+  }
+
+  /* footer charms */
+  .s3-charm {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform-origin: 50% 0;
+    transition: transform 0.7s var(--ease);
+  }
+  .s3-charm:hover,
+  .s3-charm:focus-within {
+    transform: rotate(-5deg);
+  }
+  .s3-charm:active {
+    transform: rotate(-2deg) translateY(2px);
+  }
+
+  /* form fields */
+  .s3-field {
+    display: block;
+  }
+  .s3-field span {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .s3-input {
+    width: 100%;
+    min-height: 48px;
+    padding: 0 16px;
+    border-radius: 14px;
+    border: 1px solid rgb(34 24 15 / 0.18);
+    background: var(--warm);
+    color: var(--ink);
+    font-size: 16px;
+    transition:
+      border-color 0.25s var(--ease),
+      box-shadow 0.25s var(--ease);
+  }
+  textarea.s3-input {
+    padding: 12px 16px;
+    min-height: 96px;
+  }
+  .s3-input:hover {
+    border-color: rgb(34 24 15 / 0.36);
+  }
+  .s3-input:focus {
+    outline: none;
+    border-color: var(--ink);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--m-accent) 22%, transparent);
+  }
+  .s3-input:user-invalid {
+    border-color: #a0382a;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .s3-cue .s3-bead {
+      animation: none;
+      transform: translateX(18px);
+    }
+    .s3 *,
+    .s3 *::before,
+    .s3 *::after {
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* vault bead numbers read on either wood */
+  .s3-vnum {
+    color: var(--warm);
+    text-shadow: 0 1px 1px rgb(0 0 0 / 0.35);
+  }
+  html[data-wood="white"] .s3-vnum {
+    color: var(--ink);
+    text-shadow: none;
+  }
+}
