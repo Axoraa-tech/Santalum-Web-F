@@ -31,7 +31,7 @@ export default function ComingSoon() {
             000
           </span>
           <span className="mx-2 text-walnut/50">/</span>108
-          <span className="soon-count-label mt-2 block">Stringing the mala</span>
+          <span className="soon-count-label mt-2 block" />
         </p>
         <p className="text-[10px] tracking-[0.42em] text-walnut/70 uppercase md:text-[11px]">Estd. 1985</p>
       </header>

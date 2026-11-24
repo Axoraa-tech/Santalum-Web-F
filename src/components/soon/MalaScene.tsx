@@ -1,139 +1,70 @@
 "use client";
 
-import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
-import { Environment, Lightformer, Line, MeshReflectorMaterial, PerformanceMonitor, Sparkles } from "@react-three/drei";
+import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
+import { Environment, Lightformer, Line, PerformanceMonitor, Sparkles } from "@react-three/drei";
 import { DepthOfField, EffectComposer, Vignette } from "@react-three/postprocessing";
 import type { DepthOfFieldEffect } from "postprocessing";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { Line2 } from "three-stdlib";
 import { strike } from "./bowl";
+import { glowFragment, glowVertex, makeWoodMaps, rng } from "./materials";
+import { Floor, Lights, Rays, SOURCE, rayTexture } from "./Studio";
 
 /* =====================================================================
-   One shot in a pale, calm studio with light falling from behind.
-   1. 108 loose red-sandalwood beads lie in a slow spiral on the floor.
-   2. A brass needle draws a thread through them, one by one (a loader).
-   3. The strung beads gather into a circle, the two ends cross, a knot is
-      tied and pulled tight; the guru bead and tassel settle. A bowl rings.
-   4. The mala is then elastic: drag it, let go, it springs back.
+   A loop, like life. In a pale, calm studio light falls from behind.
+   1. Draw    A spark of light descends the ray and runs around a circle,
+              laying a golden thread. Each bead is born from the light:
+              it streams down the ray, glowing, and cools into red wood.
+   2. Tie     The ends meet, a knot is tied and pulled tight; the guru
+              bead and tassel settle. A singing bowl rings.
+   3. Rest    The mala is elastic: draw it out, let go, it springs back.
+   4. Return  The light runs back along the thread; each bead rises up
+              the ray into the light, and the thread unwinds.
+   ...and the same light descends again. The end is the beginning.
    ===================================================================== */
 
 const N = 108;
 const BEAD = 0.06;
-const Y = BEAD * 0.9; // bead centre height when resting on the floor
-const GAP = BEAD * 2.04; // centre-to-centre spacing on the thread
-const R = (N * GAP) / (Math.PI * 2); // closed-circle radius
-const TAIL = 6; // points per loose thread end
+const Y = BEAD * 0.9;
+const GAP = BEAD * 2.04;
+const R = (N * GAP) / (Math.PI * 2);
+const TAIL = 6;
+const FRONT = Math.PI / 2;
 
-// Timeline (seconds)
-const T_THREAD = 1.2;
-const T_GATHER = 6.0;
-const T_TIE = 8.4;
-const T_REST = 10.2;
-
-const FRONT = Math.PI / 2; // angle on the floor that faces the camera (+z)
+// One cycle (seconds)
+const DRAW0 = 1.4;
+const DRAW = 6.4;
+const TIE0 = DRAW0 + DRAW + 0.5;
+const TIE = 1.8;
+const REST0 = TIE0 + TIE;
+const RET0 = REST0 + 11;
+const RET = 4.2;
+const LOOP = RET0 + RET + 0.8;
+const FALL = 0.6; // a bead's journey down the ray
+const COOL = 1.4; // glow fading into wood
 
 const BG = "#e5d9c6";
 const THREAD = "#9a6a36";
 
-function rng(seed: number) {
-  let s = seed;
-  return () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
-}
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
 const smooth = (x: number) => x * x * (3 - 2 * x);
+const easeOut = (x: number) => 1 - Math.pow(1 - x, 3);
+const easeIn = (x: number) => x * x * x;
 const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 const lerp = THREE.MathUtils.lerp;
 
-/* Scratch objects reused every frame (no allocations in the loop). */
 const scratch = new THREE.Object3D();
 const v1 = new THREE.Vector3();
 const v2 = new THREE.Vector3();
 const UP = new THREE.Vector3(0, 1, 0);
 const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -Y);
+/** Where a bead enters the frame: part-way up the ray of light. */
+const RAY_START = 0.42;
 
-/** Shot clock and interaction state, shared by the scene parts. */
-const shot = { t: 0, dragging: -1, hover: false };
+/** Shot clock and interaction state. `total` keeps running across loops. */
+const shot = { t: 0, total: 0, cycle: 0, dragging: -1, hover: false };
 
-/* ---------- Procedural heartwood ---------- */
-function makeWoodMaps() {
-  const w = 1024;
-  const h = 512;
-  const color = document.createElement("canvas");
-  color.width = w;
-  color.height = h;
-  const c = color.getContext("2d")!;
-  const r = rng(29);
-  const g = c.createLinearGradient(0, 0, 0, h);
-  g.addColorStop(0, "#7a2416");
-  g.addColorStop(0.5, "#8e2e1a");
-  g.addColorStop(1, "#6a1f13");
-  c.fillStyle = g;
-  c.fillRect(0, 0, w, h);
-  for (let k = 0; k < 26; k++) {
-    const y = r() * h;
-    const bh = 8 + r() * 40;
-    c.fillStyle = r() > 0.5 ? `rgba(40,8,4,${0.08 + r() * 0.12})` : `rgba(190,90,55,${0.05 + r() * 0.08})`;
-    c.beginPath();
-    for (let x = 0; x <= w; x += 16) c.lineTo(x, y + Math.sin(x * 0.006 + k) * 14 + Math.sin(x * 0.021 + k * 3) * 4);
-    for (let x = w; x >= 0; x -= 16) c.lineTo(x, y + bh + Math.sin(x * 0.006 + k) * 14 + Math.sin(x * 0.017 + k) * 5);
-    c.fill();
-  }
-  for (let k = 0; k < 900; k++) {
-    const y = r() * h;
-    const x0 = r() * w;
-    const len = 60 + r() * 260;
-    c.strokeStyle = r() > 0.4 ? `rgba(30,6,3,${0.06 + r() * 0.14})` : `rgba(210,120,80,${0.04 + r() * 0.07})`;
-    c.lineWidth = 0.5 + r() * 1.3;
-    c.beginPath();
-    c.moveTo(x0, y);
-    c.bezierCurveTo(x0 + len * 0.33, y + (r() - 0.5) * 6, x0 + len * 0.66, y + (r() - 0.5) * 6, x0 + len, y + (r() - 0.5) * 4);
-    c.stroke();
-  }
-  for (let k = 0; k < 2600; k++) {
-    c.fillStyle = `rgba(20,4,2,${0.2 + r() * 0.35})`;
-    c.fillRect(r() * w, r() * h, 1 + r() * 2.2, 0.7 + r() * 0.8);
-  }
-  const bump = document.createElement("canvas");
-  bump.width = w;
-  bump.height = h;
-  const b = bump.getContext("2d")!;
-  b.filter = "grayscale(1) contrast(1.6) brightness(1.4)";
-  b.drawImage(color, 0, 0);
-  const map = new THREE.CanvasTexture(color);
-  map.colorSpace = THREE.SRGBColorSpace;
-  map.anisotropy = 8;
-  const bumpMap = new THREE.CanvasTexture(bump);
-  bumpMap.anisotropy = 8;
-  return { map, bumpMap };
-}
-
-/* ---------- Layouts ---------- */
-
-/** Loose beads lying in a slow inward spiral, with room between them. */
-function spiralLayout() {
-  const r = rng(41);
-  const turns = 2.1;
-  const S = 4000;
-  const pts: THREE.Vector3[] = [];
-  for (let i = 0; i <= S; i++) {
-    const u = i / S;
-    const a = FRONT + 0.6 + u * turns * Math.PI * 2;
-    const rad = lerp(2.7, 0.7, u);
-    pts.push(new THREE.Vector3(Math.cos(a) * rad, Y, Math.sin(a) * rad * 0.92));
-  }
-  const curve = new THREE.CatmullRomCurve3(pts);
-  const out: THREE.Vector3[] = [];
-  for (let i = 0; i < N; i++) {
-    const p = curve.getPointAt(i / (N - 1));
-    p.x += (r() - 0.5) * 0.03;
-    p.z += (r() - 0.5) * 0.03;
-    out.push(p);
-  }
-  return out;
-}
-
-/** The strung circle, open by `gap` radians at the front, with radius `rad`. */
 function circleAt(i: number, gap: number, rad: number, out: THREE.Vector3) {
   const a = FRONT + gap / 2 + ((Math.PI * 2 - gap) * i) / (N - 1);
   return out.set(Math.cos(a) * rad, Y, Math.sin(a) * rad);
@@ -143,10 +74,12 @@ type Sim = {
   pos: Float32Array;
   vel: Float32Array;
   rest: Float32Array;
+  from: Float32Array; // where each bead was when the return began
   thread: Float32Array;
-  struck: boolean;
-  lastCount: number;
   phase: string;
+  count: number;
+  rang: number; // cycle in which the bowl last rang for the knot
+  captured: number; // cycle in which `from` was captured
   grabStretch: number;
 };
 
@@ -160,25 +93,27 @@ function makeSim(): Sim {
     pos: new Float32Array(N * 3),
     vel: new Float32Array(N * 3),
     rest,
+    from: new Float32Array(N * 3),
     thread: new Float32Array((N + TAIL * 2) * 3),
-    struck: false,
-    lastCount: -1,
     phase: "",
+    count: -1,
+    rang: -1,
+    captured: -1,
     grabStretch: 0,
   };
 }
 
-/* ---------- The mala ---------- */
 function Mala({ mobile }: { mobile: boolean }) {
   const beads = useRef<THREE.InstancedMesh>(null);
+  const glow = useRef<THREE.Points>(null);
+  const glowMat = useRef<THREE.ShaderMaterial>(null);
+  const beam = useRef<THREE.Mesh>(null);
   const guru = useRef<THREE.Group>(null);
   const knot = useRef<THREE.Mesh>(null);
-  const needle = useRef<THREE.Mesh>(null);
   const line = useRef<Line2>(null);
   const sim = useRef<Sim | null>(null);
-  const spiral = useMemo(() => spiralLayout(), []);
 
-  const { geo, mat, brass, silk, cord, colors, spins } = useMemo(() => {
+  const { geo, mat, brass, silk, cord, spins, beamMat, glowGeo, glowUniforms } = useMemo(() => {
     const { map, bumpMap } = makeWoodMaps();
     const geo = new THREE.SphereGeometry(BEAD, 48, 32);
     geo.scale(1, 0.9, 1);
@@ -195,24 +130,33 @@ function Mala({ mobile }: { mobile: boolean }) {
     const silk = new THREE.MeshPhysicalMaterial({ color: "#6e1d14", roughness: 0.7 });
     const cord = new THREE.MeshStandardMaterial({ color: THREAD, roughness: 0.8 });
     const r = rng(91);
-    const colors = new Float32Array(N * 3);
-    const col = new THREE.Color();
-    for (let i = 0; i < N; i++) {
-      col.setHSL(0.02 + r() * 0.025, 0.5 + r() * 0.2, 0.62 + r() * 0.22);
-      colors.set([col.r, col.g, col.b], i * 3);
-    }
     const spins = Array.from({ length: N }, () => [r() * 6.28, r() * 6.28, r() * 6.28] as const);
-    return { geo, mat, brass, silk, cord, colors, spins };
+    const beamMat = new THREE.MeshBasicMaterial({
+      map: rayTexture(),
+      color: "#fff1d6",
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      fog: false,
+      toneMapped: false,
+      side: THREE.DoubleSide,
+    });
+    // One glow per bead plus one for the spark of light.
+    const glowGeo = new THREE.BufferGeometry();
+    glowGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array((N + 1) * 3), 3));
+    glowGeo.setAttribute("aSize", new THREE.BufferAttribute(new Float32Array(N + 1), 1));
+    glowGeo.setAttribute("aAlpha", new THREE.BufferAttribute(new Float32Array(N + 1), 1));
+    const glowUniforms = { uScale: { value: 500 }, uColor: { value: new THREE.Color("#fff0cf") } };
+    return { geo, mat, brass, silk, cord, spins, beamMat, glowGeo, glowUniforms };
   }, []);
 
   const tassel = useMemo(() => {
     const r = rng(13);
     return Array.from({ length: 70 }, () => ({ ang: (r() - 0.5) * 0.22, len: 0.3 + r() * 0.08, lift: r() * 0.012 }));
   }, []);
-
   const initialThread = useMemo(() => Array.from({ length: N + TAIL * 2 }, () => new THREE.Vector3(0, -1, 0)), []);
 
-  // Let go of the ring wherever the pointer is released; the bowl answers the pull.
   useEffect(() => {
     const up = () => {
       if (shot.dragging < 0) return;
@@ -225,14 +169,13 @@ function Mala({ mobile }: { mobile: boolean }) {
     return () => {
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", up);
-      shot.t = 0;
-      shot.dragging = -1;
+      Object.assign(shot, { t: 0, total: 0, cycle: 0, dragging: -1, hover: false });
     };
   }, []);
 
   const nearest = useCallback((p: THREE.Vector3) => {
     const s = sim.current;
-    if (!s || shot.t < T_REST) return -1;
+    if (!s || shot.t < REST0 || shot.t > RET0) return -1;
     let best = -1;
     let bd = 0.36 * 0.36;
     for (let i = 0; i < N; i++) {
@@ -246,7 +189,6 @@ function Mala({ mobile }: { mobile: boolean }) {
     }
     return best;
   }, []);
-
   const onDown = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
       const i = nearest(e.point);
@@ -271,36 +213,82 @@ function Mala({ mobile }: { mobile: boolean }) {
 
   useFrame((state, delta) => {
     const mesh = beads.current;
-    if (!mesh) return;
-    if (!mesh.instanceColor) mesh.instanceColor = new THREE.InstancedBufferAttribute(colors, 3);
+    const pts = glow.current;
+    if (!mesh || !pts) return;
     if (!sim.current) sim.current = makeSim();
     const s = sim.current;
-    // The story runs on real time (so a slow device doesn't slow the film); physics steps are clamped.
-    shot.t += Math.min(delta, 0.25);
-    const dt = Math.min(delta, 1 / 30);
+
+    // ---------- clock: real time, held while someone is holding the mala ----------
+    const step = Math.min(delta, 0.25);
+    shot.total += step;
+    if (!(shot.dragging >= 0 && shot.t > RET0 - 0.5)) shot.t += step;
+    if (shot.t >= LOOP) {
+      shot.t -= LOOP;
+      shot.cycle += 1;
+    }
     const t = shot.t;
+    const dt = Math.min(delta, 1 / 30);
 
-    // ---------- where each bead is ----------
-    const threadP = clamp01((t - T_THREAD) / (T_GATHER - T_THREAD));
-    const strung = threadP * (N - 1); // continuous index of the needle
-    const tieP = smooth(clamp01((t - T_TIE) / (T_REST - T_TIE)));
-    const gap = lerp(0.55, (GAP / R) * 0.98, tieP);
-    const rad = lerp(R * 1.06, R, tieP);
+    const head = clamp01((t - DRAW0) / DRAW) * (N - 1); // spark index while drawing
+    const tieP = smooth(clamp01((t - TIE0) / TIE));
+    const gap = lerp(0.42, (GAP / R) * 0.98, tieP);
+    const rad = lerp(R * 1.04, R, tieP);
+    const back = (N - 1) * (1 - clamp01((t - RET0) / (RET * 0.8))); // spark index while returning
 
-    if (t < T_REST) {
-      for (let i = 0; i < N; i++) {
-        // Stagger the gathering so the circle closes like a drawstring.
-        const g = smooth(clamp01((t - T_GATHER - (i / N) * 0.9) / 1.6));
+    const sizes = pts.geometry.attributes.aSize.array as Float32Array;
+    const alphas = pts.geometry.attributes.aAlpha.array as Float32Array;
+    const gpos = pts.geometry.attributes.position.array as Float32Array;
+
+    // Capture where every bead is the moment the return begins (it may have been pulled).
+    if (t >= RET0 && s.captured !== shot.cycle) {
+      s.captured = shot.cycle;
+      s.from.set(s.pos);
+    }
+
+    for (let i = 0; i < N; i++) {
+      const born = DRAW0 + (i / (N - 1)) * DRAW;
+      const fall = easeOut(clamp01((t - born) / FALL));
+      let gl = t >= born ? 1 - smooth(clamp01((t - born) / COOL)) : 0;
+      let scale = t >= born ? lerp(0.35, 1, fall) : 0;
+
+      if (t < REST0) {
+        // Born from light: stream down the ray onto the thread.
         circleAt(i, gap, rad, v1);
-        const a = spiral[i];
-        // While being strung, a bead lifts a hair as the needle passes.
-        const pass = t < T_GATHER ? Math.exp(-Math.pow((strung - i) * 0.9, 2)) * 0.04 : 0;
-        s.pos[i * 3] = lerp(a.x, v1.x, g);
-        s.pos[i * 3 + 1] = Y + pass + Math.sin(g * Math.PI) * 0.05;
-        s.pos[i * 3 + 2] = lerp(a.z, v1.z, g);
+        v2.copy(v1).lerp(SOURCE, RAY_START * (1 - fall));
+        s.pos[i * 3] = v2.x;
+        s.pos[i * 3 + 1] = v2.y;
+        s.pos[i * 3 + 2] = v2.z;
+        s.vel[i * 3] = 0;
+        s.vel[i * 3 + 2] = 0;
+      } else if (t >= RET0) {
+        // Return: last bead first, each rises back up the ray into the light.
+        const go = RET0 + ((N - 1 - i) / (N - 1)) * RET * 0.8;
+        const g = clamp01((t - go) / FALL);
+        v1.set(s.from[i * 3], s.from[i * 3 + 1], s.from[i * 3 + 2]);
+        v2.copy(v1).lerp(SOURCE, RAY_START * easeIn(g));
+        s.pos[i * 3] = v2.x;
+        s.pos[i * 3 + 1] = v2.y;
+        s.pos[i * 3 + 2] = v2.z;
+        gl = smooth(clamp01((t - go + 0.4) / 0.5));
+        scale = g >= 1 ? 0 : lerp(1, 0.3, g);
       }
-    } else {
-      // ---------- elastic ring ----------
+      sizes[i] = BEAD * 9 * gl;
+      alphas[i] = gl * 0.9;
+      gpos[i * 3] = s.pos[i * 3];
+      gpos[i * 3 + 1] = s.pos[i * 3 + 1];
+      gpos[i * 3 + 2] = s.pos[i * 3 + 2];
+
+      scratch.position.set(s.pos[i * 3], s.pos[i * 3 + 1], s.pos[i * 3 + 2]);
+      const [a, b, c] = spins[i];
+      const settle = fall;
+      scratch.rotation.set(lerp(a, Math.PI / 2, settle), lerp(b, -FRONT, settle), lerp(c, 0, settle));
+      scratch.scale.setScalar(Math.max(0.0001, scale));
+      scratch.updateMatrix();
+      mesh.setMatrixAt(i, scratch.matrix);
+    }
+
+    // ---------- rest: an elastic ring ----------
+    if (t >= REST0 && t < RET0) {
       const k = 26;
       const damp = Math.exp(-6 * dt);
       for (let i = 0; i < N * 3; i += 3) {
@@ -314,7 +302,6 @@ function Mala({ mobile }: { mobile: boolean }) {
       if (d >= 0) {
         state.raycaster.setFromCamera(state.pointer, state.camera);
         if (state.raycaster.ray.intersectPlane(floorPlane, v1)) {
-          // The thread stretches, but only so far.
           v2.set(s.rest[d * 3], Y, s.rest[d * 3 + 2]);
           const off = v1.sub(v2);
           const max = 1.4;
@@ -326,7 +313,6 @@ function Mala({ mobile }: { mobile: boolean }) {
           s.vel[d * 3 + 2] = 0;
         }
       }
-      // Neighbours keep their spacing: never overlap, resist stretching.
       for (let it = 0; it < 4; it++) {
         for (let i = 0; i < N; i++) {
           const j = (i + 1) % N;
@@ -343,128 +329,179 @@ function Mala({ mobile }: { mobile: boolean }) {
           s.pos[j * 3 + 2] -= dz * corr * (wj / sum);
         }
       }
-    }
-
-    // ---------- draw beads ----------
-    for (let i = 0; i < N; i++) {
-      const appear = smooth(clamp01((t - (i / N) * 1.0) / 0.5));
-      scratch.position.set(s.pos[i * 3], s.pos[i * 3 + 1], s.pos[i * 3 + 2]);
-      const [a, b, c] = spins[i];
-      // Once on the thread, each bead turns so its hole follows the strand.
-      const settle = smooth(clamp01((strung - i) / 3));
-      scratch.rotation.set(lerp(a, Math.PI / 2, settle), lerp(b, -FRONT, settle), lerp(c, 0, settle));
-      scratch.scale.setScalar(Math.max(0.0001, appear));
-      scratch.updateMatrix();
-      mesh.setMatrixAt(i, scratch.matrix);
+      for (let i = 0; i < N; i++) {
+        scratch.position.set(s.pos[i * 3], Y, s.pos[i * 3 + 2]);
+        const [a, b, c] = spins[i];
+        scratch.rotation.set(lerp(a, Math.PI / 2, 1), lerp(b, -FRONT, 1), lerp(c, 0, 1));
+        scratch.scale.setScalar(1);
+        scratch.updateMatrix();
+        mesh.setMatrixAt(i, scratch.matrix);
+        gpos[i * 3] = s.pos[i * 3];
+        gpos[i * 3 + 2] = s.pos[i * 3 + 2];
+      }
     }
     mesh.instanceMatrix.needsUpdate = true;
 
-    // ---------- junction where the two ends meet ----------
+    // ---------- the spark of light and its ray ----------
+    const drawing = t >= DRAW0 - 0.6 && t < DRAW0 + DRAW + 0.4;
+    const returning = t >= RET0 && t < RET0 + RET * 0.8 + 0.4;
+    const idx = drawing ? head : back;
+    const hi = Math.min(N - 1, Math.floor(idx));
+    const hf = idx - hi;
+    if (drawing) {
+      circleAt(hi, gap, rad, v1);
+      circleAt(Math.min(N - 1, hi + 1), gap, rad, v2);
+    } else {
+      v1.set(s.from[hi * 3], Y, s.from[hi * 3 + 2]);
+      const n = Math.min(N - 1, hi + 1);
+      v2.set(s.from[n * 3], Y, s.from[n * 3 + 2]);
+    }
+    v1.lerp(v2, hf);
+    // Before drawing starts, the spark descends the ray to its first point.
+    const descend = drawing ? easeOut(clamp01((t - (DRAW0 - 0.6)) / 0.6)) : 1;
+    v1.lerp(SOURCE, 0.5 * (1 - descend));
+    const sparkOn = (drawing || returning ? 1 : 0) * (returning ? 1 - smooth(clamp01((t - RET0 - RET * 0.8) / 0.4)) : 1);
+    gpos[N * 3] = v1.x;
+    gpos[N * 3 + 1] = v1.y + 0.02;
+    gpos[N * 3 + 2] = v1.z;
+    sizes[N] = 0.55 * sparkOn * (0.9 + 0.1 * Math.sin(shot.total * 18));
+    alphas[N] = sparkOn;
+    pts.geometry.attributes.position.needsUpdate = true;
+    pts.geometry.attributes.aSize.needsUpdate = true;
+    pts.geometry.attributes.aAlpha.needsUpdate = true;
+
+    const bm = beam.current;
+    if (bm) {
+      bm.visible = sparkOn > 0.01;
+      if (bm.visible) {
+        // A shaft of light from the source to the spark, facing the camera.
+        v2.copy(SOURCE).sub(v1);
+        const len = v2.length();
+        bm.position.copy(v1).addScaledVector(v2, 0.5);
+        bm.quaternion.setFromUnitVectors(UP, v2.normalize());
+        bm.scale.set(1, len, 1);
+        (bm.material as THREE.MeshBasicMaterial).opacity = 0.55 * sparkOn * (0.85 + 0.15 * Math.sin(shot.total * 9));
+      }
+    }
+    if (glowMat.current) {
+      const cam = state.camera as THREE.PerspectiveCamera;
+      glowMat.current.uniforms.uScale.value =
+        (state.size.height * state.viewport.dpr) / (2 * Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2));
+    }
+
+    // ---------- the thread ----------
     const e = (N - 1) * 3;
     const jx = (s.pos[0] + s.pos[e]) / 2;
     const jz = (s.pos[2] + s.pos[e + 2]) / 2;
     const jl = Math.hypot(jx, jz) || 1;
     const ox = jx / jl;
     const oz = jz / jl;
-
-    // ---------- the thread ----------
     const th = s.thread;
-    const tip = Math.min(N - 1, Math.floor(strung));
-    const frac = strung - tip;
-    const tipX = tip < N - 1 ? lerp(s.pos[tip * 3], s.pos[(tip + 1) * 3], frac) : s.pos[tip * 3];
-    const tipZ = tip < N - 1 ? lerp(s.pos[tip * 3 + 2], s.pos[(tip + 1) * 3 + 2], frac) : s.pos[tip * 3 + 2];
-    const loose = 1 - tieP;
-    // Free end before bead 0: a curl of slack, drawn in as the knot is tied.
+    const knotOut = smooth(clamp01((t - RET0) / 0.8)); // knot loosens as the return begins
+    const loose = Math.max(1 - tieP, knotOut);
+    const visibleTo = t < REST0 ? head : t >= RET0 ? back : N - 1;
+    const lineOn = t >= DRAW0 - 0.2 && !(t >= RET0 + RET * 0.8 + 0.2);
     for (let k = 0; k < TAIL; k++) {
-      const u = 1 - k / TAIL; // 1 = free end
-      const lx = s.pos[0] + ox * 0.5 * u - oz * 0.18 * Math.sin(u * 3);
-      const lz = s.pos[2] + oz * 0.5 * u + ox * 0.18 * Math.sin(u * 3);
+      const u = 1 - k / TAIL;
+      const lx = s.pos[0] + ox * 0.45 * u - oz * 0.16 * Math.sin(u * 3);
+      const lz = s.pos[2] + oz * 0.45 * u + ox * 0.16 * Math.sin(u * 3);
       th[k * 3] = lerp(jx + ox * 0.2 * u, lx, loose);
-      th[k * 3 + 1] = Y;
+      th[k * 3 + 1] = lineOn ? Y : -1;
       th[k * 3 + 2] = lerp(jz + oz * 0.2 * u, lz, loose);
     }
     for (let i = 0; i < N; i++) {
       const o = (TAIL + i) * 3;
-      const ahead = t < T_GATHER && i > tip;
-      th[o] = ahead ? tipX : s.pos[i * 3];
-      th[o + 1] = ahead ? Y : s.pos[i * 3 + 1];
-      th[o + 2] = ahead ? tipZ : s.pos[i * 3 + 2];
+      // The thread lies on the floor where each bead will land.
+      const onFloor = t < REST0 ? circleAt(i, gap, rad, v2) : v2.set(s.pos[i * 3], Y, s.pos[i * 3 + 2]);
+      const ahead = i > visibleTo;
+      th[o] = ahead ? v1.x : t >= RET0 ? s.from[i * 3] : onFloor.x;
+      th[o + 1] = lineOn ? Y : -1;
+      th[o + 2] = ahead ? v1.z : t >= RET0 ? s.from[i * 3 + 2] : onFloor.z;
     }
     for (let k = 0; k < TAIL; k++) {
       const u = (k + 1) / TAIL;
       const o = (TAIL + N + k) * 3;
-      if (t < T_GATHER) {
-        th[o] = tipX;
-        th[o + 1] = Y;
-        th[o + 2] = tipZ;
+      if (t < TIE0 - 0.3 || (t >= RET0 && back < N - 1)) {
+        th[o] = th[(TAIL + N - 1) * 3];
+        th[o + 1] = lineOn ? Y : -1;
+        th[o + 2] = th[(TAIL + N - 1) * 3 + 2];
         continue;
       }
-      const lx = s.pos[e] + ox * 0.5 * u + oz * 0.18 * Math.sin(u * 3);
-      const lz = s.pos[e + 2] + oz * 0.5 * u - ox * 0.18 * Math.sin(u * 3);
+      const lx = s.pos[e] + ox * 0.45 * u + oz * 0.16 * Math.sin(u * 3);
+      const lz = s.pos[e + 2] + oz * 0.45 * u - ox * 0.16 * Math.sin(u * 3);
       th[o] = lerp(jx + ox * 0.2 * u, lx, loose);
-      th[o + 1] = Y;
+      th[o + 1] = lineOn ? Y : -1;
       th[o + 2] = lerp(jz + oz * 0.2 * u, lz, loose);
+    }
+    // Never let two points coincide: zero-length segments make the line shader output NaN pixels.
+    for (let i = 3; i < th.length; i += 3) {
+      if (Math.abs(th[i] - th[i - 3]) + Math.abs(th[i + 2] - th[i - 1]) < 1e-4) {
+        th[i] = th[i - 3] + 2e-4;
+        th[i + 2] = th[i - 1] + 1e-4;
+      }
     }
     line.current?.geometry.setPositions(th);
 
-    // Needle leads the thread while stringing.
-    const nd = needle.current;
-    if (nd) {
-      const on = t > T_THREAD - 0.3 && t < T_GATHER + 0.2;
-      nd.visible = on;
-      if (on) {
-        const nx = tip < N - 1 ? s.pos[(tip + 1) * 3] - s.pos[tip * 3] : 1;
-        const nz = tip < N - 1 ? s.pos[(tip + 1) * 3 + 2] - s.pos[tip * 3 + 2] : 0;
-        nd.position.set(tipX, Y + 0.01, tipZ);
-        nd.quaternion.setFromUnitVectors(UP, v1.set(nx, 0, nz).normalize());
-      }
-    }
-
+    // ---------- knot, guru bead, tassel ----------
+    const tied = t >= TIE0 && t < RET0 + 1.2;
     const kn = knot.current;
     if (kn) {
-      const kp = smooth(clamp01((t - T_TIE - 0.6) / 1.0));
-      kn.visible = kp > 0;
+      const kp = smooth(clamp01((t - TIE0 - 0.5) / 1.0)) * (1 - knotOut);
+      kn.visible = tied && kp > 0.001;
       kn.position.set(jx + ox * 0.2, Y * 0.7, jz + oz * 0.2);
       kn.scale.setScalar(Math.max(0.0001, kp));
-      kn.rotation.set(Math.PI / 2, 0, t * (1 - kp) * 4);
+      kn.rotation.set(Math.PI / 2, 0, shot.total * (1 - kp) * 4);
     }
     const gu = guru.current;
     if (gu) {
-      const gp = smooth(clamp01((t - T_TIE - 0.2) / 1.2));
-      gu.visible = gp > 0;
-      gu.position.set(jx + ox * 0.08, Y + (1 - gp) * 0.8, jz + oz * 0.08);
+      const arrive = smooth(clamp01((t - TIE0) / 1.2));
+      const leave = smooth(clamp01((t - RET0 - 0.2) / 1.0));
+      gu.visible = tied && arrive > 0.001 && leave < 0.999;
+      gu.position.set(lerp(jx + ox * 0.08, SOURCE.x * 0.4, leave), Y + (1 - arrive) * 0.8 + leave * 2.4, lerp(jz + oz * 0.08, SOURCE.z * 0.4, leave));
+      gu.scale.setScalar(Math.max(0.0001, 1 - leave * 0.7));
       gu.rotation.y = Math.atan2(ox, oz);
     }
-    if (!s.struck && t > T_TIE + 1.4) {
-      s.struck = true;
+    if (t > TIE0 + 1.3 && s.rang !== shot.cycle) {
+      s.rang = shot.cycle;
       strike(0.9);
     }
 
-    // The loading counter in the page follows the needle.
-    const count = t < T_THREAD ? 0 : Math.min(N, Math.round(strung + 1));
-    if (count !== s.lastCount) {
-      s.lastCount = count;
+    // ---------- the page: counter and phase ----------
+    const count = t < DRAW0 ? 0 : t < RET0 ? Math.min(N, Math.round(head + 1)) : Math.max(0, Math.round(back));
+    if (count !== s.count) {
+      s.count = count;
       const el = document.getElementById("bead-count");
       if (el) el.textContent = String(count).padStart(3, "0");
     }
-    const phase = t > T_REST ? "rest" : t > T_TIE ? "tie" : t > T_GATHER ? "gather" : "thread";
+    const phase = t < TIE0 ? "draw" : t < REST0 ? "tie" : t < RET0 ? "rest" : "return";
     if (phase !== s.phase) {
       s.phase = phase;
       document.documentElement.dataset.shot = phase;
+      if (phase === "tie") document.documentElement.dataset.tied = "1";
     }
   });
 
   return (
     <group>
-      {/* invisible floor catcher for grabbing the ring */}
       <mesh rotation-x={-Math.PI / 2} position-y={Y} onPointerDown={onDown} onPointerMove={onMove} visible={false}>
         <planeGeometry args={[14, 14]} />
       </mesh>
       <instancedMesh ref={beads} args={[geo, mat, N]} castShadow receiveShadow frustumCulled={false} />
       <Line ref={line} points={initialThread} color={THREAD} lineWidth={mobile ? 1.2 : 1.6} />
-      <mesh ref={needle} material={brass} visible={false} castShadow>
-        <cylinderGeometry args={[0.004, 0.0015, 0.22, 8]} />
+      <mesh ref={beam} material={beamMat} visible={false} renderOrder={2}>
+        <planeGeometry args={[0.16, 1]} />
       </mesh>
+      <points ref={glow} geometry={glowGeo} frustumCulled={false} renderOrder={3}>
+        <shaderMaterial
+          ref={glowMat}
+          vertexShader={glowVertex}
+          fragmentShader={glowFragment}
+          uniforms={glowUniforms}
+          transparent
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </points>
       <mesh ref={knot} material={cord} visible={false} castShadow>
         <torusKnotGeometry args={[0.022, 0.0075, 96, 10, 2, 3]} />
       </mesh>
@@ -488,161 +525,27 @@ function Mala({ mobile }: { mobile: boolean }) {
   );
 }
 
-/* ---------- Light falling from behind ---------- */
-function rayTexture() {
-  const c = document.createElement("canvas");
-  c.width = 64;
-  c.height = 512;
-  const g = c.getContext("2d")!;
-  const v = g.createLinearGradient(0, 0, 0, 512);
-  v.addColorStop(0, "rgba(255,255,255,0)");
-  v.addColorStop(0.15, "rgba(255,255,255,0.9)");
-  v.addColorStop(0.6, "rgba(255,255,255,0.35)");
-  v.addColorStop(1, "rgba(255,255,255,0)");
-  g.fillStyle = v;
-  g.fillRect(0, 0, 64, 512);
-  g.globalCompositeOperation = "destination-in";
-  const h = g.createLinearGradient(0, 0, 64, 0);
-  h.addColorStop(0, "rgba(0,0,0,0)");
-  h.addColorStop(0.5, "rgba(0,0,0,1)");
-  h.addColorStop(1, "rgba(0,0,0,0)");
-  g.fillStyle = h;
-  g.fillRect(0, 0, 64, 512);
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
-}
-
-function Rays() {
-  const group = useRef<THREE.Group>(null);
-  const { tex, beams } = useMemo(() => {
-    const r = rng(17);
-    return {
-      tex: rayTexture(),
-      beams: Array.from({ length: 7 }, (_, i) => ({
-        x: -2.6 + i * 0.75 + (r() - 0.5) * 0.4,
-        w: 0.5 + r() * 1.1,
-        tilt: (i - 3) * 0.07 + (r() - 0.5) * 0.05,
-        o: 0.1 + r() * 0.12,
-        speed: 0.15 + r() * 0.2,
-        phase: r() * 6.28,
-      })),
-    };
-  }, []);
-  useFrame((state) => {
-    const g = group.current;
-    if (!g) return;
-    const t = state.clock.elapsedTime;
-    const fadeIn = clamp01(t / 3);
-    g.children.forEach((m, i) => {
-      const b = beams[i];
-      const mat = (m as THREE.Mesh).material as THREE.MeshBasicMaterial;
-      mat.opacity = b.o * fadeIn * (0.75 + 0.25 * Math.sin(t * b.speed + b.phase));
-    });
-  });
-  // Beams run from the key light (high, behind) down to the mala.
-  const quat = useMemo(() => {
-    const dir = new THREE.Vector3(-1.2, 7, -5).normalize();
-    return new THREE.Quaternion().setFromUnitVectors(UP, dir);
-  }, []);
-  return (
-    <group ref={group} position={[-0.7, 3.9, -2.9]} quaternion={quat}>
-      {beams.map((b, i) => (
-        <mesh key={i} position-x={b.x * 0.7} rotation-y={b.tilt * 2} renderOrder={-1}>
-          <planeGeometry args={[b.w, 9]} />
-          <meshBasicMaterial
-            map={tex}
-            color="#fff3df"
-            transparent
-            opacity={0}
-            depthWrite={false}
-            blending={THREE.AdditiveBlending}
-            fog={false}
-            toneMapped={false}
-          />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
-/* ---------- Camera: low beside the needle, then cranes up to the circle ---------- */
+/** First loop: a slow crane from floor level up to the circle. After that, a calm, barely moving frame. */
 function Camera({ mobile, focus }: { mobile: boolean; focus: (d: number) => void }) {
   const look = useMemo(() => new THREE.Vector3(), []);
-  const from = useMemo(() => new THREE.Vector3(2.4, 0.7, 3.6), []);
-  const mid = useMemo(() => new THREE.Vector3(0.8, mobile ? 5.2 : 3.4, mobile ? 6.4 : 5.4), [mobile]);
+  const from = useMemo(() => new THREE.Vector3(1.8, 0.8, 4.2), []);
   const to = useMemo(() => new THREE.Vector3(0, mobile ? 6.6 : 3.7, mobile ? 7.8 : 7.9), [mobile]);
-  const finalLook = useMemo(() => new THREE.Vector3(0, mobile ? -1.5 : -1.05, mobile ? 1.9 : 1.5), [mobile]);
+  const fromLook = useMemo(() => new THREE.Vector3(0.2, 0.2, 0.6), []);
+  const toLook = useMemo(() => new THREE.Vector3(0, mobile ? -1.5 : -1.05, mobile ? 1.9 : 1.5), [mobile]);
   useFrame((state) => {
-    const t = shot.t;
     const cam = state.camera;
-    const a = easeInOut(clamp01(t / T_GATHER));
-    const b = easeInOut(clamp01((t - T_GATHER + 0.5) / (T_REST - T_GATHER + 0.5)));
-    cam.position.lerpVectors(from, mid, a).lerp(to, b);
+    const k = easeInOut(clamp01(shot.total / (TIE0 + 0.6)));
+    cam.position.lerpVectors(from, to, k);
     if (shot.dragging < 0) {
-      cam.position.x += state.pointer.x * 0.18 * b;
-      cam.position.y += state.pointer.y * 0.08 * b;
+      cam.position.x += state.pointer.x * 0.18 * k;
+      cam.position.y += state.pointer.y * 0.08 * k;
     }
-    const idle = Math.max(0, t - T_REST);
-    cam.position.x += Math.sin(idle * 0.07) * 0.3 * Math.min(1, idle / 5);
-    look.set(lerp(0.9, 0, a), 0, lerp(1.2, 0, a)).lerp(finalLook, b);
+    cam.position.x += Math.sin(shot.total * 0.07) * 0.25 * k;
+    look.lerpVectors(fromLook, toLook, k);
     cam.lookAt(look);
     focus(cam.position.distanceTo(look));
   });
   return null;
-}
-
-function Floor({ mobile }: { mobile: boolean }) {
-  return (
-    <mesh rotation-x={-Math.PI / 2} receiveShadow>
-      <planeGeometry args={[60, 60]} />
-      {mobile ? (
-        <meshStandardMaterial color="#e6dac8" roughness={0.85} />
-      ) : (
-        <MeshReflectorMaterial
-          resolution={512}
-          blur={[400, 120]}
-          mixBlur={1}
-          mixStrength={0.9}
-          mixContrast={1}
-          roughness={0.9}
-          metalness={0.05}
-          depthScale={0.6}
-          minDepthThreshold={0.4}
-          maxDepthThreshold={1.4}
-          color="#e6dac8"
-          mirror={0}
-        />
-      )}
-    </mesh>
-  );
-}
-
-function Lights() {
-  const { scene } = useThree();
-  const target = useMemo(() => {
-    const o = new THREE.Object3D();
-    scene.add(o);
-    return o;
-  }, [scene]);
-  return (
-    <>
-      {/* Key light from behind and above, along the rays, so shadows fall toward us. */}
-      <spotLight
-        position={[-1.2, 7, -5]}
-        target={target}
-        angle={0.5}
-        penumbra={1}
-        intensity={260}
-        color="#fff0da"
-        castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-bias={-0.0002}
-      />
-      <hemisphereLight args={["#fbf5ec", "#d9c7ae", 1.1]} />
-      <directionalLight position={[2, 3, 6]} intensity={0.5} color="#fff6ea" />
-    </>
-  );
 }
 
 export default function MalaScene({ mobile = false }: { mobile?: boolean }) {
@@ -653,28 +556,22 @@ export default function MalaScene({ mobile = false }: { mobile?: boolean }) {
   const focus = useCallback((d: number) => {
     if (dof.current) dof.current.cocMaterial.focusDistance = d;
   }, []);
+  const degrade = useCallback(() => {
+    setLite(true);
+    setDpr(1);
+  }, []);
   return (
     <Canvas
       shadows="soft"
       dpr={dpr}
-      camera={{ position: [2.4, 0.7, 3.6], fov: mobile ? 44 : 30, near: 0.1, far: 60 }}
+      camera={{ position: [1.8, 0.8, 4.2], fov: mobile ? 44 : 30, near: 0.1, far: 60 }}
       gl={{ antialias: false, powerPreference: "high-performance", stencil: false }}
       onCreated={({ gl }) => {
         gl.toneMapping = THREE.ACESFilmicToneMapping;
         gl.toneMappingExposure = 0.95;
       }}
     >
-      <PerformanceMonitor
-        onDecline={() => {
-          setLite(true);
-          setDpr(1);
-        }}
-        flipflops={2}
-        onFallback={() => {
-          setLite(true);
-          setDpr(1);
-        }}
-      />
+      <PerformanceMonitor onDecline={degrade} onFallback={degrade} flipflops={2} />
       <color attach="background" args={[BG]} />
       <fog attach="fog" args={[BG, mobile ? 9 : 8, mobile ? 20 : 17]} />
       <Environment resolution={256} frames={1}>

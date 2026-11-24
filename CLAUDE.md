@@ -7,11 +7,12 @@ This repo will become their e-commerce site. Today it holds the public coming-so
 
 ## Routes
 
-- `/` — **the public coming-soon page** (`src/app/(home)/page.tsx`). One calm cinematic 3D shot (`src/components/soon/MalaScene.tsx`)
-  in a pale studio with light falling from behind: 108 loose red-sandalwood beads lie in a spiral, a brass needle threads
-  them one by one (a bead counter in the header acts as the loader), the strand gathers into a circle, the ends are knotted
-  and pulled tight, and the guru bead and tassel settle. Afterwards the ring is elastic (drag, release, it springs back).
-  Sound: a synthesised singing bowl (`src/components/soon/bowl.ts`), starting on first interaction, with a mute toggle.
+- `/` — **the public coming-soon page** (`src/app/(home)/page.tsx`). A looping cinematic 3D shot (`src/components/soon/`),
+  "life ends in a loop": in a pale studio light falls from behind; a spark of light runs round a circle laying a thread
+  and each of 108 red-sandalwood beads is born from the ray, glowing, then cools into wood (header counter = loader);
+  the ends are knotted, guru bead and tassel settle, a singing bowl rings; the ring then rests and is elastic (drag,
+  release); then the light runs back, beads rise into the light, and the cycle begins again. `MalaScene.tsx` holds the
+  timeline, `Studio.tsx` the lights, rays and floor, `materials.ts` the textures and glow shader, `bowl.ts` the sound.
   Copy is only the brand, "Our website is coming soon.", email capture and socials. No products, photos or deities.
 - `/options`, `/s1`–`/s10` — earlier coming-soon design options (review only; do not edit without asking).
 - `/maison`, `/d/01`–`/d/10` — e-commerce design explorations (review only; do not edit without asking).
