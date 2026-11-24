@@ -63,7 +63,7 @@ const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -Y);
 const RAY_START = 0.42;
 
 /** Shot clock and interaction state. `total` keeps running across loops. */
-const shot = { t: 0, total: 0, cycle: 0, dragging: -1, hover: false };
+const shot = { t: 0, total: 0, cycle: 0, dragging: -1, hover: false, hold: false };
 
 function circleAt(i: number, gap: number, rad: number, out: THREE.Vector3) {
   const a = FRONT + gap / 2 + ((Math.PI * 2 - gap) * i) / (N - 1);
@@ -90,7 +90,7 @@ function makeSim(): Sim {
     rest.set([v1.x, v1.y, v1.z], i * 3);
   }
   return {
-    pos: new Float32Array(N * 3),
+    pos: rest.slice(),
     vel: new Float32Array(N * 3),
     rest,
     from: new Float32Array(N * 3),
@@ -147,7 +147,7 @@ function Mala({ mobile }: { mobile: boolean }) {
     glowGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array((N + 1) * 3), 3));
     glowGeo.setAttribute("aSize", new THREE.BufferAttribute(new Float32Array(N + 1), 1));
     glowGeo.setAttribute("aAlpha", new THREE.BufferAttribute(new Float32Array(N + 1), 1));
-    const glowUniforms = { uScale: { value: 500 }, uColor: { value: new THREE.Color("#fff0cf") } };
+    const glowUniforms = { uScale: { value: 500 }, uColor: { value: new THREE.Color("#ffd49a") } };
     return { geo, mat, brass, silk, cord, spins, beamMat, glowGeo, glowUniforms };
   }, []);
 
@@ -156,6 +156,14 @@ function Mala({ mobile }: { mobile: boolean }) {
     return Array.from({ length: 70 }, () => ({ ang: (r() - 0.5) * 0.22, len: 0.3 + r() * 0.08, lift: r() * 0.012 }));
   }, []);
   const initialThread = useMemo(() => Array.from({ length: N + TAIL * 2 }, () => new THREE.Vector3(0, -1, 0)), []);
+
+  useEffect(() => {
+    // Review aid: `/?at=21` starts the shot at 21 s (and `&hold` freezes it there).
+    const q = new URLSearchParams(window.location.search);
+    const at = Number(q.get("at"));
+    if (at > 0) Object.assign(shot, { t: at % LOOP, total: 30, hold: q.has("hold") });
+    if (at % LOOP > TIE0) document.documentElement.dataset.tied = "1";
+  }, []);
 
   useEffect(() => {
     const up = () => {
@@ -169,7 +177,7 @@ function Mala({ mobile }: { mobile: boolean }) {
     return () => {
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", up);
-      Object.assign(shot, { t: 0, total: 0, cycle: 0, dragging: -1, hover: false });
+      Object.assign(shot, { t: 0, total: 0, cycle: 0, dragging: -1, hover: false, hold: false });
     };
   }, []);
 
@@ -221,7 +229,7 @@ function Mala({ mobile }: { mobile: boolean }) {
     // ---------- clock: real time, held while someone is holding the mala ----------
     const step = Math.min(delta, 0.25);
     shot.total += step;
-    if (!(shot.dragging >= 0 && shot.t > RET0 - 0.5)) shot.t += step;
+    if (!shot.hold && !(shot.dragging >= 0 && shot.t > RET0 - 0.5)) shot.t += step;
     if (shot.t >= LOOP) {
       shot.t -= LOOP;
       shot.cycle += 1;
@@ -269,11 +277,12 @@ function Mala({ mobile }: { mobile: boolean }) {
         s.pos[i * 3] = v2.x;
         s.pos[i * 3 + 1] = v2.y;
         s.pos[i * 3 + 2] = v2.z;
-        gl = smooth(clamp01((t - go + 0.4) / 0.5));
+        gl = smooth(clamp01((t - go + 0.15) / 0.4)) * (1 - g * 0.3);
         scale = g >= 1 ? 0 : lerp(1, 0.3, g);
       }
-      sizes[i] = BEAD * 9 * gl;
-      alphas[i] = gl * 0.9;
+      // A soft halo, light enough that the bead stays visible inside it.
+      sizes[i] = BEAD * 7 * gl;
+      alphas[i] = gl * 0.38;
       gpos[i * 3] = s.pos[i * 3];
       gpos[i * 3 + 1] = s.pos[i * 3 + 1];
       gpos[i * 3 + 2] = s.pos[i * 3 + 2];
@@ -391,8 +400,14 @@ function Mala({ mobile }: { mobile: boolean }) {
 
     // ---------- the thread ----------
     const e = (N - 1) * 3;
-    const jx = (s.pos[0] + s.pos[e]) / 2;
-    const jz = (s.pos[2] + s.pos[e + 2]) / 2;
+    // Where the two ends meet: on the floor circle while drawing, where the beads lie after.
+    const ends = t < REST0 ? null : t >= RET0 ? s.from : s.pos;
+    const a0 = ends ? v2.set(ends[0], Y, ends[2]) : circleAt(0, gap, rad, v2);
+    const ax = a0.x;
+    const az = a0.z;
+    const b0 = ends ? v2.set(ends[e], Y, ends[e + 2]) : circleAt(N - 1, gap, rad, v2);
+    const jx = (ax + b0.x) / 2;
+    const jz = (az + b0.z) / 2;
     const jl = Math.hypot(jx, jz) || 1;
     const ox = jx / jl;
     const oz = jz / jl;
@@ -403,8 +418,8 @@ function Mala({ mobile }: { mobile: boolean }) {
     const lineOn = t >= DRAW0 - 0.2 && !(t >= RET0 + RET * 0.8 + 0.2);
     for (let k = 0; k < TAIL; k++) {
       const u = 1 - k / TAIL;
-      const lx = s.pos[0] + ox * 0.45 * u - oz * 0.16 * Math.sin(u * 3);
-      const lz = s.pos[2] + oz * 0.45 * u + ox * 0.16 * Math.sin(u * 3);
+      const lx = ax + ox * 0.45 * u - oz * 0.16 * Math.sin(u * 3);
+      const lz = az + oz * 0.45 * u + ox * 0.16 * Math.sin(u * 3);
       th[k * 3] = lerp(jx + ox * 0.2 * u, lx, loose);
       th[k * 3 + 1] = lineOn ? Y : -1;
       th[k * 3 + 2] = lerp(jz + oz * 0.2 * u, lz, loose);
@@ -427,8 +442,8 @@ function Mala({ mobile }: { mobile: boolean }) {
         th[o + 2] = th[(TAIL + N - 1) * 3 + 2];
         continue;
       }
-      const lx = s.pos[e] + ox * 0.45 * u + oz * 0.16 * Math.sin(u * 3);
-      const lz = s.pos[e + 2] + oz * 0.45 * u - ox * 0.16 * Math.sin(u * 3);
+      const lx = th[(TAIL + N - 1) * 3] + ox * 0.45 * u + oz * 0.16 * Math.sin(u * 3);
+      const lz = th[(TAIL + N - 1) * 3 + 2] + oz * 0.45 * u - ox * 0.16 * Math.sin(u * 3);
       th[o] = lerp(jx + ox * 0.2 * u, lx, loose);
       th[o + 1] = lineOn ? Y : -1;
       th[o + 2] = lerp(jz + oz * 0.2 * u, lz, loose);
@@ -525,23 +540,58 @@ function Mala({ mobile }: { mobile: boolean }) {
   );
 }
 
-/** First loop: a slow crane from floor level up to the circle. After that, a calm, barely moving frame. */
+/** Angle on the floor of bead `i` on the (possibly open) circle. */
+function angleAt(i: number, gap: number) {
+  return FRONT + gap / 2 + ((Math.PI * 2 - gap) * i) / (N - 1);
+}
+
+/**
+ * The camera rides low beside the light while it threads, swings round and pulls back to the
+ * full frame for the knot and the rest, then follows the light back round as the beads return.
+ */
 function Camera({ mobile, focus }: { mobile: boolean; focus: (d: number) => void }) {
   const look = useMemo(() => new THREE.Vector3(), []);
-  const from = useMemo(() => new THREE.Vector3(1.8, 0.8, 4.2), []);
-  const to = useMemo(() => new THREE.Vector3(0, mobile ? 6.6 : 3.7, mobile ? 7.8 : 7.9), [mobile]);
-  const fromLook = useMemo(() => new THREE.Vector3(0.2, 0.2, 0.6), []);
-  const toLook = useMemo(() => new THREE.Vector3(0, mobile ? -1.5 : -1.05, mobile ? 1.9 : 1.5), [mobile]);
+  const trackPos = useMemo(() => new THREE.Vector3(), []);
+  const trackLook = useMemo(() => new THREE.Vector3(), []);
+  const wide = useMemo(() => new THREE.Vector3(0, mobile ? 6.6 : 3.7, mobile ? 7.8 : 7.9), [mobile]);
+  const wideLook = useMemo(() => new THREE.Vector3(0, mobile ? -1.5 : -1.05, mobile ? 1.9 : 1.5), [mobile]);
   useFrame((state) => {
-    const cam = state.camera;
-    const k = easeInOut(clamp01(shot.total / (TIE0 + 0.6)));
-    cam.position.lerpVectors(from, to, k);
-    if (shot.dragging < 0) {
-      cam.position.x += state.pointer.x * 0.18 * k;
-      cam.position.y += state.pointer.y * 0.08 * k;
+    const t = shot.t;
+    const tieP = smooth(clamp01((t - TIE0) / TIE));
+    const gap = lerp(0.42, (GAP / R) * 0.98, tieP);
+
+    // Which bead the light is at, and which way it travels (-1 forward, +1 back).
+    let idx: number;
+    let side: number;
+    if (t < RET0) {
+      idx = clamp01((t - DRAW0) / DRAW) * (N - 1);
+      // Before the first bead, swing from the side the return left us on.
+      side = shot.total < DRAW0 ? -1 : lerp(1, -1, smooth(clamp01(t / DRAW0)));
+    } else {
+      idx = (N - 1) * (1 - clamp01((t - RET0) / (RET * 0.8)));
+      side = 1;
     }
-    cam.position.x += Math.sin(shot.total * 0.07) * 0.25 * k;
-    look.lerpVectors(fromLook, toLook, k);
+    const track =
+      t < RET0
+        ? 1 - easeInOut(clamp01((t - (TIE0 - 0.9)) / (TIE + 1.2)))
+        : easeInOut(clamp01((t - RET0) / 1.1));
+
+    const ang = angleAt(idx, gap);
+    const dist = R + (mobile ? 2.3 : 1.55);
+    const camAng = ang + side * 0.62;
+    trackPos.set(Math.cos(camAng) * dist, mobile ? 1.35 : 0.85, Math.sin(camAng) * dist);
+    const ahead = ang - side * 0.22;
+    trackLook.set(Math.cos(ahead) * R * 0.96, 0.04, Math.sin(ahead) * R * 0.96);
+
+    const cam = state.camera;
+    const k = track;
+    cam.position.lerpVectors(wide, trackPos, k);
+    // Lift the path between the two framings so it never dips through the mala.
+    cam.position.y += Math.sin(k * Math.PI) * 0.9;
+    const free = (1 - k) * (shot.dragging < 0 ? 1 : 0);
+    cam.position.x += state.pointer.x * 0.18 * free + Math.sin(shot.total * 0.07) * 0.25 * (1 - k);
+    cam.position.y += state.pointer.y * 0.08 * free;
+    look.lerpVectors(wideLook, trackLook, k);
     cam.lookAt(look);
     focus(cam.position.distanceTo(look));
   });
@@ -564,7 +614,7 @@ export default function MalaScene({ mobile = false }: { mobile?: boolean }) {
     <Canvas
       shadows="soft"
       dpr={dpr}
-      camera={{ position: [1.8, 0.8, 4.2], fov: mobile ? 44 : 30, near: 0.1, far: 60 }}
+      camera={{ position: [0, 3.7, 7.9], fov: mobile ? 44 : 30, near: 0.1, far: 60 }}
       gl={{ antialias: false, powerPreference: "high-performance", stencil: false }}
       onCreated={({ gl }) => {
         gl.toneMapping = THREE.ACESFilmicToneMapping;

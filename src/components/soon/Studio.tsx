@@ -137,7 +137,8 @@ export function Lights() {
         shadow-mapSize={[2048, 2048]}
         shadow-bias={-0.0002}
       />
-      <hemisphereLight args={["#fbf5ec", "#d9c7ae", 1.1]} />
+      {/* Warm fill so shadows stay sandalwood-brown, never cool grey. */}
+      <hemisphereLight args={["#f7e7d0", "#d6bf9f", 1.1]} />
       <directionalLight position={[2, 3, 6]} intensity={0.5} color="#fff6ea" />
     </>
   );
