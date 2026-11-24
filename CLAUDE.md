@@ -13,6 +13,7 @@ This repo will become their e-commerce site. Today it holds the public coming-so
   the ends are knotted, guru bead and tassel settle, a singing bowl rings; the ring then rests and is elastic (drag,
   release); then the light runs back, beads rise into the light, and the cycle begins again. `MalaScene.tsx` holds the
   timeline, `Studio.tsx` the lights, rays and floor, `materials.ts` the textures and glow shader, `bowl.ts` the sound.
+  `Inscriptions.tsx` carves classical Sanskrit lines on sandalwood (no deities) as faint turning rings on the floor.
   Copy is only the brand, "Our website is coming soon.", email capture and socials. No products, photos or deities.
 - `/options`, `/s1`–`/s10` — earlier coming-soon design options (review only; do not edit without asking).
 - `/maison`, `/d/01`–`/d/10` — e-commerce design explorations (review only; do not edit without asking).

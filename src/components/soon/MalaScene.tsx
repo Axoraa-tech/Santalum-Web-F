@@ -9,6 +9,7 @@ import * as THREE from "three";
 import type { Line2 } from "three-stdlib";
 import { strike } from "./bowl";
 import { glowFragment, glowVertex, makeWoodMaps, rng } from "./materials";
+import { FloorInscriptions } from "./Inscriptions";
 import { Floor, Lights, Rays, SOURCE, rayTexture } from "./Studio";
 
 /* =====================================================================
@@ -631,6 +632,7 @@ export default function MalaScene({ mobile = false }: { mobile?: boolean }) {
       </Environment>
       <Lights />
       <Rays />
+      <FloorInscriptions />
       <Mala mobile={mobile} />
       <Floor mobile={lite} />
       <Sparkles count={mobile ? 30 : 60} scale={[6, 4, 5]} position={[0, 2, -1]} size={2} speed={0.12} color="#b08d57" opacity={0.5} />
