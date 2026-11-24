@@ -7,14 +7,16 @@ This repo will become their e-commerce site. Today it holds the public coming-so
 
 ## Routes
 
-- `/` — **the public coming-soon page** (`src/app/(home)/page.tsx`). 3D sandalwood slice + aroma smoke, email capture.
+- `/` — **the public coming-soon page** (`src/app/(home)/page.tsx`). One cinematic 3D shot (`src/components/soon/MalaScene.tsx`):
+  a 108-bead red-sandalwood mala is lowered onto a polished studio floor under one warm spot light while the camera pulls back.
+  Copy is only the brand, "Our website is coming soon.", email capture and socials. No products or photos on this page.
 - `/options`, `/s1`–`/s10` — earlier coming-soon design options (review only; do not edit without asking).
 - `/maison`, `/d/01`–`/d/10` — e-commerce design explorations (review only; do not edit without asking).
 
 ## Stack
 
 Next 16 (App Router, `cacheComponents`), React 19, TypeScript, Tailwind 4 (`@theme` tokens in `src/app/globals.css`),
-React Three Fiber + drei + three, GSAP, Lenis, motion. Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
+React Three Fiber + drei + three + @react-three/postprocessing, GSAP, Lenis, motion. Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
 
 ## Brand tokens (from the client's Brand Colours PDFs)
 
@@ -33,6 +35,10 @@ Voice: calm, warm, crafted, unhurried. Speak of heritage, care and scent; no hyp
   start on idle, skip when WebGL is missing or `prefers-reduced-motion` is set, and keep a static CSS fallback.
 - Cap DPR (`dpr={[1, 1.75]}` desktop, `1.25` mobile), reduce particle counts on mobile, avoid remote HDRs/textures
   (use procedural canvas textures or local, compressed assets).
+- Realism toolkit used on `/`: procedural canvas wood textures, `MeshPhysicalMaterial` with clearcoat, drei `Environment`
+  built from `Lightformer`s (no HDR download), soft spot-light shadows, `MeshReflectorMaterial` floor (desktop only), fog
+  for a seamless studio, depth of field that follows the camera, bloom and vignette. Film grain is a monochrome CSS overlay
+  (the RGB `Noise` pass leaves coloured specks on the beads).
 - `next/image` uses the Unsplash custom loader; use a plain `<img>` for local brand assets.
 
 ## Workflow

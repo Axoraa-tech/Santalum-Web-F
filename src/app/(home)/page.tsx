@@ -1,75 +1,49 @@
 import type { Metadata } from "next";
 import { SceneGate } from "@/components/soon/SceneGate";
 import { SignupForm } from "@/components/soon/SignupForm";
+import "./soon.css";
 
 export const metadata: Metadata = {
-  title: "Santalum Aroma — Essence of Luxury Wood · Coming Soon",
-  description:
-    "Santalum Aroma, Estd. 1985. Sandalwood objects, aromas and gifts, crafted with four decades of care. Our new home opens soon.",
+  title: "Santalum Aroma — Website coming soon",
+  description: "Santalum Aroma, Essence of Luxury Wood. Estd. 1985. Our website is coming soon.",
 };
 
-const SOCIALS = [
-  { label: "Instagram", href: "#" },
-  { label: "Facebook", href: "#" },
-  { label: "YouTube", href: "#" },
-];
+const SOCIALS = ["Instagram", "Facebook", "YouTube"];
 
-/** The public coming-soon page. Design options from review live at /options. */
+/** The public coming-soon page: one cinematic shot and a single line. Earlier design options live at /options. */
 export default function ComingSoon() {
   return (
-    <main className="relative flex min-h-svh flex-col overflow-hidden bg-night text-linen">
-      {/* Static warm glow: the fallback when 3D is off, and the backdrop under it. */}
-      <div
-        aria-hidden
-        className="absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(60% 50% at 50% 42%, rgb(139 94 60 / 0.45), transparent 70%), radial-gradient(40% 40% at 50% 100%, rgb(110 42 31 / 0.35), transparent 70%)",
-        }}
-      />
-      {/* Soft vignette keeps the copy readable over the scene. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{ background: "linear-gradient(to bottom, rgb(28 20 16 / 0.55), transparent 30%, transparent 55%, rgb(28 20 16 / 0.9))" }}
-      />
+    <main className="soon relative h-svh min-h-[560px] overflow-hidden bg-[#0b0806] text-linen">
+      {/* Static backdrop: what shows before the film loads, and instead of it without WebGL. */}
+      <div aria-hidden className="soon-backdrop absolute inset-0" />
+      <SceneGate />
+      <div aria-hidden className="soon-shade pointer-events-none absolute inset-0" />
+      <div aria-hidden className="soon-grain pointer-events-none absolute inset-[-50%]" />
+      <div aria-hidden className="soon-letterbox" />
 
-      <header className="relative z-10 flex justify-center px-4 pt-8 md:pt-10">
+      <header className="soon-in soon-d1 absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 py-6 md:px-12 md:py-9">
         {/* eslint-disable-next-line @next/next/no-img-element -- local brand asset; next/image uses the Unsplash loader */}
-        <img
-          src="/brand/logo-mark.png"
-          alt="Santalum Aroma"
-          width={684}
-          height={644}
-          className="h-14 w-auto opacity-90 md:h-16"
-          fetchPriority="high"
-        />
+        <img src="/brand/logo-mark.png" alt="Santalum Aroma" width={684} height={644} className="h-10 w-auto opacity-90 md:h-12" />
+        <p className="text-[10px] tracking-[0.42em] text-pale/60 uppercase md:text-[11px]">Estd. 1985</p>
       </header>
 
-      {/* The 3D stage: its own band between logo and copy, so nothing overlaps. */}
-      <div className="relative min-h-[34svh] flex-1">
-        <SceneGate />
-      </div>
-
-      <div className="relative z-10 flex flex-col items-center px-4 pb-10 text-center md:pb-12">
-        <p className="text-[12px] tracking-[0.42em] text-dust uppercase">Coming soon · Estd. 1985</p>
-        <h1 className="mt-5 font-serif text-[44px] leading-[1.02] font-light tracking-[0.06em] md:text-[76px]">
+      <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center px-5 pb-8 text-center md:pb-12">
+        <h1 className="soon-in soon-d2 font-serif text-[34px] leading-none font-light tracking-[0.2em] md:text-[58px] md:tracking-[0.24em]">
           SANTALUM AROMA
         </h1>
-        <p className="mt-3 text-[13px] tracking-[0.36em] text-pale/80 uppercase md:text-[14px]">
+        <p className="soon-in soon-d3 mt-4 text-[10px] tracking-[0.5em] text-dust uppercase md:text-[11px]">
           Essence of Luxury Wood
         </p>
-        <p className="mt-7 max-w-xl font-serif text-[21px] leading-snug text-pale/90 italic md:text-[24px]">
-          Four decades of sandalwood, slow-grown, hand-finished and honest to its scent. Our new home is being
-          prepared with the same patience.
+        <p className="soon-in soon-d4 mt-8 font-serif text-[22px] font-light text-pale/90 italic md:text-[26px]">
+          Our website is coming soon.
         </p>
-        <div className="mt-9 flex w-full justify-center">
+        <div className="soon-in soon-d5 mt-7 flex w-full justify-center">
           <SignupForm />
         </div>
-        <nav aria-label="Social" className="mt-6 flex gap-7 text-[13px] tracking-[0.2em] text-pale/60 uppercase">
+        <nav aria-label="Social" className="soon-in soon-d5 mt-3 flex gap-7 text-[10px] tracking-[0.3em] text-pale/45 uppercase md:text-[11px]">
           {SOCIALS.map((s) => (
-            <a key={s.label} href={s.href} className="transition-colors hover:text-dust">
-              {s.label}
+            <a key={s} href="#" className="transition-colors hover:text-dust">
+              {s}
             </a>
           ))}
         </nav>
