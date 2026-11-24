@@ -7,9 +7,12 @@ This repo will become their e-commerce site. Today it holds the public coming-so
 
 ## Routes
 
-- `/` — **the public coming-soon page** (`src/app/(home)/page.tsx`). One cinematic 3D shot (`src/components/soon/MalaScene.tsx`):
-  a 108-bead red-sandalwood mala is lowered onto a polished studio floor under one warm spot light while the camera pulls back.
-  Copy is only the brand, "Our website is coming soon.", email capture and socials. No products or photos on this page.
+- `/` — **the public coming-soon page** (`src/app/(home)/page.tsx`). One calm cinematic 3D shot (`src/components/soon/MalaScene.tsx`)
+  in a pale studio with light falling from behind: 108 loose red-sandalwood beads lie in a spiral, a brass needle threads
+  them one by one (a bead counter in the header acts as the loader), the strand gathers into a circle, the ends are knotted
+  and pulled tight, and the guru bead and tassel settle. Afterwards the ring is elastic (drag, release, it springs back).
+  Sound: a synthesised singing bowl (`src/components/soon/bowl.ts`), starting on first interaction, with a mute toggle.
+  Copy is only the brand, "Our website is coming soon.", email capture and socials. No products, photos or deities.
 - `/options`, `/s1`–`/s10` — earlier coming-soon design options (review only; do not edit without asking).
 - `/maison`, `/d/01`–`/d/10` — e-commerce design explorations (review only; do not edit without asking).
 
@@ -37,7 +40,8 @@ Voice: calm, warm, crafted, unhurried. Speak of heritage, care and scent; no hyp
   (use procedural canvas textures or local, compressed assets).
 - Realism toolkit used on `/`: procedural canvas wood textures, `MeshPhysicalMaterial` with clearcoat, drei `Environment`
   built from `Lightformer`s (no HDR download), soft spot-light shadows, `MeshReflectorMaterial` floor (desktop only), fog
-  for a seamless studio, depth of field that follows the camera, bloom and vignette. Film grain is a monochrome CSS overlay
+  for a seamless studio, depth of field that follows the camera and vignette; `PerformanceMonitor` drops to a lite setup
+  (no reflector or DOF, DPR 1) when the frame rate falls. Film grain is a monochrome CSS overlay
   (the RGB `Noise` pass leaves coloured specks on the beads).
 - `next/image` uses the Unsplash custom loader; use a plain `<img>` for local brand assets.
 
