@@ -1,0 +1,345 @@
+/* Design 09, Dawn. Every class is prefixed d09- so nothing leaks into other designs (this project builds CSS as global). */
+
+.d09-root {
+  --ink: #2a2420;
+  --muted: #7a7067;
+  --hair: rgb(42 36 32 / 0.14);
+  --paper: #fbf8f3;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+  isolation: isolate;
+  min-height: 100svh;
+  overflow-x: clip;
+  color: var(--ink);
+  font-family: var(--font-mulish), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.d09-root ::selection {
+  background: var(--m-accent);
+  color: var(--paper);
+}
+.d09-root :focus-visible {
+  outline: 2px solid var(--m-accent);
+  outline-offset: 3px;
+}
+
+.d09-display {
+  font-family: var(--font-italiana), "Times New Roman", serif;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.d09-deva {
+  font-family: var(--font-tiro), serif;
+}
+.d09-tab {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- chapters: sticky layered scenes on wide, tall screens; stacked on phones ---------- */
+.d09-chapter {
+  position: relative;
+}
+.d09-stage {
+  position: relative;
+}
+@media (min-width: 1024px) {
+  .d09-stage {
+    height: 100svh;
+    min-height: 640px;
+  }
+}
+@media (min-width: 1024px) and (min-height: 640px) {
+  .d09-chapter {
+    height: var(--len, 200vh);
+  }
+  .d09-stage {
+    position: sticky;
+    top: 0;
+  }
+}
+
+/* ---------- cut-out masks ---------- */
+.d09-mask {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: rgb(42 36 32 / 0.06);
+}
+.d09-arch {
+  border-radius: 999px 999px 0 0;
+}
+.d09-circle {
+  border-radius: 9999px;
+}
+.d09-pebble {
+  border-radius: 47% 53% 44% 56% / 56% 46% 54% 44%;
+}
+.d09-egg {
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+}
+.d09-niche {
+  outline: 1px solid var(--hair);
+  outline-offset: 12px;
+}
+
+/* ---------- masked line reveal ---------- */
+.d09-line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+}
+.d09-line-in {
+  display: block;
+}
+
+/* ---------- links and buttons ---------- */
+.d09-link {
+  display: inline-flex;
+  align-items: center;
+  padding-block: 2px;
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--ink);
+  background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px no-repeat;
+  transition:
+    color 0.3s var(--ease),
+    background-size 0.45s var(--ease),
+    transform 0.2s var(--ease);
+  cursor: pointer;
+}
+.d09-link:hover {
+  color: var(--m-accent);
+  background-size: 35% 1px;
+}
+.d09-link:active {
+  transform: translateY(1px);
+}
+
+.d09-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 3.25rem;
+  padding: 0 1.6rem;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 15px;
+  transition:
+    background-color 0.35s var(--ease),
+    transform 0.2s var(--ease);
+  cursor: pointer;
+}
+.d09-btn:hover {
+  background: var(--m-accent);
+}
+.d09-btn:active {
+  transform: scale(0.97);
+}
+.d09-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.d09-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 3rem;
+  padding: 0 1.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--hair);
+  color: var(--ink);
+  font-size: 15px;
+  transition:
+    border-color 0.3s var(--ease),
+    background-color 0.3s var(--ease),
+    transform 0.2s var(--ease);
+  cursor: pointer;
+}
+.d09-ghost:hover {
+  border-color: var(--ink);
+  background: rgb(255 255 255 / 0.35);
+}
+.d09-ghost:active {
+  transform: scale(0.97);
+}
+
+.d09-press {
+  cursor: pointer;
+  transition: transform 0.25s var(--ease);
+}
+.d09-press:active {
+  transform: scale(0.98);
+}
+.d09-zoom {
+  transition: transform 1.2s var(--ease);
+}
+.d09-press:hover .d09-zoom,
+.d09-press:focus-visible .d09-zoom {
+  transform: scale(1.06);
+}
+
+/* ---------- wood toggle: two small bowls of powder ---------- */
+.d09-bowl {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.3s var(--ease);
+}
+.d09-bowl:hover {
+  background: rgb(255 255 255 / 0.4);
+}
+.d09-bowl svg {
+  transition:
+    transform 0.5s var(--ease),
+    opacity 0.5s var(--ease);
+}
+.d09-bowl:hover svg {
+  transform: translateY(-2px);
+}
+.d09-bowl:active svg {
+  transform: translateY(1px) scale(0.92);
+}
+.d09-bowl-dot {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 99px;
+  background: var(--m-accent);
+  opacity: 0;
+  transition: opacity 0.4s var(--ease);
+}
+.d09-bowl-white svg {
+  opacity: 0.5;
+}
+.d09-bowl-red .d09-bowl-dot {
+  opacity: 1;
+}
+html[data-wood="white"] .d09-bowl-red svg {
+  opacity: 0.5;
+}
+html[data-wood="white"] .d09-bowl-white svg {
+  opacity: 1;
+}
+html[data-wood="white"] .d09-bowl-red .d09-bowl-dot {
+  opacity: 0;
+}
+html[data-wood="white"] .d09-bowl-white .d09-bowl-dot {
+  opacity: 1;
+}
+
+/* ---------- the two woods table: the current wood reads in ink ---------- */
+.d09-col-red,
+.d09-col-white {
+  transition: color 0.6s var(--ease);
+}
+.d09-col-white {
+  color: var(--muted);
+}
+html[data-wood="white"] .d09-col-white {
+  color: var(--ink);
+}
+html[data-wood="white"] .d09-col-red {
+  color: var(--muted);
+}
+.d09-mark-red,
+.d09-mark-white {
+  height: 2px;
+  background: var(--m-accent);
+  transform-origin: left;
+  transition: transform 0.6s var(--ease);
+}
+.d09-mark-white {
+  transform: scaleX(0);
+}
+html[data-wood="white"] .d09-mark-white {
+  transform: scaleX(1);
+}
+html[data-wood="white"] .d09-mark-red {
+  transform: scaleX(0);
+}
+
+/* ---------- fields ---------- */
+.d09-field {
+  position: relative;
+  display: block;
+}
+.d09-field input,
+.d09-field select,
+.d09-field textarea {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid rgb(42 36 32 / 0.25);
+  background: transparent;
+  padding: 0.35rem 0 0.6rem;
+  font-size: 17px;
+  color: var(--ink);
+  border-radius: 0;
+  outline: none;
+  transition: border-color 0.3s var(--ease);
+  appearance: none;
+}
+.d09-field textarea {
+  resize: none;
+}
+.d09-field input:focus,
+.d09-field select:focus,
+.d09-field textarea:focus {
+  border-bottom-color: var(--m-accent);
+}
+.d09-field input:focus-visible,
+.d09-field select:focus-visible,
+.d09-field textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 1px 0 0 var(--m-accent);
+}
+.d09-field-label {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* ---------- record slip ---------- */
+.d09-slip {
+  position: relative;
+  background: var(--paper);
+  border-radius: 6px 6px 28px 28px;
+  box-shadow:
+    0 1px 0 rgb(42 36 32 / 0.06),
+    0 30px 60px -30px rgb(42 36 32 / 0.25);
+}
+.d09-slip::before {
+  content: "";
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  top: 0;
+  height: 0;
+  border-top: 2px dotted rgb(42 36 32 / 0.18);
+}
+
+/* ---------- scrollbars in panels ---------- */
+.d09-panel-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(42 36 32 / 0.2) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .d09-root *,
+  .d09-root *::before,
+  .d09-root *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

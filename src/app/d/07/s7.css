@@ -1,0 +1,146 @@
+/* Design 07 "Stack". Every rule is scoped under .s7 so nothing leaks into other designs. */
+
+.s7 {
+  --s7-page: #f8f6f2;
+  --s7-sand: #efe9e0;
+  --s7-sage: #e4e8e0;
+  --s7-clay: #f1e6dc;
+  --s7-stone: #e9e5dc;
+  --s7-ink: #1b1712;
+  --s7-muted: #77706a;
+  --s7-line: rgb(27 23 18 / 0.12);
+  --s7-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  background: var(--s7-page);
+  color: var(--s7-ink);
+  font-family: var(--font-brico), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.s7 ::selection {
+  background: var(--m-accent);
+  color: #fff;
+}
+
+/* Display cuts of Bricolage Grotesque: condensed and optically large. Text stays normal width. */
+.s7 .d1 {
+  font-variation-settings: "wdth" 75, "opsz" 96;
+  font-weight: 640;
+  line-height: 0.84;
+  letter-spacing: -0.035em;
+}
+.s7 .d2 {
+  font-variation-settings: "wdth" 78, "opsz" 72;
+  font-weight: 600;
+  line-height: 0.92;
+  letter-spacing: -0.025em;
+}
+.s7 .d3 {
+  font-variation-settings: "wdth" 88, "opsz" 32;
+  font-weight: 560;
+  line-height: 1.05;
+  letter-spacing: -0.012em;
+}
+.s7 .num {
+  font-variant-numeric: tabular-nums;
+}
+
+.s7 :focus-visible {
+  outline: 2px solid var(--m-accent);
+  outline-offset: 3px;
+}
+
+/* Draggable surfaces: no native image ghosting, no text selection while dragging. */
+.s7 .s7-grab,
+.s7 .s7-grab * {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+.s7 .s7-grab {
+  cursor: grab;
+}
+.s7 .s7-grab:active {
+  cursor: grabbing;
+}
+
+/* The flip card needs both faces in 3D. */
+.s7 .s7-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Form controls */
+.s7 .s7-input {
+  width: 100%;
+  border-radius: 18px;
+  border: 1px solid var(--s7-line);
+  background: #fff;
+  padding: 0.85rem 1rem;
+  font-size: 16px;
+  color: var(--s7-ink);
+  transition:
+    border-color 0.25s var(--s7-ease),
+    box-shadow 0.25s var(--s7-ease);
+}
+.s7 .s7-input:hover {
+  border-color: rgb(27 23 18 / 0.28);
+}
+.s7 .s7-input:focus {
+  outline: none;
+  border-color: var(--m-accent);
+  box-shadow: 0 0 0 4px var(--m-accent-soft);
+}
+.s7 .s7-input:user-invalid {
+  border-color: #b3261e;
+}
+
+/* Slim scrollbars inside the bag sheet */
+.s7 .s7-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(27 23 18 / 0.2) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .s7 *,
+  .s7 *::before,
+  .s7 *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* The one orchestrated load moment: the hero headline rises line by line, the photos settle in. */
+@keyframes s7-rise {
+  from {
+    transform: translateY(108%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes s7-settle {
+  from {
+    opacity: 0;
+    transform: scale(0.86) translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.s7 .s7-rise {
+  display: block;
+  animation: s7-rise 1.15s var(--s7-ease) both;
+  animation-delay: var(--d, 0s);
+}
+.s7 .s7-settle {
+  animation: s7-settle 1.3s var(--s7-ease) both;
+  animation-delay: var(--d, 0s);
+}
+@media (prefers-reduced-motion: reduce) {
+  .s7 .s7-rise,
+  .s7 .s7-settle {
+    animation: none;
+  }
+}

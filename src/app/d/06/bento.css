@@ -1,0 +1,699 @@
+/* ============================================================
+   Design 06 — Bento. Live tiles on a stone canvas.
+   Global stylesheet (this project's Tailwind loader turns *.module.css into plain CSS),
+   so every class is prefixed b6-. Use the map in _components/cls.ts.
+   Onest for words, Martian Mono (wdth axis) for numbers and data.
+   ============================================================ */
+
+.b6-root {
+  --b-canvas: #eeede9;
+  --b-tile: #ffffff;
+  --b-tile2: #f6f4f0;
+  --b-ink: #141414;
+  --b-muted: #6b6b66;
+  --b-line: rgb(20 20 20 / 0.08);
+  --b-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --u: clamp(80px, 7vw, 104px);
+  --gap: 12px;
+  background: var(--b-canvas);
+  color: var(--b-ink);
+  font-family: var(--font-onest), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "ss01";
+  min-height: 100svh;
+  -webkit-font-smoothing: antialiased;
+}
+.b6-root ::selection {
+  background: var(--b-ink);
+  color: #fff;
+}
+
+/* ---------- type ---------- */
+.b6-mono {
+  font-family: var(--font-martian), ui-monospace, monospace;
+  font-variation-settings: "wdth" 87.5;
+  letter-spacing: -0.02em;
+  font-feature-settings: "zero" 0;
+}
+.b6-monoWide {
+  font-family: var(--font-martian), ui-monospace, monospace;
+  font-variation-settings: "wdth" 112.5;
+  letter-spacing: -0.04em;
+}
+.b6-monoNarrow {
+  font-family: var(--font-martian), ui-monospace, monospace;
+  font-variation-settings: "wdth" 75;
+  letter-spacing: -0.01em;
+}
+.b6-muted {
+  color: var(--b-muted);
+}
+.b6-display {
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 0.92;
+}
+
+/* ---------- page frame ---------- */
+.b6-page {
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 76px var(--gap) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+.b6-section {
+  scroll-margin-top: 72px;
+}
+
+/* ---------- tiles ---------- */
+.b6-tile {
+  position: relative;
+  min-width: 0;
+  border-radius: 28px;
+  background: var(--b-tile);
+  overflow: hidden;
+  container-type: inline-size;
+}
+.b6-t2 {
+  background: var(--b-tile2);
+}
+.b6-tint {
+  background: var(--m-accent-soft);
+}
+.b6-dark {
+  background: var(--b-ink);
+  color: #f3f1ec;
+}
+.b6-inner {
+  border-radius: 20px;
+  background: var(--b-tile2);
+}
+
+/* full-tile hit area for opening a tile */
+.b6-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  cursor: pointer;
+}
+.b6-hit:focus-visible {
+  outline: 2px solid var(--m-accent);
+  outline-offset: -4px;
+}
+.b6-above {
+  position: relative;
+  z-index: 3;
+}
+
+/* the round "open" mark in a tile corner */
+.b6-corner {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--b-ink);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  transition:
+    transform 0.5s var(--b-ease),
+    background-color 0.3s var(--b-ease),
+    color 0.3s var(--b-ease);
+}
+.b6-opener:hover .b6-corner,
+.b6-opener:focus-within .b6-corner {
+  transform: rotate(45deg) scale(1.06);
+  background: var(--b-ink);
+  color: #fff;
+}
+.b6-opener:active .b6-corner {
+  transform: rotate(45deg) scale(0.94);
+}
+.b6-zoom {
+  position: absolute;
+  inset: 0;
+  transition: transform 1.2s var(--b-ease);
+}
+.b6-opener:hover .b6-zoom {
+  transform: scale(1.045);
+}
+
+/* ---------- controls ---------- */
+.b6-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 20px;
+  border-radius: 999px;
+  background: var(--b-ink);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.35s var(--b-ease),
+    transform 0.2s var(--b-ease);
+}
+.b6-btn:hover {
+  background: var(--m-accent);
+}
+.b6-btn:active {
+  transform: scale(0.97);
+}
+.b6-btn:focus-visible,
+.b6-ghost:focus-visible,
+.b6-chip:focus-visible,
+.b6-icon:focus-visible {
+  outline: 2px solid var(--m-accent);
+  outline-offset: 3px;
+}
+.b6-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+.b6-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 20px;
+  border-radius: 999px;
+  background: var(--b-tile2);
+  color: var(--b-ink);
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.35s var(--b-ease),
+    transform 0.2s var(--b-ease);
+}
+.b6-ghost:hover {
+  background: var(--m-accent-soft);
+}
+.b6-ghost:active {
+  transform: scale(0.97);
+}
+.b6-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--b-tile2);
+  color: var(--b-ink);
+  font-size: 14px;
+  cursor: pointer;
+  transition:
+    background-color 0.3s var(--b-ease),
+    color 0.3s var(--b-ease),
+    transform 0.2s var(--b-ease);
+}
+.b6-chipSm {
+  height: 30px;
+  padding: 0 11px;
+  font-size: 12px;
+}
+.b6-chip:hover {
+  background: var(--m-accent-soft);
+}
+.b6-chip:active {
+  transform: scale(0.96);
+}
+.b6-chip[aria-pressed="true"],
+.b6-chip[aria-checked="true"] {
+  background: var(--b-ink);
+  color: #fff;
+}
+.b6-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: var(--b-tile2);
+  color: var(--b-ink);
+  cursor: pointer;
+  transition:
+    background-color 0.3s var(--b-ease),
+    transform 0.2s var(--b-ease);
+}
+.b6-icon:hover {
+  background: var(--b-ink);
+  color: #fff;
+}
+.b6-icon:active {
+  transform: scale(0.94);
+}
+/* modifiers (the module is unlayered, so Tailwind utilities cannot override these properties) */
+.b6-btnLg {
+  height: 56px;
+  padding: 0 24px;
+  font-size: 16px;
+}
+.b6-btnSm {
+  height: 38px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+.b6-onWhite {
+  background: #fff;
+}
+.b6-iconSm {
+  width: 36px;
+  height: 36px;
+}
+.b6-r16 {
+  border-radius: 16px;
+}
+.b6-r20 {
+  border-radius: 20px;
+}
+.b6-r0 {
+  border-radius: 0;
+}
+
+.b6-field {
+  width: 100%;
+  height: 50px;
+  border-radius: 14px;
+  background: var(--b-tile2);
+  padding: 0 14px;
+  border: 1px solid transparent;
+  font-size: 16px;
+  color: var(--b-ink);
+  outline: none;
+  transition:
+    border-color 0.25s var(--b-ease),
+    background-color 0.25s var(--b-ease);
+}
+textarea.b6-field {
+  height: auto;
+  padding: 12px 14px;
+  resize: vertical;
+}
+select.b6-field {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--b-ink) 50%),
+    linear-gradient(135deg, var(--b-ink) 50%, transparent 50%);
+  background-position:
+    calc(100% - 20px) 22px,
+    calc(100% - 15px) 22px;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+.b6-fieldWhite {
+  background-color: #fff;
+}
+.b6-field:hover {
+  border-color: rgb(20 20 20 / 0.16);
+}
+.b6-field:focus-visible {
+  border-color: var(--b-ink);
+  background-color: #fff;
+}
+.b6-field:user-invalid {
+  border-color: #b3261e;
+}
+.b6-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: var(--b-muted);
+}
+kbd.b6-kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 8px;
+  background: var(--b-tile2);
+  color: var(--b-muted);
+  font-size: 11px;
+}
+
+/* ---------- grids ---------- */
+.b6-bento {
+  display: grid;
+  gap: var(--gap);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(150px, auto);
+}
+@media (min-width: 640px) {
+  .b6-bento {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-auto-rows: minmax(var(--u), auto);
+  }
+}
+@media (min-width: 1024px) {
+  .b6-bento {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+}
+
+/* hero */
+.b6-hero {
+  grid-template-areas: "st st" "gr ck" "gr bg" "sw sw" "mp mp" "pl pl" "pv pv";
+}
+@media (min-width: 640px) {
+  .b6-hero {
+    grid-template-areas:
+      "st st st st st st" "st st st st st st" "st st st st st st" "st st st st st st"
+      "gr gr gr ck ck ck" "gr gr gr ck ck ck" "gr gr gr mp mp mp" "sw sw sw mp mp mp"
+      "sw sw sw mp mp mp" "sw sw sw pv pv pv" "bg bg bg pv pv pv"
+      "pl pl pl pl pl pl" "pl pl pl pl pl pl" "pl pl pl pl pl pl";
+  }
+}
+@media (min-width: 1024px) {
+  .b6-hero {
+    grid-template-areas:
+      "st st st st st st gr gr gr ck ck ck"
+      "st st st st st st gr gr gr ck ck ck"
+      "st st st st st st gr gr gr mp mp mp"
+      "st st st st st st sw sw sw mp mp mp"
+      "pl pl pl pl pl pl sw sw sw mp mp mp"
+      "pl pl pl pl pl pl sw sw sw pv pv pv"
+      "pl pl pl pl pl pl bg bg bg pv pv pv";
+  }
+}
+
+/* the two woods: the current wood takes the large tile */
+.b6-woods {
+  grid-template-areas: "rd rd" "rd rd" "wt qt" "cm cm";
+}
+.b6-woods[data-w="white"] {
+  grid-template-areas: "wt wt" "wt wt" "rd qt" "cm cm";
+}
+@media (min-width: 640px) {
+  .b6-woods {
+    grid-template-areas:
+      "rd rd rd rd wt wt" "rd rd rd rd wt wt" "rd rd rd rd wt wt"
+      "cm cm cm qt qt qt" "cm cm cm qt qt qt";
+  }
+  .b6-woods[data-w="white"] {
+    grid-template-areas:
+      "rd rd wt wt wt wt" "rd rd wt wt wt wt" "rd rd wt wt wt wt"
+      "cm cm cm qt qt qt" "cm cm cm qt qt qt";
+  }
+}
+@media (min-width: 1024px) {
+  .b6-woods {
+    grid-template-areas:
+      "rd rd rd rd rd rd rd cm cm cm wt wt"
+      "rd rd rd rd rd rd rd cm cm cm wt wt"
+      "rd rd rd rd rd rd rd cm cm cm wt wt"
+      "rd rd rd rd rd rd rd qt qt qt wt wt";
+  }
+  .b6-woods[data-w="white"] {
+    grid-template-areas:
+      "rd rd cm cm cm wt wt wt wt wt wt wt"
+      "rd rd cm cm cm wt wt wt wt wt wt wt"
+      "rd rd cm cm cm wt wt wt wt wt wt wt"
+      "rd rd qt qt qt wt wt wt wt wt wt wt";
+  }
+}
+
+/* collection: one grid, every tile placed by custom properties (see CollectionBento) */
+.b6-coll {
+  position: relative;
+  display: grid;
+  gap: var(--gap);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(200px, auto);
+}
+.b6-cslot {
+  grid-area: var(--p);
+}
+@media (min-width: 640px) {
+  .b6-coll {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-rows: calc(var(--u) * 2.3);
+  }
+  .b6-cslot {
+    grid-area: var(--d);
+  }
+}
+
+/* craft */
+.b6-craft {
+  grid-template-areas: "ph ph" "s1 s2" "s3 s4" "s5 s5";
+}
+@media (min-width: 640px) {
+  .b6-craft {
+    grid-template-areas:
+      "ph ph ph ph ph ph" "ph ph ph ph ph ph" "ph ph ph ph ph ph"
+      "s1 s1 s1 s2 s2 s2" "s1 s1 s1 s2 s2 s2"
+      "s3 s3 s4 s4 s5 s5" "s3 s3 s4 s4 s5 s5";
+  }
+}
+@media (min-width: 1024px) {
+  .b6-craft {
+    grid-template-areas:
+      "ph ph ph ph ph ph s1 s1 s1 s2 s2 s2"
+      "ph ph ph ph ph ph s1 s1 s1 s2 s2 s2"
+      "ph ph ph ph ph ph s3 s3 s4 s4 s5 s5"
+      "ph ph ph ph ph ph s3 s3 s4 s4 s5 s5";
+  }
+}
+
+/* provenance */
+.b6-prov {
+  grid-template-areas: "rc rc" "lk lk" "ct ph" "kn kn";
+}
+@media (min-width: 640px) {
+  .b6-prov {
+    grid-template-areas:
+      "rc rc rc rc rc rc" "rc rc rc rc rc rc" "rc rc rc rc rc rc"
+      "lk lk lk ct ct ct" "lk lk lk ct ct ct" "lk lk lk ph ph ph" "kn kn kn ph ph ph";
+  }
+}
+@media (min-width: 1024px) {
+  .b6-prov {
+    grid-template-areas:
+      "rc rc rc rc rc rc lk lk lk ct ct ct"
+      "rc rc rc rc rc rc lk lk lk ct ct ct"
+      "rc rc rc rc rc rc lk lk lk ph ph ph"
+      "kn kn kn kn kn kn kn kn kn ph ph ph";
+  }
+}
+
+/* vault, gifting, circle */
+.b6-keep {
+  grid-template-areas: "vt vt" "cf cf" "gf gf" "bx co" "ci ci";
+}
+@media (min-width: 640px) {
+  .b6-keep {
+    grid-template-areas:
+      "vt vt vt vt vt vt" "vt vt vt vt vt vt" "vt vt vt vt vt vt"
+      "cf cf cf gf gf gf" "cf cf cf gf gf gf" "cf cf cf gf gf gf"
+      "bx bx bx co co co" "bx bx bx co co co"
+      "ci ci ci ci ci ci" "ci ci ci ci ci ci";
+  }
+}
+@media (min-width: 1024px) {
+  .b6-keep {
+    grid-template-areas:
+      "vt vt vt vt vt vt vt cf cf cf cf cf"
+      "vt vt vt vt vt vt vt cf cf cf cf cf"
+      "vt vt vt vt vt vt vt cf cf cf cf cf"
+      "gf gf gf gf gf bx bx bx ci ci ci ci"
+      "gf gf gf gf gf bx bx bx ci ci ci ci"
+      "gf gf gf gf gf co co co ci ci ci ci";
+  }
+}
+
+/* footer */
+.b6-foot {
+  grid-template-areas: "wm wm" "ln wd" "tp tp";
+  padding-bottom: 92px;
+}
+@media (min-width: 640px) {
+  .b6-foot {
+    grid-template-areas: "wm wm wm wm wm wm" "wm wm wm wm wm wm" "ln ln ln wd wd wd" "ln ln ln tp tp tp";
+  }
+}
+@media (min-width: 1024px) {
+  .b6-foot {
+    grid-template-areas:
+      "wm wm wm wm wm wm ln ln ln wd wd wd"
+      "wm wm wm wm wm wm ln ln ln tp tp tp";
+  }
+}
+
+/* product bento (overlay and page) */
+.b6-prod {
+  grid-template-areas: "gl gl" "th th" "in in" "st st" "dt dt" "cr wd";
+  grid-auto-rows: auto;
+}
+@media (min-width: 640px) {
+  .b6-prod {
+    grid-template-areas:
+      "gl gl gl gl gl gl" "gl gl gl gl gl gl" "gl gl gl gl gl gl" "gl gl gl gl gl gl"
+      "th th th th th th" "in in in in in in"
+      "st st st dt dt dt" "cr cr cr wd wd wd";
+    grid-auto-rows: minmax(var(--u), auto);
+  }
+}
+@media (min-width: 1024px) {
+  .b6-prod {
+    grid-template-areas:
+      "gl gl gl gl gl gl gl in in in in in"
+      "gl gl gl gl gl gl gl in in in in in"
+      "gl gl gl gl gl gl gl in in in in in"
+      "gl gl gl gl gl gl gl in in in in in"
+      "th th th th th th th in in in in in"
+      "st st st st st dt dt dt dt cr cr cr"
+      "st st st st st dt dt dt dt wd wd wd";
+  }
+}
+
+/* story overlay */
+.b6-story {
+  grid-template-areas: "hd hd" "ph ph" "bd bd" "as as" "qt qt" "p2 p2" "cta cta";
+  grid-auto-rows: auto;
+}
+@media (min-width: 640px) {
+  .b6-story {
+    grid-template-areas:
+      "hd hd hd hd hd hd" "ph ph ph ph ph ph" "bd bd bd bd bd bd"
+      "as as as qt qt qt" "p2 p2 p2 p2 p2 p2" "cta cta cta cta cta cta";
+    grid-auto-rows: auto;
+  }
+}
+@media (min-width: 1024px) {
+  .b6-story {
+    grid-template-areas:
+      "hd hd hd hd hd hd hd ph ph ph ph ph"
+      "bd bd bd bd bd bd bd as as as as as"
+      "qt qt qt qt qt qt qt p2 p2 p2 p2 p2"
+      "cta cta cta cta cta cta cta p2 p2 p2 p2 p2";
+  }
+}
+
+/* checkout */
+.b6-checkout {
+  display: grid;
+  gap: var(--gap);
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 1024px) {
+  .b6-checkout {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+/* ---------- time-driven bits (pause on hover) ---------- */
+@keyframes b6ring {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.b6-ring {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: b6ring var(--dur, 5s) linear forwards;
+}
+@keyframes b6bar {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.b6-bar {
+  transform-origin: left center;
+  animation: b6bar var(--dur, 3.6s) linear forwards;
+}
+.b6-pausable:hover .b6-ring,
+.b6-pausable:focus-within .b6-ring,
+.b6-pausable:hover .b6-bar,
+.b6-pausable:focus-within .b6-bar {
+  animation-play-state: paused;
+}
+
+@keyframes b6pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+.b6-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: b6pulse 2.4s var(--b-ease) infinite;
+}
+@keyframes b6twinkle {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+.b6-twinkle {
+  animation: b6twinkle 3.4s ease-in-out infinite;
+  animation-delay: var(--d, 0s);
+}
+.b6-dot {
+  transition:
+    fill 0.5s var(--b-ease),
+    opacity 0.5s var(--b-ease);
+}
+
+.b6-scroller {
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(20 20 20 / 0.2) transparent;
+}
+
+.b6-srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .b6-pulse,
+  .b6-twinkle {
+    animation: none;
+  }
+  .b6-zoom,
+  .b6-corner,
+  .b6-btn,
+  .b6-ghost,
+  .b6-chip {
+    transition: none;
+  }
+  .b6-opener:hover .b6-zoom {
+    transform: none;
+  }
+}

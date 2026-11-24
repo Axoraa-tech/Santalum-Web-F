@@ -1,0 +1,1745 @@
+/* Design 04 "Corridor" — the rooms.
+   Default (phones, portrait, reduced motion): rooms stack as a printed museum guide.
+   H block (wide screens with motion): one pinned wall, rooms side by side, everything placed in vh
+   ("the wall is 100 units tall"; the floor starts at 88). */
+
+/* ---------------- engine ---------------- */
+.c4-section {
+  position: relative;
+}
+.c4-stage {
+  position: relative;
+}
+.c4-track {
+  position: relative;
+}
+
+/* ---------------- rooms (guide layout) ---------------- */
+.c4-room {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 44px 20px 64px;
+  border-top: 3px double var(--stone);
+  overflow-x: clip;
+}
+@media (min-width: 700px) {
+  .c4-room {
+    padding: 64px 48px 88px;
+    gap: 36px;
+  }
+}
+.c4-sign {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.c4-signN {
+  font-size: 12px;
+  color: var(--mute);
+  font-variant-numeric: tabular-nums;
+}
+.c4-signName {
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.1;
+}
+
+.c4-at {
+  position: relative;
+}
+.c4-right {
+  align-self: flex-end;
+}
+.c4-onlyH {
+  display: none;
+}
+.c4-plaque {
+  padding: 12px 14px;
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--hair);
+}
+.c4-deva {
+  font-family: "Nirmala UI", "Kohinoor Devanagari", "Noto Serif Devanagari", serif;
+}
+
+/* type scale */
+.c4-h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(40px, 10vw, 76px);
+  line-height: 0.98;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.c4-h3 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 21px;
+  line-height: 1.15;
+}
+.c4-body {
+  font-size: 16px;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+.c4-body p + p {
+  margin-top: 0.8em;
+}
+.c4-small {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--mute);
+}
+.c4-vinyl {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(26px, 6.4vw, 44px);
+  line-height: 1.12;
+  text-wrap: balance;
+}
+.c4-mute {
+  color: var(--mute);
+}
+.c4-latin {
+  font-family: var(--serif);
+  font-style: italic;
+}
+.c4-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 5px;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--stone);
+  transition:
+    text-decoration-color 0.3s var(--ease),
+    color 0.3s var(--ease);
+  cursor: pointer;
+}
+.c4-link:hover {
+  text-decoration-color: var(--m-accent);
+  color: var(--m-accent);
+}
+.c4-link:active {
+  opacity: 0.7;
+}
+.c4-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 20px;
+  font-size: 14px;
+  background: var(--ink);
+  color: var(--wall);
+  cursor: pointer;
+  transition:
+    background-color 0.3s var(--ease),
+    transform 0.2s var(--ease);
+}
+.c4-btn:hover {
+  background: var(--m-accent);
+}
+.c4-btn:active {
+  transform: scale(0.98);
+}
+.c4-btnLine {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  font-size: 14px;
+  border: 1px solid var(--ink);
+  cursor: pointer;
+  transition:
+    background-color 0.3s var(--ease),
+    color 0.3s var(--ease),
+    transform 0.2s var(--ease);
+}
+.c4-btnLine:hover {
+  background: var(--ink);
+  color: var(--wall);
+}
+.c4-btnLine:active {
+  transform: scale(0.98);
+}
+
+/* ---------------- frames ---------------- */
+.c4-frame {
+  position: relative;
+  z-index: 2;
+  width: var(--vw, 100%);
+  aspect-ratio: var(--ar, 0.8);
+  padding: 10px;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px rgb(29 27 24 / 0.62),
+    0 22px 30px -20px rgb(29 27 24 / 0.42);
+  flex: none;
+}
+.c4-frame:has(> .c4-fixture) {
+  margin-top: 18px;
+}
+.c4-frameIn {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--stone-2);
+  box-shadow: inset 0 0 0 1px rgb(29 27 24 / 0.12);
+}
+.c4-par {
+  position: absolute;
+  inset: 0;
+}
+.c4-alt {
+  opacity: 0;
+  transition: opacity 0.8s var(--ease);
+}
+
+/* wall labels */
+.c4-label {
+  position: relative;
+  z-index: 2;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink);
+  background: var(--wall);
+}
+.c4-label .c4-h3 {
+  margin-bottom: 3px;
+}
+.c4-acc {
+  font-size: 12px;
+  color: var(--mute);
+  font-variant-numeric: tabular-nums;
+}
+.c4-priceRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--hair);
+}
+.c4-price {
+  font-family: var(--serif);
+  font-size: 18px;
+  font-variant-numeric: lining-nums;
+}
+
+/* ---------------- room 1: entrance ---------------- */
+.c4-giant {
+  margin: 6px 0 0 -0.03em;
+  font-family: var(--serif);
+  font-variation-settings: "opsz" 96;
+  font-weight: 400;
+  font-size: 20.5vw;
+  line-height: 0.82;
+  white-space: nowrap;
+  letter-spacing: -0.012em;
+}
+.c4-giant span {
+  display: inline-block;
+  animation: d04-rise 1.5s var(--ease) both;
+  animation-delay: calc(var(--i) * 70ms + 120ms);
+}
+@keyframes d04-rise {
+  from {
+    transform: translateY(22%);
+    opacity: 0;
+  }
+}
+.c4-walk {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--mute);
+}
+.c4-walkLine {
+  position: relative;
+  width: 64px;
+  height: 1px;
+  background: var(--stone);
+  overflow: hidden;
+}
+.c4-walkLine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  transform-origin: left;
+  animation: d04-walk 2.8s var(--ease) infinite;
+}
+@keyframes d04-walk {
+  0% {
+    transform: scaleX(0);
+  }
+  60% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+/* ---------------- room 2: wall text ---------------- */
+.c4-intro {
+  background: var(--stone-2);
+  padding: 26px 22px 28px;
+}
+.c4-essay {
+  margin-top: 22px;
+}
+.c4-essay p + p {
+  margin-top: 0.9em;
+}
+.c4-essay p:first-child::first-letter {
+  float: left;
+  font-family: var(--serif);
+  font-size: 3.4em;
+  line-height: 0.85;
+  margin: 0.04em 0.08em 0 0;
+}
+.c4-panelFoot {
+  margin-top: 22px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hair);
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--mute);
+}
+.c4-names {
+  display: grid;
+  gap: 14px;
+  font-size: 13px;
+}
+.c4-names p:first-child,
+.c4-names .c4-deva {
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+/* index of rooms on the introduction panel */
+.c4-index {
+  display: grid;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ink);
+}
+@media (min-width: 700px) {
+  .c4-index {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+}
+.c4-indexTitle {
+  grid-column: 1 / -1;
+  font-family: var(--serif);
+  font-size: 18px;
+}
+.c4-index ul {
+  display: grid;
+  gap: 2px;
+}
+.c4-index button {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 4px 0;
+  text-align: left;
+  font-size: 14px;
+  border-bottom: 1px solid var(--hair);
+  cursor: pointer;
+  transition:
+    color 0.3s var(--ease),
+    padding 0.4s var(--ease);
+}
+.c4-index button b {
+  font-family: var(--serif);
+  font-weight: 500;
+  min-width: 1.2em;
+  color: var(--m-accent);
+}
+.c4-index button:hover {
+  color: var(--m-accent);
+  padding-left: 4px;
+}
+.c4-index button:active {
+  opacity: 0.7;
+}
+
+/* the room sheet: every piece on these walls, as a list */
+.c4-sheet {
+  margin-top: 22px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ink);
+}
+.c4-sheetTitle {
+  font-family: var(--serif);
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+.c4-sheet ol {
+  display: grid;
+  column-gap: 22px;
+}
+@media (min-width: 700px) {
+  .c4-sheet ol {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.c4-sheet a {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  padding: 5px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--hair);
+  transition: color 0.3s var(--ease);
+}
+.c4-sheet a span:last-child {
+  color: var(--mute);
+  font-variant-numeric: tabular-nums;
+}
+.c4-sheet a:hover {
+  color: var(--m-accent);
+}
+.c4-sheet a:active {
+  opacity: 0.7;
+}
+.c4-catList {
+  margin-top: 8px;
+  display: grid;
+  gap: 3px;
+  font-family: var(--serif);
+  font-size: 15px;
+}
+
+/* ---------------- room 3: two woods ---------------- */
+.c4-pool {
+  position: absolute;
+  z-index: -1;
+  inset: -22% -28% -8%;
+  pointer-events: none;
+  background: radial-gradient(ellipse 50% 60% at 50% 18%, var(--m-accent-soft), transparent 72%);
+  opacity: 0.5;
+  transition: opacity 0.9s var(--ease);
+}
+.c4-fixture {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: -18px;
+  width: 34%;
+  height: 5px;
+  translate: -50% 0;
+  background: #3a3631;
+}
+.c4-fixture::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: 1px;
+  height: 8px;
+  background: #3a3631;
+}
+.c4-dim {
+  position: absolute;
+  inset: 10px;
+  z-index: 1;
+  background: rgb(29 27 24 / 0.28);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.9s var(--ease);
+}
+html[data-wood="white"] .c4-woodRed .c4-dim,
+html:not([data-wood="white"]) .c4-woodWhite .c4-dim {
+  opacity: 1;
+}
+html[data-wood="white"] .c4-woodRed .c4-pool,
+html:not([data-wood="white"]) .c4-woodWhite .c4-pool {
+  opacity: 0.08;
+}
+html[data-wood="white"] .c4-woodWhite .c4-pool,
+html:not([data-wood="white"]) .c4-woodRed .c4-pool {
+  opacity: 1;
+}
+.c4-objLabel {
+  display: grid;
+  gap: 2px;
+}
+.c4-objLabel .c4-h3 {
+  font-size: 24px;
+}
+.c4-objLabel .c4-deva {
+  font-size: 18px;
+  margin: 2px 0 6px;
+}
+.c4-lit {
+  margin-top: 10px;
+  justify-self: start;
+}
+.c4-litOn {
+  display: none;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--m-accent);
+}
+html:not([data-wood="white"]) .c4-woodRed .c4-lit,
+html[data-wood="white"] .c4-woodWhite .c4-lit {
+  display: none;
+}
+html:not([data-wood="white"]) .c4-woodRed .c4-litOn,
+html[data-wood="white"] .c4-woodWhite .c4-litOn {
+  display: block;
+}
+.c4-woodPair {
+  display: grid;
+  gap: 16px;
+}
+.c4-compareWrap {
+  overflow-x: auto;
+}
+.c4-compare {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.c4-compare th,
+.c4-compare td {
+  text-align: left;
+  padding: 7px 14px 7px 0;
+  border-top: 1px solid var(--hair);
+  vertical-align: top;
+}
+.c4-compare thead th {
+  font-weight: 400;
+  color: var(--mute);
+  border-top: 1px solid var(--ink);
+}
+.c4-compare tbody th {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+/* ---------------- room 4: collection ---------------- */
+.c4-gallery {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 36px 16px;
+}
+@media (min-width: 700px) {
+  .c4-gallery {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 48px 28px;
+  }
+}
+.c4-galleryIntro,
+.c4-cat,
+.c4-galleryEnd {
+  grid-column: 1 / -1;
+}
+.c4-cat {
+  display: grid;
+  gap: 6px;
+  padding-top: 18px;
+  border-top: 1px solid var(--ink);
+}
+.c4-catName {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 28px;
+  line-height: 1.05;
+}
+.c4-exhibit {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.c4-exhibit[data-odd] {
+  margin-top: 44px;
+}
+.c4-exhibit .c4-frame {
+  aspect-ratio: var(--ar);
+}
+.c4-exhibitLink {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+}
+.c4-note {
+  margin-top: 4px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--mute);
+  transition:
+    opacity 0.5s var(--ease),
+    transform 0.5s var(--ease);
+}
+.c4-exhibit .c4-pool {
+  opacity: 0.35;
+}
+.c4-exhibit .c4-frame {
+  transition:
+    transform 0.6s var(--ease),
+    box-shadow 0.6s var(--ease);
+}
+@media (hover: hover) {
+  .c4-exhibit:hover .c4-note,
+  .c4-exhibit:focus-within .c4-note {
+    color: var(--m-accent);
+    transform: translateX(3px);
+  }
+  .c4-exhibit:hover .c4-alt,
+  .c4-exhibit:focus-within .c4-alt {
+    opacity: 1;
+  }
+  .c4-exhibit:hover .c4-pool,
+  .c4-exhibit:focus-within .c4-pool {
+    opacity: 1;
+  }
+  .c4-exhibit:hover .c4-frame,
+  .c4-exhibit:focus-within .c4-frame {
+    transform: translateY(-4px);
+    box-shadow:
+      0 0 0 1px rgb(29 27 24 / 0.75),
+      0 34px 40px -24px rgb(29 27 24 / 0.5);
+  }
+  .c4-exhibit:active .c4-frame {
+    transform: translateY(-1px) scale(0.995);
+  }
+}
+.c4-galleryEnd {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  padding: 22px;
+  background: var(--stone-2);
+}
+
+/* ---------------- room 5: making ---------------- */
+.c4-frieze {
+  display: grid;
+  gap: 32px;
+}
+.c4-step {
+  display: grid;
+  grid-template-columns: minmax(120px, 40%) 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.c4-stepPhoto {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: var(--stone-2);
+  box-shadow: 0 0 0 1px rgb(29 27 24 / 0.5);
+}
+.c4-stepNum {
+  font-family: var(--serif);
+  font-variation-settings: "opsz" 96;
+  font-size: 54px;
+  line-height: 0.9;
+  color: var(--m-accent);
+}
+.c4-stepName {
+  font-family: var(--serif);
+  font-size: 24px;
+  line-height: 1.1;
+  margin: 6px 0 6px;
+}
+.c4-inscription {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--mute);
+}
+
+/* ---------------- room 6: provenance ---------------- */
+.c4-cabinet {
+  position: relative;
+  padding: 12px 12px 0;
+  background: linear-gradient(#e7e3db, #ddd8cf);
+  box-shadow:
+    0 0 0 1px rgb(29 27 24 / 0.28),
+    0 28px 40px -28px rgb(29 27 24 / 0.5);
+}
+.c4-cabinetTop {
+  position: absolute;
+  left: -10px;
+  right: -10px;
+  top: -10px;
+  height: 10px;
+  background: #d4cfc5;
+  box-shadow: 0 0 0 1px rgb(29 27 24 / 0.26);
+}
+.c4-drawers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.c4-drawer {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  justify-items: center;
+  align-items: center;
+  min-height: 92px;
+  padding: 10px 6px 12px;
+  background: linear-gradient(#f4f2ed, #e9e5de);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.7),
+    0 0 0 1px rgb(29 27 24 / 0.22),
+    0 1px 0 rgb(29 27 24 / 0.1);
+  cursor: pointer;
+  transition:
+    transform 0.55s var(--ease),
+    box-shadow 0.55s var(--ease);
+}
+.c4-drawer::before {
+  /* the drawer's side, visible once it slides out */
+  content: "";
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  top: 0;
+  height: 0;
+  background: linear-gradient(#cdc7bc, #ddd8cf);
+  transform: translateY(0);
+  transition:
+    height 0.55s var(--ease),
+    transform 0.55s var(--ease);
+  z-index: -1;
+}
+.c4-drawer:hover,
+.c4-drawer:focus-visible {
+  transform: translateY(4px) scale(1.02);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.7),
+    0 0 0 1px rgb(29 27 24 / 0.3),
+    0 14px 18px -10px rgb(29 27 24 / 0.35);
+  z-index: 2;
+}
+.c4-drawer[aria-pressed="true"] {
+  transform: translateY(10px) scale(1.05);
+  z-index: 3;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.7),
+    0 0 0 1px rgb(29 27 24 / 0.4),
+    0 22px 26px -12px rgb(29 27 24 / 0.45);
+}
+.c4-drawer[aria-pressed="true"]::before {
+  height: 10px;
+  transform: translateY(-10px);
+}
+.c4-drawer:active {
+  transform: translateY(6px) scale(1.03);
+}
+.c4-holder {
+  display: grid;
+  gap: 1px;
+  min-width: 70%;
+  padding: 5px 8px 6px;
+  background: #fff;
+  border: 1px solid var(--m-accent);
+  text-align: center;
+  box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 3px rgb(29 27 24 / 0.08);
+}
+.c4-holderCode {
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.1;
+}
+.c4-holderName {
+  font-size: 11px;
+  color: var(--mute);
+  line-height: 1.2;
+}
+.c4-pull {
+  width: 30%;
+  height: 6px;
+  margin-top: 8px;
+  border-radius: 3px;
+  background: linear-gradient(#77716a, #4b4640);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.6);
+}
+.c4-cabinetBase {
+  display: flex;
+  justify-content: space-between;
+  margin: 12px -12px 0;
+  height: 18px;
+  padding: 0 18px;
+  background: #d4cfc5;
+  box-shadow: 0 0 0 1px rgb(29 27 24 / 0.26);
+}
+.c4-cabinetBase::before,
+.c4-cabinetBase::after {
+  content: "";
+  width: 18px;
+  height: 18px;
+  margin-top: 18px;
+  background: #bdb7ac;
+}
+.c4-card {
+  position: relative;
+  padding: 22px 20px 20px 34px;
+  background-color: #fff;
+  background-image: repeating-linear-gradient(to bottom, transparent 0 29px, rgb(29 27 24 / 0.07) 29px 30px);
+  background-position: 0 86px;
+  box-shadow:
+    0 0 0 1px rgb(29 27 24 / 0.16),
+    0 26px 36px -26px rgb(29 27 24 / 0.45);
+  animation: d04-cardIn 0.7s var(--ease) both;
+}
+.c4-card::before {
+  content: "";
+  position: absolute;
+  left: 22px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--m-accent);
+  opacity: 0.6;
+}
+@keyframes d04-cardIn {
+  from {
+    transform: translateY(22px) rotate(-1.2deg);
+    opacity: 0;
+  }
+}
+.c4-stamp {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: var(--m-accent);
+  border: 1px solid var(--m-accent);
+  transform: rotate(4deg);
+}
+.c4-cardCode {
+  font-family: var(--serif);
+  font-variation-settings: "opsz" 28;
+  font-size: 38px;
+  line-height: 1;
+  margin: 6px 0 16px;
+}
+.c4-record {
+  display: grid;
+  font-size: 13px;
+}
+.c4-record div {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 10px;
+  min-height: 30px;
+  align-items: center;
+}
+.c4-record dt {
+  color: var(--mute);
+}
+.c4-cardNote {
+  margin-top: 14px;
+  font-size: 12px;
+  color: var(--mute);
+}
+
+/* ---------------- room 7: vault ---------------- */
+.c4-vaultRoom {
+  background: linear-gradient(#efebe4, #efebe4);
+}
+.c4-vitrine {
+  position: relative;
+  display: grid;
+  justify-items: center;
+}
+.c4-glass {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  padding: 9%;
+  background: linear-gradient(135deg, rgb(255 255 255 / 0.65), rgb(255 255 255 / 0.25) 46%, rgb(255 255 255 / 0.55));
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.9),
+    0 0 0 1px rgb(29 27 24 / 0.3);
+}
+.c4-glass::after {
+  /* a reflection across the glass */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 0.38) 31%, transparent 44%);
+  pointer-events: none;
+}
+.c4-glassPhoto {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgb(29 27 24 / 0.4);
+}
+.c4-vPlinth {
+  width: 86%;
+  padding: 14px 12px 16px;
+  background: linear-gradient(#f8f6f1, #e4e0d8);
+  box-shadow: 0 0 0 1px rgb(29 27 24 / 0.18);
+  text-align: center;
+  font-size: 12px;
+  color: var(--mute);
+}
+.c4-vPlinth b {
+  display: block;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 18px;
+  color: var(--ink);
+}
+.c4-plinths {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 26px 8px;
+}
+.c4-plinth {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 92px;
+}
+.c4-beam {
+  position: absolute;
+  left: 50%;
+  bottom: 46px;
+  width: 260%;
+  height: 120%;
+  translate: -50% 0;
+  background: radial-gradient(ellipse 34% 100% at 50% 100%, rgb(255 253 246 / 0.98), rgb(255 253 246 / 0) 72%);
+  pointer-events: none;
+  will-change: opacity;
+}
+.c4-lampHead {
+  position: absolute;
+  left: 50%;
+  top: -8px;
+  width: 8px;
+  height: 4px;
+  translate: -50% 0;
+  background: #3a3631;
+}
+.c4-block {
+  position: relative;
+  width: 100%;
+  max-width: 40px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  font-family: var(--serif);
+  font-size: 15px;
+  color: var(--mute);
+  background: linear-gradient(#fbfaf7, #e3dfd7);
+  border-top: 3px solid #fff;
+  box-shadow:
+    0 0 0 1px rgb(29 27 24 / 0.16),
+    0 10px 12px -10px rgb(29 27 24 / 0.4);
+  transition:
+    color 0.3s var(--ease),
+    transform 0.4s var(--ease);
+}
+.c4-plinth:hover .c4-block {
+  color: var(--ink);
+  transform: translateY(-2px);
+}
+.c4-plinthTip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  translate: -50% 0;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  padding: 3px 8px;
+  font-size: 11px;
+  background: var(--ink);
+  color: var(--wall);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s var(--ease);
+}
+.c4-plinth:hover .c4-plinthTip {
+  opacity: 1;
+}
+
+/* ---------------- room 8: gifting ---------------- */
+.c4-tiers {
+  display: grid;
+  gap: 22px;
+}
+@media (min-width: 700px) {
+  .c4-tiers {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.c4-tier {
+  border-top: 1px solid var(--ink);
+  padding-top: 10px;
+}
+.c4-tierName {
+  font-family: var(--serif);
+  font-size: 20px;
+  margin-bottom: 6px;
+}
+.c4-tier ul {
+  display: grid;
+}
+.c4-tier li a {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--hair);
+  transition:
+    color 0.3s var(--ease),
+    padding 0.4s var(--ease);
+}
+.c4-tier li a:hover {
+  color: var(--m-accent);
+  padding-left: 6px;
+}
+.c4-tier li a:active {
+  opacity: 0.7;
+}
+.c4-tier li a span:last-child {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--mute);
+}
+
+/* ---------------- room 9: exit ---------------- */
+.c4-circleForm {
+  display: flex;
+  align-items: stretch;
+  margin-top: 16px;
+  border-bottom: 1px solid var(--ink);
+}
+.c4-circleForm input {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  background: transparent;
+  font-size: 16px;
+  outline: none;
+}
+.c4-circleForm input::placeholder {
+  color: var(--grey);
+}
+.c4-circleForm:focus-within {
+  border-bottom-color: var(--m-accent);
+  box-shadow: 0 1px 0 var(--m-accent);
+}
+.c4-foot {
+  display: grid;
+  gap: 26px;
+  grid-template-columns: 1fr 1fr;
+  font-size: 13px;
+}
+.c4-foot h3 {
+  font-family: var(--serif);
+  font-size: 17px;
+  margin-bottom: 8px;
+}
+.c4-foot li + li {
+  margin-top: 5px;
+}
+.c4-foot a,
+.c4-foot button {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 4px;
+  cursor: pointer;
+  transition: text-decoration-color 0.3s var(--ease);
+}
+.c4-foot a:hover,
+.c4-foot button:hover {
+  text-decoration-color: var(--m-accent);
+}
+.c4-exitSign {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: var(--ink);
+  color: var(--wall);
+  font-size: 14px;
+}
+.c4-exitDoor {
+  position: relative;
+  width: 14px;
+  height: 20px;
+  border: 1.5px solid currentColor;
+  border-bottom: 0;
+}
+.c4-exitDoor::after {
+  content: "";
+  position: absolute;
+  right: 2px;
+  top: 9px;
+  width: 2px;
+  height: 2px;
+  background: currentColor;
+}
+.c4-doorway {
+  position: relative;
+  width: var(--vw, 72%);
+  aspect-ratio: 3 / 5;
+  overflow: hidden;
+  border: 12px solid var(--stone);
+  border-bottom-width: 0;
+  background: var(--stone-2);
+  box-shadow:
+    inset 0 0 0 1px rgb(29 27 24 / 0.35),
+    0 0 0 1px rgb(29 27 24 / 0.28);
+}
+.c4-legal {
+  font-size: 12px;
+  color: var(--mute);
+}
+
+/* ---------------- product wall ---------------- */
+.c4-pTitle {
+  margin-top: 6px;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(36px, 9vw, 60px);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.c4-platesIntro {
+  display: grid;
+  align-content: start;
+}
+.c4-miniCard {
+  animation: none;
+  padding: 16px 16px 12px 30px;
+}
+.c4-miniCard::before {
+  left: 18px;
+}
+.c4-longLabel {
+  display: grid;
+  gap: 28px;
+}
+.c4-woodChoice {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+}
+.c4-woodOpt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 1px solid var(--stone);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.3s var(--ease),
+    background-color 0.3s var(--ease);
+}
+.c4-woodOpt:hover {
+  border-color: var(--ink);
+}
+.c4-woodOpt:active {
+  background: var(--stone-2);
+}
+.c4-woodOpt:disabled {
+  cursor: default;
+  color: var(--grey);
+  border-style: dashed;
+}
+.c4-woodOpt .c4-sw {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  outline: 1px solid rgb(29 27 24 / 0.25);
+  outline-offset: 2px;
+}
+.c4-woodOpt em {
+  margin-left: auto;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
+html:not([data-wood="white"]) .c4-woodOpt[data-tone="red"]:not(:disabled),
+html[data-wood="white"] .c4-woodOpt[data-tone="white"]:not(:disabled) {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+.c4-details {
+  display: grid;
+  font-size: 13px;
+}
+.c4-details div {
+  display: grid;
+  grid-template-columns: 7.5em 1fr;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--hair);
+}
+.c4-details dt {
+  color: var(--mute);
+}
+.c4-plates {
+  display: grid;
+  gap: 32px;
+}
+.c4-plate {
+  display: grid;
+  gap: 10px;
+}
+
+/* =====================================================================
+   Horizontal museum: wide screens, motion allowed.
+   ===================================================================== */
+@media (min-width: 900px) and (min-height: 560px) and (min-aspect-ratio: 5/4) and (prefers-reduced-motion: no-preference) {
+  html:has(.c4-track) {
+    scrollbar-width: none;
+  }
+  html:has(.c4-track)::-webkit-scrollbar {
+    display: none;
+  }
+
+  .c4-stage {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: hidden;
+    background: linear-gradient(to bottom, var(--wall) 0 88%, var(--floor) 88% 100%);
+  }
+  .c4-stage::after {
+    /* skirting */
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 88%;
+    height: 1px;
+    background: rgb(29 27 24 / 0.16);
+    pointer-events: none;
+  }
+  .c4-track {
+    display: flex;
+    height: 100%;
+    width: max-content;
+    will-change: transform;
+  }
+  .c4-room {
+    flex: none;
+    display: block;
+    height: 100%;
+    width: calc(var(--w) * 1vh);
+    padding: 0;
+    gap: 0;
+    border: 0;
+    overflow: visible;
+  }
+  .c4-room::before {
+    /* door frame between rooms */
+    content: "";
+    position: absolute;
+    z-index: 5;
+    left: 0;
+    top: 0;
+    height: 88%;
+    width: 1.1vh;
+    border-left: 1px solid rgb(29 27 24 / 0.24);
+    border-right: 1px solid rgb(29 27 24 / 0.24);
+    pointer-events: none;
+  }
+  .c4-room::after {
+    /* threshold on the floor */
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 88%;
+    width: 1.1vh;
+    height: 3vh;
+    background: linear-gradient(rgb(29 27 24 / 0.08), transparent);
+    pointer-events: none;
+  }
+  .c4-sign {
+    position: absolute;
+    left: 3.2vh;
+    top: 3.4vh;
+    gap: 1.2vh;
+    z-index: 3;
+  }
+  .c4-signName {
+    font-size: 2.5vh;
+  }
+  .c4-at {
+    position: absolute;
+    left: calc(var(--x) * 1vh);
+    top: calc(var(--y) * 1vh);
+    width: calc(var(--wd) * 1vh);
+    height: calc(var(--ht) * 1vh);
+  }
+  .c4-right {
+    align-self: auto;
+  }
+  .c4-hideH {
+    display: none;
+  }
+  .c4-onlyH {
+    display: inline;
+  }
+  .c4-plaque {
+    padding: 1.4vh 1.6vh;
+  }
+
+  .c4-h2 {
+    font-size: 7.4vh;
+  }
+  .c4-h3 {
+    font-size: clamp(16px, 2.4vh, 26px);
+  }
+  .c4-body {
+    font-size: clamp(13px, 1.68vh, 17px);
+  }
+  .c4-small {
+    font-size: clamp(11px, 1.36vh, 14px);
+  }
+  .c4-vinyl {
+    font-size: 4.2vh;
+  }
+  .c4-vinylL {
+    font-size: 4.7vh;
+  }
+  .c4-details {
+    font-size: clamp(12px, 1.45vh, 14px);
+  }
+  .c4-label {
+    font-size: clamp(11.5px, 1.42vh, 14px);
+  }
+  .c4-price {
+    font-size: clamp(15px, 2vh, 20px);
+  }
+
+  .c4-frame {
+    width: auto;
+    height: calc(var(--ht) * 1vh);
+    padding: 1.25vh;
+  }
+  .c4-frame:has(> .c4-fixture) {
+    margin-top: 0;
+  }
+  .c4-par {
+    inset: 0 -7%;
+    will-change: transform;
+  }
+  .c4-dim {
+    inset: 1.25vh;
+  }
+  .c4-fixture {
+    top: -2.2vh;
+    height: 0.6vh;
+  }
+  .c4-fixture::after {
+    height: 1vh;
+  }
+
+  /* room 1 */
+  .c4-entrance {
+    overflow: clip;
+  }
+  .c4-giant {
+    position: absolute;
+    left: calc(var(--x) * 1vh);
+    bottom: 11.4vh;
+    z-index: 1;
+    margin: 0;
+    font-size: 76vh;
+    line-height: 0.74;
+    will-change: transform;
+  }
+  .c4-walk {
+    margin-top: 3vh;
+  }
+
+  /* room 2 */
+  .c4-intro .c4-body {
+    font-size: clamp(14px, 1.95vh, 19px);
+  }
+  .c4-index {
+    margin-top: 2.6vh;
+    padding-top: 1.6vh;
+    gap: 3vh;
+  }
+  .c4-index button {
+    font-size: clamp(12px, 1.5vh, 15px);
+    padding: 0.5vh 0;
+  }
+  .c4-indexTitle {
+    font-size: 2.2vh;
+  }
+  .c4-sheet {
+    margin-top: 3vh;
+  }
+  .c4-sheetTitle {
+    font-size: 2.2vh;
+  }
+  .c4-sheet a {
+    font-size: clamp(11.5px, 1.4vh, 14px);
+    padding: 0.55vh 0;
+  }
+  .c4-catList {
+    font-size: clamp(13px, 1.75vh, 17px);
+    margin-top: 1.4vh;
+  }
+  .c4-intro {
+    padding: 5vh 5vh 4vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .c4-essay {
+    margin-top: 3.4vh;
+    columns: 2;
+    column-gap: 4.4vh;
+    flex: 1;
+  }
+  .c4-panelFoot {
+    margin-top: auto;
+  }
+  .c4-names p:first-child,
+  .c4-names .c4-deva {
+    font-size: 2.6vh;
+  }
+
+  /* room 3 */
+  .c4-woodPair {
+    display: contents;
+  }
+  .c4-objLabel .c4-h3 {
+    font-size: 3.4vh;
+  }
+  .c4-compareWrap {
+    overflow: visible;
+  }
+  .c4-compare {
+    min-width: 0;
+    font-size: clamp(11.5px, 1.4vh, 14px);
+  }
+  .c4-compare tbody th {
+    font-size: clamp(13px, 1.7vh, 17px);
+  }
+  .c4-compare th,
+  .c4-compare td {
+    padding: 0.7vh 2vh 0.7vh 0;
+  }
+
+  /* room 4 */
+  .c4-gallery {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    height: 100%;
+    padding: 0 12vh 0 7vh;
+  }
+  .c4-galleryIntro {
+    flex: none;
+    width: 46vh;
+    margin-top: 14vh;
+    margin-right: 10vh;
+  }
+  .c4-cat {
+    flex: none;
+    width: 17vh;
+    margin: 13vh 5vh 0 4vh;
+    padding: 0 0 0 2.2vh;
+    border-top: 0;
+    border-left: 1px solid var(--ink);
+    min-height: 60vh;
+    align-content: start;
+  }
+  .c4-catName {
+    font-size: 3.8vh;
+  }
+  .c4-exhibit {
+    flex: none;
+    flex-direction: var(--dir, row);
+    align-items: var(--align, flex-end);
+    gap: 2.4vh;
+    margin: calc(var(--top) * 1vh) 7vh 0 0;
+  }
+  .c4-exhibit[data-odd] {
+    margin-top: calc(var(--top) * 1vh);
+  }
+  .c4-exhibit .c4-label {
+    width: 23vh;
+    min-width: 180px;
+  }
+  .c4-exhibit .c4-fixture {
+    top: -2.6vh;
+  }
+  .c4-galleryEnd {
+    flex: none;
+    width: 34vh;
+    margin-top: 30vh;
+    padding: 3.4vh;
+  }
+
+  /* room 5 */
+  .c4-frieze {
+    display: flex;
+    gap: 0;
+    border-top: 3px double var(--ink);
+    border-bottom: 3px double var(--ink);
+  }
+  .c4-step {
+    width: 58vh;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    border-left: 1px solid var(--hair);
+  }
+  .c4-step:first-child {
+    border-left: 0;
+  }
+  .c4-step:nth-child(even) {
+    flex-direction: column-reverse;
+  }
+  .c4-stepPhoto {
+    flex: none;
+    height: 44vh;
+    aspect-ratio: auto;
+    box-shadow: none;
+  }
+  .c4-stepText {
+    flex: 1;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0 2.6vh;
+    align-content: center;
+    padding: 2.4vh 3.4vh;
+  }
+  .c4-stepNum {
+    font-size: 11vh;
+    grid-row: span 2;
+  }
+  .c4-stepName {
+    font-size: 3.2vh;
+    margin: 0.6vh 0 0.6vh;
+  }
+
+  /* room 6 */
+  .c4-cabinet {
+    padding: 1.6vh 1.6vh 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .c4-cabinetTop {
+    left: -1.4vh;
+    right: -1.4vh;
+    top: -1.4vh;
+    height: 1.4vh;
+  }
+  .c4-drawers {
+    flex: 1;
+    grid-template-rows: repeat(3, 1fr);
+    gap: 1.1vh;
+  }
+  .c4-drawer {
+    min-height: 0;
+    padding: 1.4vh 1vh;
+  }
+  .c4-holderCode {
+    font-size: clamp(13px, 2vh, 20px);
+  }
+  .c4-holderName {
+    font-size: clamp(10px, 1.25vh, 12.5px);
+  }
+  .c4-pull {
+    height: 0.8vh;
+    margin-top: 1.2vh;
+  }
+  .c4-cabinetBase {
+    margin: 1.6vh -1.6vh 0;
+    height: 2vh;
+  }
+  .c4-cabinetBase::before,
+  .c4-cabinetBase::after {
+    height: 2vh;
+    margin-top: 2vh;
+  }
+  .c4-card {
+    padding: 3vh 3vh 3vh 4.6vh;
+  }
+  .c4-card::before {
+    left: 3vh;
+  }
+  .c4-cardCode {
+    font-size: 5.2vh;
+  }
+  .c4-record {
+    font-size: clamp(12px, 1.5vh, 15px);
+  }
+  .c4-record div {
+    min-height: 4vh;
+    grid-template-columns: 12vh 1fr;
+  }
+
+  /* room 7 */
+  .c4-vaultRoom {
+    background: linear-gradient(to bottom, #ece8e0 0 88%, transparent 88%);
+  }
+  .c4-glass {
+    aspect-ratio: auto;
+    height: 42vh;
+  }
+  .c4-vPlinth {
+    height: 34vh;
+    padding: 3vh 2vh;
+    font-size: clamp(11px, 1.35vh, 13px);
+  }
+  .c4-vPlinth b {
+    font-size: 2.6vh;
+  }
+  .c4-plinths {
+    display: flex;
+    align-items: flex-end;
+    gap: 2.6vh;
+  }
+  .c4-plinth {
+    width: 4.6vh;
+    height: 100%;
+  }
+  .c4-beam {
+    bottom: 17vh;
+    width: 15vh;
+    height: 46vh;
+    opacity: 0;
+  }
+  .c4-lampHead {
+    top: 0;
+    width: 1.4vh;
+    height: 0.7vh;
+  }
+  .c4-block {
+    max-width: none;
+    height: 17vh;
+    font-size: 2.2vh;
+    border-top-width: 0.5vh;
+    align-items: start;
+    padding-top: 2vh;
+  }
+
+  /* room 8 */
+  .c4-tiers {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3vh;
+  }
+  .c4-tierName {
+    font-size: 2.4vh;
+  }
+  .c4-tier li a {
+    font-size: clamp(11.5px, 1.42vh, 14px);
+    padding: 0.7vh 0;
+  }
+
+  /* room 9 */
+  .c4-doorway {
+    aspect-ratio: auto;
+    border-width: 1.4vh 1.4vh 0;
+  }
+  .c4-foot {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3vh;
+    font-size: clamp(12px, 1.45vh, 14px);
+  }
+  .c4-foot h3 {
+    font-size: 2.2vh;
+  }
+
+  /* product wall */
+  .c4-longLabel {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4.4vh;
+    padding-top: 2.4vh;
+    border-top: 1px solid var(--ink);
+  }
+  .c4-plates {
+    display: flex;
+    align-items: flex-start;
+    gap: 7vh;
+    height: 100%;
+    padding: 0 10vh 0 8vh;
+  }
+  .c4-plate {
+    flex: none;
+    margin-top: calc(var(--top) * 1vh);
+    gap: 1.6vh;
+  }
+  .c4-plate .c4-label {
+    max-width: 44vh;
+  }
+  .c4-platesIntro {
+    flex: none;
+    width: 42vh;
+    margin-top: 14vh;
+    margin-right: 4vh;
+  }
+  .c4-pTitle {
+    font-size: 5.4vh;
+  }
+  .c4-longLabel .c4-body {
+    font-size: clamp(14px, 1.8vh, 18px);
+  }
+  .c4-miniCard {
+    padding: 2vh 2vh 1.4vh 3.6vh;
+  }
+  .c4-miniCard::before {
+    left: 2.2vh;
+  }
+  .c4-miniCard .c4-record div {
+    min-height: 3.4vh;
+    grid-template-columns: 9vh 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .c4-giant span,
+  .c4-walkLine::after,
+  .c4-card {
+    animation: none;
+  }
+}

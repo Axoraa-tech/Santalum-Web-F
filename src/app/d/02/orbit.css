@@ -1,0 +1,223 @@
+/* Design 02, Orbit: studio white, ink, one wood-aware accent (var(--m-accent)). */
+
+.o2-root {
+  --o-bg: #f7f6f3;
+  --o-floor: #eceae6;
+  --o-stone: #efede9;
+  --o-ink: #191714;
+  --o-ink-2: #3b3732;
+  --o-muted: #77716a;
+  --o-line: rgb(25 23 20 / 0.12);
+  --o-card: #fdfcfa;
+  --o-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  background: var(--o-bg);
+  color: var(--o-ink);
+  font-family: var(--font-manrope), ui-sans-serif, system-ui, "Nirmala UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  min-height: 100svh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.o2-root ::selection {
+  background: var(--m-accent);
+  color: #fff;
+}
+
+.o2-root :focus-visible {
+  outline: 2px solid var(--m-accent);
+  outline-offset: 3px;
+}
+
+.o2-syne {
+  font-family: var(--font-syne), ui-sans-serif, sans-serif;
+}
+
+.o2-display {
+  font-family: var(--font-syne), ui-sans-serif, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 0.88;
+}
+
+.o2-deva {
+  font-family: "Nirmala UI", "Noto Sans Devanagari", "Kohinoor Devanagari", var(--font-manrope), sans-serif;
+}
+
+.o2-balance {
+  text-wrap: balance;
+}
+
+.o2-noBar {
+  scrollbar-width: none;
+}
+.o2-noBar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ---------- the soft studio floor under the ring ---------- */
+.o2-floor {
+  background:
+    radial-gradient(ellipse 46% 30% at 50% 72%, #e4e1dc 0%, rgb(236 234 230 / 0.85) 38%, rgb(236 234 230 / 0) 100%),
+    radial-gradient(ellipse 80% 55% at 50% 70%, rgb(236 234 230 / 0.7) 0%, rgb(236 234 230 / 0) 100%);
+}
+
+/* ---------- wood swatches (knob, small discs) ---------- */
+.o2-woodRed {
+  background:
+    radial-gradient(circle at 46% 44%, #3a0c05 0 4%, transparent 5%),
+    repeating-radial-gradient(circle at 46% 44%, #7d2414 0 2px, #a5402a 2px 4.5px, #8c2c18 4.5px 6px, #b8533a 6px 8.5px);
+}
+.o2-woodWhite {
+  background:
+    radial-gradient(circle at 46% 44%, #8a6233 0 4%, transparent 5%),
+    repeating-radial-gradient(circle at 46% 44%, #bf9763 0 1.5px, #e5cb9c 1.5px 4.5px, #d2b07c 4.5px 6px, #efdcb5 6px 8.5px);
+}
+
+/* ---------- the provenance seal: a cut wood disc in CSS ---------- */
+.o2-seal {
+  background:
+    radial-gradient(circle at 47% 46%, #2c0904 0 1.6%, transparent 2.4%),
+    radial-gradient(circle closest-side at 50% 50%, transparent 0 83%, #ead4ad 83.6% 95%, #b98d5a 95.4% 96.2%, #e3c99c 96.6% 100%),
+    repeating-conic-gradient(from 8deg at 47% 46%, rgb(30 6 2 / 0.05) 0 0.7deg, transparent 0.7deg 9deg),
+    repeating-radial-gradient(circle at 53% 52%, rgb(30 6 2 / 0.12) 0 1.5px, transparent 1.5px 11px),
+    repeating-radial-gradient(ellipse 104% 100% at 43% 49%, rgb(255 210 180 / 0.07) 0 3px, transparent 3px 19px),
+    repeating-radial-gradient(circle at 47% 46%, #74200f 0 2px, #9b3520 2px 7px, #842a17 7px 9px, #ad4b2f 9px 15px, #962f1b 15px 17px),
+    #8a2b18;
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.12),
+    inset 0 -18px 40px rgb(40 10 4 / 0.25),
+    0 40px 80px -30px rgb(60 20 10 / 0.45);
+}
+html[data-wood="white"] .o2-seal {
+  background:
+    radial-gradient(circle at 47% 46%, #7a5528 0 1.6%, transparent 2.4%),
+    radial-gradient(circle closest-side at 50% 50%, transparent 0 83%, #f3e6c9 83.6% 95%, #c9a874 95.4% 96.2%, #efdfbf 96.6% 100%),
+    repeating-conic-gradient(from 8deg at 47% 46%, rgb(90 60 20 / 0.05) 0 0.7deg, transparent 0.7deg 9deg),
+    repeating-radial-gradient(circle at 53% 52%, rgb(90 60 20 / 0.12) 0 1.5px, transparent 1.5px 11px),
+    repeating-radial-gradient(ellipse 104% 100% at 43% 49%, rgb(255 250 235 / 0.12) 0 3px, transparent 3px 19px),
+    repeating-radial-gradient(circle at 47% 46%, #b88d58 0 1.5px, #dcbd8b 1.5px 7px, #caa56f 7px 9px, #e6cc9f 9px 15px, #d3b27f 15px 17px),
+    #d3b27f;
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.08),
+    inset 0 -18px 40px rgb(120 80 30 / 0.18),
+    0 40px 80px -30px rgb(120 90 40 / 0.4);
+}
+
+/* ---------- the 21 vault discs ---------- */
+.o2-vdisc {
+  background:
+    radial-gradient(circle at var(--gx) var(--gy), #2a0904 0 5%, transparent 6%),
+    radial-gradient(circle closest-side at 50% 50%, transparent 0 82%, #e2c79c 84% 100%),
+    repeating-radial-gradient(circle at var(--gx) var(--gy), #6f1f0f 0 1.5px, #973320 1.5px 3.5px, #7f2714 3.5px 4.5px, #ab4a2e 4.5px 6.5px);
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.15),
+    0 6px 14px -6px rgb(40 12 4 / 0.5);
+}
+html[data-wood="white"] .o2-vdisc {
+  background:
+    radial-gradient(circle at var(--gx) var(--gy), #7a5528 0 5%, transparent 6%),
+    radial-gradient(circle closest-side at 50% 50%, transparent 0 82%, #f3e5c6 84% 100%),
+    repeating-radial-gradient(circle at var(--gx) var(--gy), #b48a55 0 1.2px, #dcbd8b 1.2px 3.5px, #c7a26d 3.5px 4.5px, #e8cfa3 4.5px 6.5px);
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.1),
+    0 6px 14px -6px rgb(90 60 20 / 0.45);
+}
+
+.o2-vbtn {
+  transition:
+    transform 0.45s var(--o-ease),
+    filter 0.45s var(--o-ease);
+  transform: translate(-50%, -50%);
+}
+.o2-vbtn:hover,
+.o2-vbtn:focus-visible {
+  transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.22);
+  z-index: 3;
+}
+.o2-vbtn:active {
+  transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.1);
+}
+.o2-vbtn .o2-vnum {
+  opacity: 0;
+  transform: translate(-50%, 6px);
+  transition:
+    opacity 0.3s var(--o-ease),
+    transform 0.3s var(--o-ease);
+}
+.o2-vbtn:hover .o2-vnum,
+.o2-vbtn:focus-visible .o2-vnum,
+.o2-vbtn[aria-pressed="true"] .o2-vnum {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ---------- rotating circular badge (footer) and orbit outlines ---------- */
+@keyframes o2-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.o2-spin {
+  animation: o2-spin 48s linear infinite;
+}
+.o2-spinSlow {
+  animation: o2-spin 90s linear infinite;
+}
+
+/* ---------- pill inputs (a layer below utilities, so padding utilities still apply) ---------- */
+@layer components {
+  .o2-field {
+    height: 3.25rem;
+    width: 100%;
+    border-radius: 999px;
+    border: 1px solid var(--o-line);
+    background: #fff;
+    padding: 0 1.25rem;
+    color: var(--o-ink);
+    transition:
+      border-color 0.25s var(--o-ease),
+      box-shadow 0.25s var(--o-ease);
+  }
+  .o2-field:hover {
+    border-color: rgb(25 23 20 / 0.28);
+  }
+  .o2-field:focus-visible {
+    outline: none;
+    border-color: var(--o-ink);
+    box-shadow: 0 0 0 4px var(--m-accent-soft);
+  }
+  .o2-field:user-invalid {
+    border-color: #b3261e;
+  }
+  textarea.o2-field {
+    height: auto;
+    border-radius: 26px;
+    padding: 0.9rem 1.25rem;
+  }
+  select.o2-field {
+    appearance: none;
+    background-image:
+      linear-gradient(45deg, transparent 50%, var(--o-ink) 50%),
+      linear-gradient(135deg, var(--o-ink) 50%, transparent 50%);
+    background-position:
+      calc(100% - 22px) 50%,
+      calc(100% - 17px) 50%;
+    background-size:
+      5px 5px,
+      5px 5px;
+    background-repeat: no-repeat;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .o2-spin,
+  .o2-spinSlow {
+    animation: none;
+  }
+  .o2-vbtn,
+  .o2-vbtn .o2-vnum {
+    transition: none;
+  }
+}

@@ -1,0 +1,679 @@
+/* ==========================================================================
+   Design 10, Kinetic (global, every class prefixed k10-; CSS modules are not processed by this project's Turbopack css rule). Type is the image: Anybody's wdth/wght axes move with
+   scroll and the pointer. Paper #F2F0EB, ink #121212, grey #7C7A75, one accent.
+   ========================================================================== */
+
+/* In Tailwind's components layer, so utilities next to these classes still win. */
+@layer components {
+  .k10-root {
+    --k-bg: #f2f0eb;
+    --k-paper: #faf9f6;
+    --k-stone: #e7e3da;
+    --k-ink: #121212;
+    --k-grey: #7c7a75;
+    --k-line: rgb(18 18 18 / 0.14);
+    --k-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --k-gut: clamp(16px, 2.2vw, 32px);
+    background: var(--k-bg);
+    color: var(--k-ink);
+    font-family: var(--font-anybody), ui-sans-serif, sans-serif;
+    font-weight: 400;
+    font-synthesis: none;
+    min-height: 100svh;
+    overflow-x: clip;
+    -webkit-font-smoothing: antialiased;
+  }
+  .k10-root ::selection {
+    background: var(--m-accent);
+    color: var(--k-bg);
+  }
+  .k10-root :focus-visible {
+    outline: 2px solid var(--m-accent);
+    outline-offset: 3px;
+  }
+
+  .k10-mono {
+    font-family: var(--font-jbm), ui-monospace, monospace;
+    font-variation-settings: normal;
+    font-style: normal;
+    font-size: 12px;
+    line-height: 1.55;
+    letter-spacing: 0;
+  }
+  .k10-monoL {
+    font-family: var(--font-jbm), ui-monospace, monospace;
+    font-variation-settings: normal;
+    font-style: normal;
+    font-size: 13.5px;
+    line-height: 1.55;
+    letter-spacing: 0;
+  }
+
+  .k10-disp {
+    font-family: var(--font-anybody), ui-sans-serif, sans-serif;
+    line-height: 0.8;
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+
+  .k10-gut {
+    padding-inline: var(--k-gut);
+  }
+
+  .k10-hair {
+    border-color: var(--k-line);
+  }
+
+  .k10-grey {
+    color: var(--k-grey);
+  }
+
+  /* ---------- links and buttons ---------- */
+
+
+
+  .k10-link {
+    position: relative;
+    text-decoration: none;
+    transition: color 0.3s var(--k-ease);
+  }
+  .k10-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -2px;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.45s var(--k-ease);
+  }
+  .k10-link:hover::after,
+  .k10-link:focus-visible::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+  .k10-link:active {
+    color: var(--m-accent);
+  }/* The big ink button: the label stretches on hover. */
+
+
+  .k10-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    min-height: 64px;
+    padding: 0 28px;
+    border-radius: 999px;
+    background: var(--k-ink);
+    color: var(--k-bg);
+    transition:
+      background-color 0.35s var(--k-ease),
+      transform 0.35s var(--k-ease);
+  }
+  .k10-btnLabel {
+    font-family: var(--font-anybody);
+    font-size: 22px;
+    line-height: 1;
+    font-variation-settings: "wdth" 80, "wght" 640;
+    transition: font-variation-settings 0.6s var(--k-ease);
+  }
+  .k10-btn:hover .k10-btnLabel,
+  .k10-btn:focus-visible .k10-btnLabel {
+    font-variation-settings: "wdth" 150, "wght" 800;
+  }
+  .k10-btn:hover {
+    background: var(--m-accent);
+  }
+  .k10-btn:active {
+    transform: scale(0.98);
+  }
+  .k10-btn:disabled {
+    background: var(--k-grey);
+    cursor: not-allowed;
+  }
+
+  .k10-ghost {
+    background: transparent;
+    color: var(--k-ink);
+    box-shadow: inset 0 0 0 1.5px var(--k-ink);
+  }
+  .k10-ghost:hover,
+  .k10-ghost:focus-visible {
+    background: var(--k-ink);
+    color: var(--k-bg);
+  }
+
+  .k10-chip {
+    font-family: var(--font-jbm), ui-monospace, monospace;
+    font-size: 12px;
+    line-height: 1;
+    padding: 9px 14px;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px var(--k-line);
+    transition:
+      background-color 0.3s var(--k-ease),
+      color 0.3s var(--k-ease),
+      box-shadow 0.3s var(--k-ease);
+  }
+  .k10-chip:hover {
+    box-shadow: inset 0 0 0 1px var(--k-ink);
+  }
+  .k10-chip:active {
+    transform: translateY(1px);
+  }
+  .k10-chip[aria-pressed="true"] {
+    background: var(--k-ink);
+    color: var(--k-bg);
+    box-shadow: none;
+  }
+
+  /* ---------- wood toggle: the active word is wide, the other condensed ---------- */
+
+
+
+  .k10-tog {
+    font-family: var(--font-anybody);
+    line-height: 0.9;
+    color: var(--k-grey);
+    font-variation-settings: "wdth" 62, "wght" 520;
+    transition:
+      font-variation-settings 0.75s var(--k-ease),
+      color 0.4s var(--k-ease);
+  }
+  .k10-tog:hover {
+    color: var(--k-ink);
+    font-variation-settings: "wdth" 75, "wght" 600;
+  }
+  .k10-tog:active {
+    font-variation-settings: "wdth" 100, "wght" 700;
+  }
+  html:not([data-wood="white"]) .k10-togRed,
+  html[data-wood="white"] .k10-togWhite {
+    color: var(--k-ink);
+    font-variation-settings: "wdth" 150, "wght" 820;
+  }
+
+  /* ---------- nav ---------- */
+
+
+
+  .k10-navLine {
+    background: color-mix(in srgb, var(--k-bg) 94%, transparent);
+    border-bottom: 1px solid var(--k-line);
+  }
+  .k10-bagTab {
+    background: var(--k-bg);
+    border: 1px solid var(--k-line);
+    border-top: 0;
+    border-radius: 0 0 0 22px;
+    transition: background-color 0.3s var(--k-ease);
+  }
+  .k10-bagTab:hover {
+    background: var(--k-paper);
+  }
+  .k10-bagNum {
+    font-family: var(--font-anybody);
+    font-variation-settings: "wdth" 74, "wght" 820;
+    line-height: 0.78;
+    transition: font-variation-settings 0.6s var(--k-ease);
+  }
+  .k10-bagTab:hover .k10-bagNum,
+  .k10-bagTab:focus-visible .k10-bagNum {
+    font-variation-settings: "wdth" 130, "wght" 900;
+  }
+
+  .k10-menuWord {
+    font-family: var(--font-anybody);
+    line-height: 0.86;
+    font-variation-settings: "wdth" 50, "wght" 560;
+    transition:
+      font-variation-settings 0.7s var(--k-ease),
+      color 0.3s var(--k-ease);
+  }
+  .k10-menuItem:hover .k10-menuWord,
+  .k10-menuItem:focus-visible .k10-menuWord {
+    font-variation-settings: "wdth" 150, "wght" 860;
+  }
+  .k10-menuItem:active .k10-menuWord {
+    color: var(--m-accent);
+  }
+  @media (hover: hover) {
+    .k10-menuList:hover .k10-menuItem:not(:hover) .k10-menuWord {
+      color: var(--k-grey);
+    }
+  }
+
+  /* ---------- hero ---------- */
+
+
+
+  .k10-heroWord {
+    display: block;
+    width: max-content;
+    font-family: var(--font-anybody);
+    line-height: 0.74;
+    letter-spacing: 0;
+    white-space: nowrap;
+    font-size: 11.2vw;
+  }
+  .k10-heroWord [data-l] {
+    font-variation-settings: "wdth" 50, "wght" 100;
+  }
+
+  /* ---------- marquee ---------- */
+
+
+
+  .k10-band {
+    font-family: var(--font-anybody);
+    line-height: 0.86;
+    white-space: nowrap;
+  }
+  .k10-bandWide {
+    font-variation-settings: "wdth" 150, "wght" 840;
+  }
+  .k10-bandThin {
+    font-variation-settings: "wdth" 50, "wght" 260;
+    font-style: italic;
+  }
+  .k10-bandMid {
+    font-variation-settings: "wdth" 100, "wght" 560;
+  }
+  .k10-bandOutline {
+    font-variation-settings: "wdth" 150, "wght" 840;
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--k-ink);
+  }
+  html:not([data-wood="white"]) .k10-bandRed .k10-bandWide,
+  html[data-wood="white"] .k10-bandWhite .k10-bandWide {
+    color: var(--m-accent);
+  }
+  html[data-wood="white"] .k10-bandWhite .k10-bandOutline,
+  html:not([data-wood="white"]) .k10-bandRed .k10-bandOutline {
+    -webkit-text-stroke-color: var(--m-accent);
+  }
+  .k10-bandPill {
+    position: relative;
+    display: inline-block;
+    vertical-align: middle;
+    width: 1.55em;
+    height: 0.72em;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-inline: 0.18em;
+    transform: translateY(-0.06em);
+  }
+
+  /* ---------- heartwood: photo through the letters ---------- */
+
+
+
+  .k10-mask {
+    background-image: var(--img-red);
+    background-size: 125% auto;
+    background-repeat: no-repeat;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+  html[data-wood="white"] .k10-mask {
+    background-image: var(--img-white);
+  }
+
+  /* ---------- two woods ---------- */
+
+
+
+  .k10-woods {
+    --fs-r: 17vw;
+    --fs-w: 17vw;
+  }
+
+  .k10-wood {
+    font-family: var(--font-anybody);
+    line-height: 0.76;
+    white-space: nowrap;
+    font-size: var(--fs-r);
+    color: var(--k-grey);
+    font-variation-settings: "wdth" 50, "wght" 300;
+    transition:
+      font-variation-settings 0.95s var(--k-ease),
+      font-size 0.95s var(--k-ease),
+      color 0.5s var(--k-ease);
+  }
+  html[data-wood="white"] .k10-wood {
+    font-size: var(--fs-w);
+  }
+  html:not([data-wood="white"]) .k10-woodRed,
+  html[data-wood="white"] .k10-woodWhite {
+    color: var(--k-ink);
+    font-variation-settings: "wdth" 150, "wght" 860;
+  }
+  .k10-woodBtn:hover .k10-wood {
+    color: var(--k-ink);
+  }
+  .k10-woodBtn:active .k10-wood {
+    color: var(--m-accent);
+  }
+  .k10-woodCol {
+    flex: 1 1 0;
+    min-width: 0;
+    transition:
+      flex-grow 0.95s var(--k-ease),
+      opacity 0.5s var(--k-ease);
+  }
+  .k10-woods .k10-woodColRed {
+    flex-grow: var(--g-rr, 1.65);
+  }
+  .k10-woods .k10-woodColWhite {
+    flex-grow: var(--g-wr, 1);
+  }
+  html[data-wood="white"] .k10-woods .k10-woodColRed {
+    flex-grow: var(--g-rw, 1);
+  }
+  html[data-wood="white"] .k10-woods .k10-woodColWhite {
+    flex-grow: var(--g-ww, 1.65);
+  }
+  html:not([data-wood="white"]) .k10-woodColWhite.k10-woodSpecs,
+  html[data-wood="white"] .k10-woodColRed.k10-woodSpecs {
+    opacity: 0.5;
+  }
+  .k10-woodSpecs {
+    opacity: 1;
+  }
+
+  /* ---------- collection rows ---------- */
+
+
+
+  .k10-rowName {
+    font-family: var(--font-anybody);
+    line-height: 0.82;
+    white-space: nowrap;
+    font-variation-settings: "wdth" 50, "wght" 560;
+    transition:
+      font-variation-settings 0.75s var(--k-ease),
+      color 0.35s var(--k-ease);
+  }
+  .k10-row:hover .k10-rowName,
+  .k10-row:focus-visible .k10-rowName,
+  .k10-row[data-active="true"] .k10-rowName {
+    font-variation-settings: "wdth" var(--hw, 110), "wght" 840;
+  }
+  .k10-row:active .k10-rowName {
+    color: var(--m-accent);
+  }
+  @media (hover: hover) {
+    .k10-rows:hover .k10-row:not(:hover) .k10-rowName {
+      color: var(--k-grey);
+    }
+  }
+  .k10-rowPill {
+    position: absolute;
+    top: 50%;
+    height: 72%;
+    aspect-ratio: 2.1 / 1;
+    border-radius: 999px;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 2;
+  }
+  @media (min-width: 768px) {
+    .k10-rowPill {
+      height: 88%;
+    }
+  }
+
+  /* ---------- takeover / product title ---------- */
+
+
+
+  .k10-titleL {
+    display: inline-block;
+    font-variation-settings: "wdth" 150, "wght" 820;
+    animation: k10-stretchIn 1.05s var(--k-ease) both;
+  }
+  @keyframes k10-stretchIn {
+    from {
+      font-variation-settings: "wdth" 50, "wght" 120;
+      opacity: 0;
+      transform: translateY(35%);
+    }
+    to {
+      font-variation-settings: "wdth" 150, "wght" 820;
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .k10-letterMask {
+    font-family: var(--font-anybody);
+    font-variation-settings: "wdth" 150, "wght" 900;
+    line-height: 0.78;
+    background-size: cover;
+    background-position: center;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .k10-pwood {
+    font-family: var(--font-anybody);
+    line-height: 0.85;
+    color: var(--k-grey);
+    font-variation-settings: "wdth" 50, "wght" 420;
+    transition:
+      font-variation-settings 0.75s var(--k-ease),
+      color 0.4s var(--k-ease);
+  }
+  .k10-pwoodBtn:hover .k10-pwood {
+    color: var(--k-ink);
+    font-variation-settings: "wdth" 80, "wght" 600;
+  }
+  .k10-pwoodBtn[aria-pressed="true"] .k10-pwood {
+    color: var(--k-ink);
+    font-variation-settings: "wdth" 150, "wght" 840;
+  }
+  .k10-pwoodBtn:disabled .k10-pwood {
+    color: color-mix(in srgb, var(--k-grey) 55%, transparent);
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+  }
+
+  /* ---------- making ---------- */
+
+
+
+  .k10-step {
+    font-family: var(--font-anybody);
+    line-height: 0.84;
+    white-space: nowrap;
+    font-variation-settings: "wdth" 50, "wght" 200;
+  }
+
+  /* ---------- provenance ---------- */
+
+
+
+  .k10-slip {
+    background: var(--k-paper);
+    box-shadow:
+      0 0 0 1px var(--k-line),
+      0 30px 60px -40px rgb(18 18 18 / 0.35);
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0 31px,
+      rgb(18 18 18 / 0.05) 31px 32px
+    );
+  }
+  .k10-cursor {
+    display: inline-block;
+    width: 0.6em;
+    height: 1.1em;
+    vertical-align: -0.2em;
+    background: var(--m-accent);
+    animation: k10-blink 1s steps(1) infinite;
+  }
+  @keyframes k10-blink {
+    50% {
+      opacity: 0;
+    }
+  }
+
+  /* ---------- vault ---------- */
+
+
+
+  .k10-vnum {
+    position: absolute;
+    font-family: var(--font-anybody);
+    line-height: 1;
+    font-variation-settings: "wdth" 60, "wght" 780;
+    transition:
+      font-variation-settings 0.5s var(--k-ease),
+      color 0.3s var(--k-ease);
+    cursor: default;
+  }
+  .k10-vnum:hover,
+  .k10-vnum[data-on="true"] {
+    font-variation-settings: "wdth" 150, "wght" 900;
+    color: var(--m-accent);
+  }
+
+  /* ---------- forms: large type fields ---------- */
+
+
+
+  .k10-field {
+    display: block;
+    width: 100%;
+    background: transparent;
+    border: 0;
+    border-bottom: 1.5px solid var(--k-ink);
+    border-radius: 0;
+    padding: 6px 0 10px;
+    font-family: var(--font-anybody);
+    font-size: clamp(26px, 3.4vw, 46px);
+    line-height: 1.1;
+    font-variation-settings: "wdth" 70, "wght" 560;
+    color: var(--k-ink);
+    transition:
+      border-color 0.3s var(--k-ease),
+      font-variation-settings 0.6s var(--k-ease);
+    appearance: none;
+  }
+  .k10-field::placeholder {
+    color: color-mix(in srgb, var(--k-grey) 70%, transparent);
+  }
+  .k10-field:hover {
+    border-color: var(--m-accent);
+  }
+  .k10-field:focus {
+    outline: none;
+    border-color: var(--m-accent);
+    font-variation-settings: "wdth" 120, "wght" 640;
+  }
+  .k10-field:focus-visible {
+    outline: none;
+  }
+  .k10-field:user-invalid {
+    border-color: #b3261e;
+  }
+  select.k10-field {
+    cursor: pointer;
+    background-image: linear-gradient(45deg, transparent 50%, var(--k-ink) 50%),
+      linear-gradient(135deg, var(--k-ink) 50%, transparent 50%);
+    background-position:
+      calc(100% - 18px) 55%,
+      calc(100% - 10px) 55%;
+    background-size:
+      8px 8px,
+      8px 8px;
+    background-repeat: no-repeat;
+    padding-right: 40px;
+  }
+
+  .k10-check {
+    appearance: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    box-shadow: inset 0 0 0 1.5px var(--k-ink);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 0.25s var(--k-ease);
+  }
+  .k10-check::after {
+    content: "";
+    width: 12px;
+    height: 7px;
+    border-left: 2px solid var(--k-bg);
+    border-bottom: 2px solid var(--k-bg);
+    transform: rotate(-45deg) translate(1px, -1px);
+    opacity: 0;
+  }
+  .k10-check:checked {
+    background: var(--k-ink);
+  }
+  .k10-check:checked::after {
+    opacity: 1;
+  }
+  .k10-check:hover {
+    box-shadow: inset 0 0 0 1.5px var(--m-accent);
+  }
+
+  .k10-giant {
+    display: block;
+    width: 100%;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    font-family: var(--font-anybody);
+    line-height: 1.02;
+    color: var(--k-ink);
+    font-size: 12vw;
+    font-variation-settings: "wdth" 150, "wght" 820;
+  }
+  .k10-giant::placeholder {
+    color: color-mix(in srgb, var(--k-grey) 45%, transparent);
+  }
+  .k10-giant:focus {
+    outline: none;
+  }
+
+  /* ---------- footer ---------- */
+
+
+
+  .k10-footWord {
+    display: block;
+    width: max-content;
+    font-family: var(--font-anybody);
+    line-height: 0.74;
+    white-space: nowrap;
+    font-size: 20vw;
+  }
+  .k10-footWord [data-l] {
+    font-variation-settings: "wdth" 100, "wght" 800;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .k10-root *,
+    .k10-root *::before,
+    .k10-root *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    .k10-cursor {
+      animation: none;
+    }
+  }
+}

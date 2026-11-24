@@ -1,0 +1,21 @@
+/** Class names for design 01 (defined in ../lathe.css, scoped under .l01). */
+export const s = {
+  root: "l01",
+  mono: "l01-mono",
+  x110: "l01-x110",
+  x125: "l01-x125",
+  btn: "l01-btn",
+  btnLine: "l01-btn-line",
+  link: "l01-link",
+  hatch: "l01-hatch",
+  sheet: "l01-sheet",
+  field: "l01-field",
+  plate: "l01-plate",
+  engraved: "l01-engraved",
+  screw: "l01-screw",
+  stamp: "l01-stamp",
+  draw: "l01-draw",
+  late: "l01-late",
+  scrollCue: "l01-cue",
+  noScrollbar: "l01-noscroll",
+} as const;
