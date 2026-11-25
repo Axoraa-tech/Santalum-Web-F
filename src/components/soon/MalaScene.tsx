@@ -10,7 +10,7 @@ import type { Line2 } from "three-stdlib";
 import { strike } from "./bowl";
 import { glowFragment, glowVertex, makeWoodMaps, rng } from "./materials";
 import { FloorInscriptions } from "./Inscriptions";
-import { Motifs } from "./Motifs";
+import { Murals } from "./Murals";
 import { Floor, Lights, Rays, SOURCE, rayTexture } from "./Studio";
 
 /* =====================================================================
@@ -542,6 +542,22 @@ function Mala({ mobile }: { mobile: boolean }) {
   );
 }
 
+/**
+ * When the Ramayana murals show: only while the camera moves with the beads (threading, the
+ * return, and across the loop back), never in the still full view. Also where the light is.
+ */
+function muralCue() {
+  const t = shot.t;
+  const looping = shot.total > LOOP && t < DRAW0;
+  const drawing = smooth(clamp01((t - (DRAW0 - 0.7)) / 0.8)) * (1 - smooth(clamp01((t - (TIE0 - 0.5)) / 0.9)));
+  const back = smooth(clamp01((t - RET0) / 0.9));
+  const vis = looping ? 1 : Math.max(drawing, back);
+  const tieP = smooth(clamp01((t - TIE0) / TIE));
+  const gap = lerp(0.42, (GAP / R) * 0.98, tieP);
+  const idx = t >= RET0 ? (N - 1) * (1 - clamp01((t - RET0) / (RET * 0.8))) : clamp01((t - DRAW0) / DRAW) * (N - 1);
+  return { vis, angle: angleAt(idx, gap) };
+}
+
 /** Angle on the floor of bead `i` on the (possibly open) circle. */
 function angleAt(i: number, gap: number) {
   return FRONT + gap / 2 + ((Math.PI * 2 - gap) * i) / (N - 1);
@@ -619,9 +635,10 @@ function Camera({ mobile, focus }: { mobile: boolean; focus: (d: number) => void
       const r = rigs.gimbal;
       const ca = ang - dir * 0.62;
       const d = R + 1.55 * far;
-      r.pos.set(Math.cos(ca) * d, 0.8 * far, Math.sin(ca) * d);
+      r.pos.set(Math.cos(ca) * d, 0.55 * far, Math.sin(ca) * d);
       const la = ang + dir * 0.22;
-      r.look.set(Math.cos(la) * R * 0.96, 0.05, Math.sin(la) * R * 0.96);
+      // Aim near the horizon so the strand is seen against the mural wall behind it.
+      r.look.set(Math.cos(la) * R * 0.96, 0.38, Math.sin(la) * R * 0.96);
       r.roll = -dir * 0.03;
       r.fov = 32;
     }
@@ -630,8 +647,8 @@ function Camera({ mobile, focus }: { mobile: boolean; focus: (d: number) => void
       const r = rigs.orbit;
       const ca = ang + Math.PI * 0.78 + Math.sin(T * 0.2) * 0.05;
       const d = R + 2.6 * far;
-      r.pos.set(Math.cos(ca) * d, 2.5 * far, Math.sin(ca) * d);
-      r.look.copy(spark).multiplyScalar(0.7);
+      r.pos.set(Math.cos(ca) * d, 1.7 * far, Math.sin(ca) * d);
+      r.look.copy(spark).multiplyScalar(0.7).setY(0.55);
       r.roll = dir * 0.09;
       r.fov = 30;
     }
@@ -641,7 +658,7 @@ function Camera({ mobile, focus }: { mobile: boolean; focus: (d: number) => void
       const ca = ang + dir * 0.42;
       const d = R + 0.55 * far;
       r.pos.set(Math.cos(ca) * d, 0.3 * far, Math.sin(ca) * d);
-      r.look.set(spark.x, 0.07, spark.z);
+      r.look.set(spark.x, 0.16, spark.z);
       r.roll = dir * 0.02;
       r.fov = 38;
     }
@@ -757,7 +774,7 @@ export default function MalaScene({ mobile = false }: { mobile?: boolean }) {
       <Lights />
       <Rays />
       <FloorInscriptions />
-      <Motifs />
+      <Murals cue={muralCue} />
       <Mala mobile={mobile} />
       <Floor mobile={lite} />
       <Sparkles count={mobile ? 30 : 60} scale={[6, 4, 5]} position={[0, 2, -1]} size={2} speed={0.12} color="#b08d57" opacity={0.5} />
