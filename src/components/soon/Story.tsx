@@ -4,7 +4,7 @@ import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { glowFragment, glowVertex } from "./materials";
-import { LOOP, RET0 } from "./timeline";
+import { LOOP, RET0, TIE0 } from "./timeline";
 
 /* =====================================================================
    The story behind the mala, told as an animated storybook in sepia
@@ -25,7 +25,7 @@ import { LOOP, RET0 } from "./timeline";
    Captions are written into #story-line in the page.
    ===================================================================== */
 
-type Beat = { from: number; to: number; panels: Partial<Record<Panel, number>>; line: string };
+type Beat = { from: number; to: number; panels: Partial<Record<Panel, number>>; who: string; line: string };
 type Panel = "court" | "sita" | "hanuman" | "heart";
 
 const SRC: Record<Panel, string> = {
@@ -47,13 +47,17 @@ const SITA_HANDS = new THREE.Vector3(-1.2, -0.25, 0.05);
 const HANUMAN_HANDS = new THREE.Vector3(1.55, 0.35, 0.05);
 const HEART = new THREE.Vector3(0, -0.05, 0.05);
 
+// One action, one reaction and one spoken line per beat (see docs/coming-soon-story.md).
+// Act I plays while the light threads the mala; Act II while the beads return, carrying across the loop.
+const A2 = (LOOP - RET0) / 3;
 const BEATS: Beat[] = [
-  { from: 0, to: 2.2, panels: { court: 1 }, line: "Ayodhya, the day Rama was crowned." },
-  { from: 2.2, to: 4.4, panels: { sita: 1 }, line: "Sita lifted the necklace from her neck," },
-  { from: 4.4, to: 7.4, panels: { sita: 0.75, hanuman: 1 }, line: "and gave it to Hanuman, the most devoted of all." },
-  { from: 7.4, to: RET0, panels: {}, line: "He turned it bead by bead, looking for Rama in each one." },
-  { from: RET0, to: RET0 + 2, panels: { hanuman: 1 }, line: "“Whatever does not hold Rama is not precious to me.”" },
-  { from: RET0 + 2, to: LOOP + 0.01, panels: { heart: 1 }, line: "He opened his heart. Rama and Sita were there." },
+  { from: 0, to: 3.2, panels: { court: 1 }, who: "", line: "Ayodhya. Rama is crowned." },
+  { from: 3.2, to: 6.3, panels: { sita: 1 }, who: "Rama", line: "Give it to the one you love most." },
+  { from: 6.3, to: TIE0, panels: { sita: 0.75, hanuman: 1 }, who: "Sita", line: "For you, Hanuman." },
+  { from: TIE0, to: RET0, panels: {}, who: "", line: "He wore it, and looked into every pearl." },
+  { from: RET0, to: RET0 + A2, panels: { hanuman: 1 }, who: "From the court", line: "He breaks the queen’s gift?" },
+  { from: RET0 + A2, to: RET0 + 2 * A2, panels: { hanuman: 1 }, who: "Hanuman", line: "Without Rama, it is nothing to me." },
+  { from: RET0 + 2 * A2, to: LOOP + 0.01, panels: { heart: 1 }, who: "Hanuman", line: "Look. They are here." },
 ];
 
 const RING = 28; // points in the necklace of light
@@ -138,7 +142,11 @@ export function Story({ cue }: { cue: StoryCue }) {
       if (el) {
         el.classList.remove("is-in");
         void el.offsetWidth; // restart the fade
-        el.textContent = beat >= 0 ? BEATS[beat].line : "";
+        const b = beat >= 0 ? BEATS[beat] : null;
+        const who = document.createElement("span");
+        who.className = "story-who";
+        who.textContent = b?.who ?? "";
+        el.replaceChildren(...(b?.who ? [who] : []), document.createTextNode(b?.line ?? ""));
         el.classList.add("is-in");
       }
     }
@@ -181,25 +189,25 @@ export function Story({ cue }: { cue: StoryCue }) {
     let on = 0;
     let loosen = 0;
     let radius = 0.26;
-    if (t >= 2.6 && t < 4.8) {
+    if (t >= 3.4 && t < 6.5) {
       // Sita lifts it: it rises a little from her hands and brightens.
-      on = smooth(clamp01((t - 2.6) / 0.6));
-      centre = tmp.copy(SITA_HANDS).setY(SITA_HANDS.y + 0.25 * smooth(clamp01((t - 2.6) / 1.8)));
-    } else if (t >= 4.8 && t < 7.4) {
+      on = smooth(clamp01((t - 3.4) / 0.6));
+      centre = tmp.copy(SITA_HANDS).setY(SITA_HANDS.y + 0.25 * smooth(clamp01((t - 3.4) / 2.4)));
+    } else if (t >= 6.5 && t < TIE0 + 0.4) {
       // She gives it: an arc from her hands to his.
-      const a = smooth(clamp01((t - 4.8) / 1.8));
+      const a = smooth(clamp01((t - 6.6) / 2.2));
       centre = tmp.lerpVectors(SITA_HANDS, HANUMAN_HANDS, a);
       centre.y += Math.sin(a * Math.PI) * 0.38 + 0.25 * (1 - a);
       on = 1;
-    } else if (t >= RET0 && t < RET0 + 2) {
+    } else if (t >= RET0 && t < RET0 + A2 * 2) {
       // He searches: the beads loosen and drift apart.
       centre = HANUMAN_HANDS;
-      on = smooth(clamp01((t - RET0) / 0.5)) * (1 - smooth(clamp01((t - RET0 - 1.6) / 0.4)));
-      loosen = smooth(clamp01((t - RET0 - 0.3) / 1.4));
-    } else if (t >= RET0 + 2 && t < LOOP) {
+      on = smooth(clamp01((t - RET0) / 0.5)) * (1 - smooth(clamp01((t - RET0 - A2 * 2 + 0.5) / 0.5)));
+      loosen = smooth(clamp01((t - RET0 - 0.4) / (A2 * 1.2)));
+    } else if (t >= RET0 + A2 * 2 && t < LOOP) {
       // His heart: one warm glow where Rama and Sita are.
       centre = HEART;
-      on = smooth(clamp01((t - RET0 - 2.2) / 0.6));
+      on = smooth(clamp01((t - RET0 - A2 * 2 - 0.3) / 0.8));
       radius = 0;
     }
     for (let i = 0; i < RING; i++) {
