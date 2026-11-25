@@ -3,15 +3,42 @@
    Paper, ink, grey, rules, and one spot colour that follows the wood.
    ============================================================ */
 
+/* Two palettes, one per wood. The colours are registered so the switch eases instead of jumping. */
+@property --x5-paper { syntax: "<color>"; inherits: true; initial-value: #faf3ef; }
+@property --x5-surface { syntax: "<color>"; inherits: true; initial-value: #fffaf7; }
+@property --x5-ink { syntax: "<color>"; inherits: true; initial-value: #23130e; }
+@property --x5-grey { syntax: "<color>"; inherits: true; initial-value: #765850; }
+@property --x5-rule { syntax: "<color>"; inherits: true; initial-value: #ead8d1; }
+@property --x5-faint { syntax: "<color>"; inherits: true; initial-value: #d2b8ae; }
+@property --x5-wash { syntax: "<color>"; inherits: true; initial-value: #f3e4de; }
+@property --x5-spot { syntax: "<color>"; inherits: true; initial-value: #9b3520; }
+@property --x5-spot-soft { syntax: "<color>"; inherits: true; initial-value: #f1dcd4; }
+@property --x5-spot-deep { syntax: "<color>"; inherits: true; initial-value: #5e1d10; }
+
 .x5-root {
-  --paper: #fcfcfa;
-  --white: #ffffff;
-  --ink: #111111;
-  --grey: #6f6f6b;
-  --rule: #e4e3de;
-  --faint: #c9c8c2;
-  --wash: #f3f2ee;
-  --spot: var(--m-accent);
+  /* red sandalwood: rose linen, heartwood red, a warm brown-black ink */
+  --x5-paper: #faf3ef;
+  --x5-surface: #fffaf7;
+  --x5-ink: #23130e;
+  --x5-grey: #765850;
+  --x5-rule: #ead8d1;
+  --x5-faint: #d2b8ae;
+  --x5-wash: #f3e4de;
+  --x5-spot: #9b3520;
+  --x5-spot-soft: #f1dcd4;
+  --x5-spot-deep: #5e1d10;
+
+  --paper: var(--x5-paper);
+  --white: var(--x5-surface);
+  --ink: var(--x5-ink);
+  --grey: var(--x5-grey);
+  --rule: var(--x5-rule);
+  --faint: var(--x5-faint);
+  --wash: var(--x5-wash);
+  --spot: var(--x5-spot);
+  --spot-soft: var(--x5-spot-soft);
+  --spot-deep: var(--x5-spot-deep);
+  --error: #a3261b;
   --sans: var(--f-sans), "Helvetica Neue", Helvetica, sans-serif;
   --serif: var(--f-serif), var(--font-tiro), Georgia, serif;
   --deva: var(--font-tiro), var(--f-serif), serif;
@@ -30,9 +57,38 @@
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow-x: clip;
+  transition:
+    --x5-paper 0.9s var(--ease),
+    --x5-surface 0.9s var(--ease),
+    --x5-ink 0.9s var(--ease),
+    --x5-grey 0.9s var(--ease),
+    --x5-rule 0.9s var(--ease),
+    --x5-faint 0.9s var(--ease),
+    --x5-wash 0.9s var(--ease),
+    --x5-spot 0.9s var(--ease),
+    --x5-spot-soft 0.9s var(--ease),
+    --x5-spot-deep 0.9s var(--ease);
+}
+/* white sandalwood: pale ivory-gold, antique brass, a warm umber ink */
+html[data-wood="white"] .x5-root {
+  --x5-paper: #fbf7ee;
+  --x5-surface: #fffdf7;
+  --x5-ink: #2a2216;
+  --x5-grey: #75664d;
+  --x5-rule: #e9dfca;
+  --x5-faint: #d3c3a2;
+  --x5-wash: #f3ebda;
+  --x5-spot: #8b6425;
+  --x5-spot-soft: #efe3cc;
+  --x5-spot-deep: #6b4a1c;
+}
+@media (prefers-reduced-motion: reduce) {
+  .x5-root {
+    transition: none;
+  }
 }
 .x5-root ::selection {
-  background: var(--ink);
+  background: var(--spot);
   color: var(--paper);
 }
 .x5-root :focus-visible {
@@ -223,7 +279,7 @@
 }
 .x5-phoneToggle {
   height: 100%;
-  max-width: calc(100% - 172px);
+  max-width: calc(100% - 168px);
   padding: 0 var(--m);
   display: flex;
   align-items: center;
@@ -246,12 +302,29 @@
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
-.x5-phoneToggle u {
-  text-decoration: none;
-  color: var(--grey);
-  font-size: 13px;
-  border-left: 1px solid var(--rule);
-  padding-left: 10px;
+/* open / close: a plus set in two hairlines that turns to a cross, so the section name keeps the line */
+.x5-phonePlus {
+  position: relative;
+  flex: none;
+  width: 11px;
+  height: 11px;
+  transition: transform 0.45s var(--ease);
+}
+.x5-phonePlus::before,
+.x5-phonePlus::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 5px;
+  height: 1.5px;
+  background: var(--grey);
+}
+.x5-phonePlus::after {
+  transform: rotate(90deg);
+}
+.x5-phonePlus[data-open] {
+  transform: rotate(45deg);
 }
 .x5-phoneProgress {
   position: absolute;
@@ -275,7 +348,7 @@
 }
 .x5-phoneList a {
   display: grid;
-  grid-template-columns: 28px 1fr;
+  grid-template-columns: 28px minmax(0, 1fr);
   padding: 11px 0;
   border-bottom: 1px solid var(--rule);
   font-size: 17px;
@@ -286,13 +359,15 @@
   color: var(--ink);
   font-weight: 700;
 }
-.x5-phoneList a span {
+.x5-phoneList .x5-phoneN {
   font-size: 12px;
   padding-top: 4px;
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- top-right controls: Red / White, Bag (n) ---------- */
+/* ---------- the controls: Shop, Track, Account, Red / White, Bag (n) ----------
+   Phones: set into the right end of the index line. Desktop: a running head across the top of the page,
+   on paper, so nothing slides under a floating box; the page name sits where a printed catalogue puts it. */
 .x5-controls {
   position: fixed;
   z-index: 130;
@@ -301,18 +376,78 @@
   height: var(--top);
   display: flex;
   align-items: center;
-  gap: 18px;
   padding: 0 var(--m) 0 14px;
   font-size: 14px;
 }
+.x5-controlsRow {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.x5-runHead,
+.x5-bandRule {
+  display: none;
+}
 @media (min-width: 1024px) {
+  .x5-root {
+    --top: 52px;
+  }
   .x5-controls {
-    top: 12px;
-    right: var(--m);
-    height: 34px;
-    padding: 0 12px;
+    left: 0;
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--g);
+    padding: 0 var(--m);
     background: var(--paper);
-    border: 1px solid var(--rule);
+  }
+  .x5-runHead {
+    grid-column: 3 / 8;
+    grid-row: 1;
+    display: flex;
+    align-items: baseline;
+    gap: 0;
+    min-width: 0;
+    font-size: 13px;
+    color: var(--grey);
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .x5-runHead b {
+    color: var(--ink);
+    font-weight: 700;
+  }
+  .x5-runHead > span::before {
+    content: "";
+    display: inline-block;
+    width: 18px;
+    height: 1px;
+    margin: 0 10px;
+    vertical-align: 0.3em;
+    background: var(--faint);
+  }
+  .x5-controlsRow {
+    grid-column: 8 / -1;
+    grid-row: 1;
+    justify-self: end;
+  }
+  /* the hairline under the running head, over the content columns only, once the page moves under it */
+  .x5-bandRule {
+    display: block;
+    grid-column: 3 / -1;
+    grid-row: 1;
+    align-self: end;
+    height: 1px;
+    background: var(--rule);
+    transform: scaleX(0);
+    transform-origin: 100% 50%;
+    transition: transform 0.6s var(--ease);
+  }
+  .x5-controls[data-scrolled] .x5-bandRule {
+    transform: scaleX(1);
+  }
+  /* the left index stands above the band's paper */
+  .x5-indexInner {
+    z-index: 131;
   }
 }
 .x5-woods {
@@ -333,10 +468,7 @@
 .x5-woodBtn:active {
   transform: translateY(1px);
 }
-.x5-woodBtn[aria-pressed="true"] {
-  color: var(--ink);
-  font-weight: 600;
-}
+/* the pressed word is set from html[data-wood] (x5-shop.css), so a cold load in white is right before hydration */
 .x5-slash {
   color: var(--faint);
 }
@@ -356,6 +488,20 @@
 html[data-wood="white"] .x5-underline {
   width: var(--ww, 0px);
   transform: translateX(var(--wx, 0px));
+}
+/* until the words are measured, the current one carries its own underline */
+.x5-woods:not([data-ready]) .x5-underline {
+  display: none;
+}
+html:not([data-wood="white"]) .x5-woods:not([data-ready]) .x5-woodBtn[data-w="red"]::after,
+html[data-wood="white"] .x5-woods:not([data-ready]) .x5-woodBtn[data-w="white"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 3px;
+  height: 2px;
+  background: var(--spot);
 }
 .x5-bagBtn {
   padding: 6px 0;
@@ -379,7 +525,7 @@ html[data-wood="white"] .x5-underline {
   position: fixed;
   inset: 0;
   z-index: 115;
-  background: rgb(17 17 17 / 0.06);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
 }
 .x5-slot {
   position: fixed;
@@ -393,7 +539,7 @@ html[data-wood="white"] .x5-underline {
 }
 @media (min-width: 1024px) {
   .x5-slot {
-    top: 46px;
+    top: var(--top);
     right: calc(var(--m) - 16px);
     padding: 0 16px 40px;
   }
@@ -409,7 +555,7 @@ html[data-wood="white"] .x5-underline {
   overscroll-behavior: contain;
   box-shadow:
     0 1px 0 var(--rule),
-    0 28px 50px -30px rgb(17 17 17 / 0.45);
+    0 28px 50px -30px color-mix(in srgb, var(--ink) 45%, transparent);
   /* perforated top edge: a row of half-circle notches */
   -webkit-mask: radial-gradient(circle 4.5px at 50% 0, #0000 96%, #000) 0 0 / 13px 100% repeat-x;
   mask: radial-gradient(circle 4.5px at 50% 0, #0000 96%, #000) 0 0 / 13px 100% repeat-x;
@@ -696,8 +842,10 @@ html[data-wood="white"] .x5-underline {
     grid-row: span 2;
   }
 }
-.x5-mark {
+/* the closing wordmark (named apart from the wishlist .x5-mark button, which is a different thing) */
+.x5-coMark {
   margin-top: 72px;
+  margin-left: -0.04em;
   font-weight: 900;
   font-size: clamp(3.4rem, 11.2vw, 15rem);
   line-height: 0.8;
@@ -705,12 +853,12 @@ html[data-wood="white"] .x5-underline {
   white-space: nowrap;
 }
 @media (max-width: 767px) {
-  .x5-mark {
+  .x5-coMark {
     white-space: normal;
     font-size: 19vw;
   }
 }
-.x5-markDot {
+.x5-coMarkDot {
   color: var(--spot);
 }
 .x5-coBase {

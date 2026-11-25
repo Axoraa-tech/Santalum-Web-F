@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Hanken_Grotesk, Young_Serif } from "next/font/google";
 import type { ReactNode } from "react";
-import { BodyBackground } from "@/components/BodyBackground";
-import { TopBar } from "./_components/TopBar";
+import { Footer } from "./_components/Footer";
+import { AtlasBody, TopBar } from "./_components/TopBar";
 import { s } from "./_components/styles";
 import "./_components/atlas.css";
 
@@ -11,16 +11,16 @@ const text = Hanken_Grotesk({ subsets: ["latin"], style: ["normal", "italic"], v
 
 export const metadata: Metadata = {
   title: { default: "Atlas · Santalum Maison", template: "%s · Santalum Maison" },
-  description:
-    "Red and white sandalwood objects, beads, oil and jewellery, laid out on one board: the woods, where they grow, how each piece is made and recorded.",
+  description: "Red and white sandalwood laid out on one board: the wood, where it grows, the pieces from the shop, how each is made and recorded.",
 };
 
 export default function AtlasLayout({ children }: { children: ReactNode }) {
   return (
     <div className={`${display.variable} ${text.variable} ${s.root}`}>
-      <BodyBackground color="#F5F4EF" />
+      <AtlasBody />
       <TopBar />
       {children}
+      <Footer />
     </div>
   );
 }

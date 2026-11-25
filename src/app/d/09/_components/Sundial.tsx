@@ -2,7 +2,11 @@
 
 import { AnimatePresence, motion, useMotionValueEvent, useTransform, type MotionValue } from "motion/react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
+import { WT } from "@/components/maison/W";
+import { useUser } from "@/lib/shop/account";
+import { useHydrated } from "@/lib/shop/store";
 import s from "../styles";
 import { CHAPTERS, EASE, chapterAt, hhmm } from "./data";
 import { scrollToId } from "./store";
@@ -10,18 +14,57 @@ import { scrollToId } from "./store";
 type Stop = { id: string; time: string; name: string; min: number };
 const STOPS: Stop[] = [
   ...CHAPTERS.map((c) => ({ id: `ch-${c.key}`, time: hhmm(c.min), name: c.name, min: c.min })),
-  { id: "all-pieces", time: "19:10", name: "All pieces", min: 1150 },
+  { id: "all-pieces", time: "19:10", name: "The pieces", min: 1150 },
 ];
 
 /** Angle on the ring for each stop: dawn in the west, noon at the top, golden hour in the east, evening below. */
 function ringPos(i: number) {
   const a = ((180 - i * 45) * Math.PI) / 180;
-  return { left: `${(50 + 34 * Math.cos(a)).toFixed(2)}%`, top: `${(50 - 34 * Math.sin(a)).toFixed(2)}%` };
+  // the two stops at the sides sit nearer the rim, so the longest name (golden hour) stays clear of the clock in the middle
+  const r = Math.abs(Math.cos(a)) > 0.9 ? 31 : 34;
+  return { left: `${(50 + r * Math.cos(a)).toFixed(2)}%`, top: `${(50 - r * Math.sin(a)).toFixed(2)}%` };
+}
+
+/** The house, under the dial like the plinth of a sundial: the shop, tracking and the account. */
+function Plinth({ onGo }: { onGo: () => void }) {
+  const user = useUser();
+  const hydrated = useHydrated();
+  const path = usePathname();
+  const first = hydrated && user ? user.name.split(" ")[0] : null;
+  const items = [
+    { href: "/d/09/shop", label: "Shop", key: "shop" },
+    { href: "/d/09/track", label: "Track order", key: "track" },
+    { href: "/d/09/account", label: first ?? "Sign in", key: "account" },
+  ];
+  return (
+    <ul className="flex items-center justify-between gap-0.5 rounded-full border border-[var(--hair)] bg-[var(--paper)] p-1.5 shadow-[0_30px_60px_-36px_rgb(42_36_32/0.55)]">
+      {items.map((it) => {
+        const here = path === it.href || path.startsWith(`${it.href}/`);
+        return (
+          <li key={it.key} className={it.key === "account" ? "min-w-0 flex-auto" : "flex-auto"}>
+            <Link
+              href={it.href}
+              onClick={onGo}
+              aria-current={here ? "page" : undefined}
+              className={`block whitespace-nowrap rounded-full px-2.5 py-2.5 text-center text-[15px] transition-colors duration-300 hover:bg-[var(--m-accent-soft)] active:scale-95 sm:px-3 ${
+                it.key === "account" ? "truncate" : ""
+              } ${
+                here ? "bg-[var(--m-accent-soft)]" : ""
+              }`}
+            >
+              {it.label}
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
 
 /**
  * The progress control, top right: a small dial whose hand follows the time of day.
- * Opens a ring of the day's chapters. On the home page it scrolls; elsewhere it links home.
+ * Opens a ring of the day's chapters, with the house (shop, tracking, account) on a plinth below.
+ * On the home page the ring scrolls; elsewhere it links home.
  */
 export function Sundial({ minutes, mode }: { minutes: MotionValue<number>; mode: "scroll" | "link" }) {
   const [open, setOpen] = useState(false);
@@ -72,12 +115,12 @@ export function Sundial({ minutes, mode }: { minutes: MotionValue<number>; mode:
         type="button"
         aria-expanded={open}
         aria-controls={id}
-        aria-label={`${label}, ${chapter.name}. Chapters of the day`}
+        aria-label={`${label}, ${chapter.name}. Chapters of the day, shop and account`}
         onClick={() => setOpen((o) => !o)}
         className="group flex items-center gap-3 rounded-full py-1 pl-1 pr-1 transition-transform duration-200 active:scale-95 sm:pl-4"
       >
         <span className="hidden text-right sm:block">
-          <span className={`${s.tab} block text-[15px] leading-none tracking-[0.02em]`}>{label}</span>
+          <span className={`${s.num} block text-[15px] leading-none tracking-[0.02em]`}>{label}</span>
           <span className="mt-1 block text-[11px] leading-none text-[var(--muted)]">{chapter.name}</span>
         </span>
         <span className="relative grid size-12 place-items-center rounded-full border border-[var(--hair)] bg-[var(--paper)] shadow-[0_8px_24px_-14px_rgb(42_36_32/0.5)] transition-colors duration-300 group-hover:border-[var(--ink)]">
@@ -109,21 +152,40 @@ export function Sundial({ minutes, mode }: { minutes: MotionValue<number>; mode:
 
       <AnimatePresence>
         {open && (
-          <motion.nav
+          <motion.div
+            key="scrim"
+            aria-hidden
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4, ease: EASE }}
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 -z-[1] bg-[color-mix(in_srgb,var(--paper)_72%,transparent)] backdrop-blur-[6px]"
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {open && (
+          <motion.div
             id={id}
-            aria-label="Chapters of the day"
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.6 }}
             transition={{ duration: 0.5, ease: EASE }}
             style={{ transformOrigin: "calc(100% - 24px) -12px" }}
-            className="absolute right-0 top-[calc(100%+10px)] size-[min(316px,calc(100vw-24px))] rounded-full border border-[var(--hair)] bg-[var(--paper)] shadow-[0_40px_80px_-40px_rgb(42_36_32/0.55)] sm:size-[352px]"
+            className="absolute right-0 top-[calc(100%+10px)] flex w-[min(316px,calc(100vw-24px))] flex-col gap-2.5 sm:w-[352px]"
+          >
+          <nav
+            aria-label="Chapters of the day"
+            className="relative aspect-square w-full rounded-full border border-[var(--hair)] bg-[var(--paper)] shadow-[0_40px_80px_-40px_rgb(42_36_32/0.55)]"
           >
             <span aria-hidden className="absolute inset-[15%] rounded-full border border-dashed border-[rgb(42_36_32/0.16)]" />
             <div aria-hidden className="pointer-events-none absolute inset-0 grid place-items-center text-center">
               <div>
-                <p className={`${s.display} ${s.tab} text-[44px] leading-none sm:text-[52px]`}>{label}</p>
-                <p className="mt-2 text-[13px] text-[var(--muted)]">{chapter.theme}</p>
+                <p className={`${s.num} text-[33px] font-extralight leading-none sm:text-[40px]`}>{label}</p>
+                <p className="mx-auto mt-2 max-w-[9.5rem] text-[13px] leading-snug text-[var(--muted)]">
+                  <WT red={chapter.theme.red} white={chapter.theme.white} />
+                </p>
               </div>
             </div>
             <ul>
@@ -132,13 +194,13 @@ export function Sundial({ minutes, mode }: { minutes: MotionValue<number>; mode:
                 const on = i === current;
                 const inner = (
                   <>
-                    <span className={`${s.tab} block text-[11px] leading-none ${on ? "text-[var(--m-accent)]" : "text-[var(--muted)]"}`}>
+                    <span className={`${s.num} block text-[11px] leading-none ${on ? "text-[var(--m-accent)]" : "text-[var(--muted)]"}`}>
                       {stop.time}
                     </span>
-                    <span className={`${s.display} mt-1 block whitespace-nowrap text-[17px] leading-none sm:text-[19px]`}>{stop.name}</span>
+                    <span className={`${s.display} mt-1 block whitespace-nowrap text-[15px] leading-none sm:text-[19px]`}>{stop.name}</span>
                   </>
                 );
-                const cls = `absolute -translate-x-1/2 -translate-y-1/2 rounded-full px-3 py-2 text-center transition-colors duration-300 hover:bg-[var(--m-accent-soft)] active:scale-95 ${
+                const cls = `absolute -translate-x-1/2 -translate-y-1/2 rounded-full px-2.5 py-2 text-center sm:px-3 transition-colors duration-300 hover:bg-[var(--m-accent-soft)] active:scale-95 ${
                   on ? "bg-[var(--m-accent-soft)]" : "bg-[var(--paper)]"
                 }`;
                 return (
@@ -174,7 +236,11 @@ export function Sundial({ minutes, mode }: { minutes: MotionValue<number>; mode:
                 );
               })}
             </ul>
-          </motion.nav>
+          </nav>
+          <nav aria-label="The house">
+            <Plinth onGo={() => setOpen(false)} />
+          </nav>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

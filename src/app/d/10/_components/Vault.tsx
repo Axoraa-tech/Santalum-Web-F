@@ -2,12 +2,15 @@
 
 import { motion, useScroll, useTransform, type MotionValue } from "motion/react";
 import { useRef, useState } from "react";
-import { formatINR, getFamily } from "@/lib/catalog";
-import { useWood } from "@/lib/wood";
+import { W } from "@/components/maison/W";
+import { CONTENT } from "@/lib/shop/content";
+import { getProduct, priceLabel } from "@/lib/shop/products";
+import type { Wood } from "@/lib/wood";
 import k from "../k";
+import { EditionTicks } from "./bits";
 import { clamp, mulberry32, openTakeover, useReduced } from "./lib";
 
-/* ---- the giant "21", drawn by 21 small numbers placed along the strokes of the two digits ---- */
+/* ---- the edition size drawn large by its own small numbers, placed along the strokes of the digits ---- */
 
 type Pt = [number, number];
 const BOX_W = 1.14;
@@ -34,34 +37,43 @@ function along(path: Pt[], count: number): Pt[] {
   return out;
 }
 
-const TWO: Pt[] = (() => {
+function arc(cx: number, cy: number, rx: number, ry: number, from: number, to: number, step = Math.PI / 36): Pt[] {
   const pts: Pt[] = [];
-  const cx = 0.31;
-  const cy = 0.3;
-  const r = 0.25;
-  for (let a = Math.PI; a <= Math.PI * 2 + Math.PI / 6 + 1e-6; a += Math.PI / 36) pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
-  pts.push([0.06, 0.95], [0.6, 0.95]);
+  for (let a = from; a <= to + 1e-6; a += step) pts.push([cx + rx * Math.cos(a), cy + ry * Math.sin(a)]);
   return pts;
-})();
-/* the "1": the flag's foot and the corner, then six down the stem */
-const ONE_PTS: Pt[] = [
-  [0.79, 0.25],
-  [1.02, 0.05],
-  ...Array.from({ length: 6 }, (_, i): Pt => [1.02, 0.23 + (0.72 * i) / 5]),
-];
+}
 
-const rand = mulberry32(2011);
-const NUMS = [...along(TWO, 13), ...ONE_PTS].map(([x, y], i) => ({
-  n: i + 1,
-  x: (x / BOX_W) * 100 + 2,
-  y: y * 100,
-  sx: rand() * 100,
-  sy: -25 + rand() * 150,
-  rot: -50 + rand() * 100,
-}));
+const deg = Math.PI / 180;
+/* "21" for the Vault's twenty-one cuffs */
+const TWO: Pt[] = [...arc(0.31, 0.3, 0.25, 0.25, Math.PI, Math.PI * 2 + Math.PI / 6), [0.06, 0.95], [0.6, 0.95]];
+const ONE: Pt[] = [[0.79, 0.25], [1.02, 0.05], ...Array.from({ length: 6 }, (_, i): Pt => [1.02, 0.23 + (0.72 * i) / 5])];
+/* "50" for the Reserve's fifty vials. The bowl of the 5 and the 0 keep a clear channel between them,
+   so no number in one digit touches a number in the other (checked at the 5.4cqw size below). */
+const FIVE: Pt[] = [[0.54, 0.05], [0.13, 0.05], [0.1, 0.44], ...arc(0.3, 0.665, 0.24, 0.245, -125 * deg, 145 * deg)];
+const ZERO: Pt[] = arc(0.88, 0.5, 0.19, 0.45, -90 * deg, 270 * deg);
 
-function Num({ d, progress, on, onHover }: { d: (typeof NUMS)[number]; progress: MotionValue<number>; on: boolean; onHover: (n: number | null) => void }) {
-  const delay = (d.n - 1) * 0.018;
+type Num = { n: number; x: number; y: number; sx: number; sy: number; rot: number };
+
+function scatter(pts: Pt[], seed: number): Num[] {
+  const rand = mulberry32(seed);
+  return pts.map(([x, y], i) => ({
+    n: i + 1,
+    x: (x / BOX_W) * 100 + 2,
+    y: y * 100,
+    sx: rand() * 100,
+    sy: -25 + rand() * 150,
+    rot: -50 + rand() * 100,
+  }));
+}
+
+const NUMS: Record<Wood, Num[]> = {
+  red: scatter([...along(TWO, 13), ...ONE], 2011),
+  white: scatter([...along(FIVE, 22), ...along(ZERO, 29).slice(0, 28)], 2011),
+};
+const FONT: Record<Wood, string> = { red: "text-[11cqw]", white: "text-[5.4cqw]" };
+
+function Number_({ d, progress, on, onHover, wood, count }: { d: Num; progress: MotionValue<number>; on: boolean; onHover: (n: number | null) => void; wood: Wood; count: number }) {
+  const delay = ((d.n - 1) / count) * 0.38;
   const t = useTransform(progress, (p) => {
     const v = clamp((p - delay) / 0.62, 0, 1);
     return 1 - Math.pow(1 - v, 3);
@@ -76,78 +88,98 @@ function Num({ d, progress, on, onHover }: { d: (typeof NUMS)[number]; progress:
       onPointerEnter={() => onHover(d.n)}
       onPointerLeave={() => onHover(null)}
       style={{ left, top, rotate, opacity, x: "-50%", y: "-50%" }}
-      className={`${k.vnum} text-[11cqw] tabular-nums`}
+      className={`${k.vnum} ${FONT[wood]} tabular-nums`}
     >
       {String(d.n).padStart(2, "0")}
     </motion.span>
   );
 }
 
-/** The 2011 Vault: twenty-one numbered cuffs. The numbers gather into a giant "21" as you scroll in. */
+const COPY: Record<Wood, { unit: string; units: string; line: string; button: string }> = {
+  red: {
+    unit: "cuff",
+    units: "One small number for each cuff.",
+    line: "Twenty-one cuffs, turned from red heartwood sourced in 2011 and aged since.",
+    button: "See the Vault Cuff",
+  },
+  white: {
+    unit: "vial",
+    units: "One small number for each vial.",
+    line: "Fifty vials of oil, distilled from one lot of white heartwood harvested in 2011.",
+    button: "See the Reserve Oil",
+  },
+};
+
+/** The edition of the current wood: the 2011 Vault (21 cuffs) or the 2011 Reserve (50 vials). The numbers gather into the size as you scroll in. */
 export function Vault() {
-  const wood = useWood();
   const reduced = useReduced();
   const secRef = useRef<HTMLElement>(null);
-  const btnRef = useRef<HTMLButtonElement>(null);
-  const [sel, setSel] = useState<number | null>(null);
   const { scrollYProgress } = useScroll({ target: secRef, offset: ["start end", "start 0.15"] });
   const done = useTransform(scrollYProgress, () => 1);
   const progress = reduced ? done : scrollYProgress;
-  const f = getFamily("vault-cuff")!;
-  const v = f.variants[wood]!;
 
   return (
-    <section id="vault" ref={secRef} aria-labelledby="k10-vault" className="relative scroll-mt-12 overflow-hidden bg-[var(--k-stone)] pb-[7vw] pt-10 md:pt-14">
-      <div className={`${k.gut} grid grid-cols-1 gap-10 md:grid-cols-12 md:gap-8`}>
-        <div className="md:col-span-7">
-          <h2 id="k10-vault" className={`${k.mono} text-[var(--k-grey)]`}>
-            The 2011 Vault
-          </h2>
-          <p className="sr-only">Twenty-one numbered cuffs, numbers 01 to 21.</p>
-          <div aria-hidden className="relative mt-6 aspect-[1.14/1] w-full [container-type:inline-size]">
-            {NUMS.map((d) => (
-              <Num key={d.n} d={d} progress={progress} on={sel === d.n} onHover={setSel} />
-            ))}
-          </div>
-        </div>
+    <section id="vault" ref={secRef} className="relative scroll-mt-12 overflow-hidden bg-[var(--k10-stone)] pb-[7vw] pt-10 md:pt-14">
+      <W red={<Body wood="red" progress={progress} />} white={<Body wood="white" progress={progress} />} />
+    </section>
+  );
+}
 
-        <div className="flex flex-col justify-end md:col-span-5">
-          <p className={`${k.disp} text-[length:clamp(72px,9vw,150px)] tabular-nums leading-[0.8] [font-variation-settings:'wdth'_60,'wght'_860]`}>
-            {sel ? `No. ${String(sel).padStart(2, "0")}` : "21 of 21"}
-          </p>
-          <p className={`${k.mono} mt-3 text-[var(--k-grey)]`}>
-            {sel ? "One of twenty-one, entered in the provenance registry by its number." : "Twenty-one numbers, one for each cuff."}
-          </p>
-          <p className={`${k.disp} mt-8 whitespace-normal text-[length:clamp(26px,2.6vw,40px)] leading-[0.98] [font-variation-settings:'wdth'_80,'wght'_620]`}>
-            Twenty-one cuffs, turned from aged heartwood sourced in 2011.
-          </p>
-          <div className="mt-5 space-y-3">
-            {f.story.map((s) => (
-              <p key={s} className={k.monoL}>
-                {s}
-              </p>
-            ))}
-          </div>
-          <dl className="mt-6">
-            {f.details.map((d) => (
-              <div key={d.label} className="grid grid-cols-[8rem_1fr] gap-4 border-t border-[var(--k-line)] py-2">
-                <dt className={`${k.mono} text-[var(--k-grey)]`}>{d.label}</dt>
-                <dd className={k.monoL}>{d.value}</dd>
-              </div>
-            ))}
-            <div className="grid grid-cols-[8rem_1fr] gap-4 border-t border-[var(--k-line)] py-2">
-              <dt className={`${k.mono} text-[var(--k-grey)]`}>In {wood}</dt>
-              <dd className={k.monoL}>
-                {formatINR(v.price)}. {v.note}
-              </dd>
-            </div>
-          </dl>
-          <button ref={btnRef} type="button" aria-haspopup="dialog" onClick={() => openTakeover(f.slug, btnRef.current)} className={`${k.btn} mt-8 w-full`}>
-            <span className={k.btnLabel}>See the Vault Cuff</span>
-            <span className={`${k.mono} opacity-70`}>{formatINR(v.price)}</span>
-          </button>
+function Body({ wood, progress }: { wood: Wood; progress: MotionValue<number> }) {
+  const [sel, setSel] = useState<number | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const ed = CONTENT[wood].edition;
+  const p = getProduct(ed.productSlug)!;
+  const copy = COPY[wood];
+  const nums = NUMS[wood];
+  const left = p.edition?.left ?? ed.size;
+
+  return (
+    <div className={`${k.gut} grid grid-cols-1 gap-10 md:grid-cols-12 md:gap-8`}>
+      <div className="md:col-span-7">
+        <h2 className={`${k.mono} text-[var(--k10-grey)]`}>{ed.name}</h2>
+        <p className="sr-only">
+          {ed.size} numbered {copy.unit}s, numbers 01 to {ed.size}.
+        </p>
+        <div aria-hidden className="relative mt-6 aspect-[1.14/1] w-full [container-type:inline-size]">
+          {nums.map((d) => (
+            <Number_ key={d.n} d={d} progress={progress} on={sel === d.n} onHover={setSel} wood={wood} count={nums.length} />
+          ))}
         </div>
       </div>
-    </section>
+
+      <div className="flex flex-col justify-end md:col-span-5">
+        <p className={`${k.disp} text-[length:clamp(64px,8vw,136px)] tabular-nums leading-[0.8] [font-variation-settings:'wdth'_60,'wght'_860]`}>
+          {sel ? `No. ${String(sel).padStart(2, "0")}` : `${left} of ${ed.size}`}
+        </p>
+        <p className={`${k.mono} mt-3 text-[var(--k10-grey)]`}>
+          {sel ? `One of ${ed.size}, entered in the registry by its number.` : `${copy.units} ${left} are still to be placed.`}
+        </p>
+        <div className="mt-4">
+          <EditionTicks size={ed.size} left={left} />
+        </div>
+        <p className={`${k.disp} mt-8 whitespace-normal text-[length:clamp(26px,2.6vw,40px)] leading-[0.98] [font-variation-settings:'wdth'_80,'wght'_620]`}>
+          {copy.line}
+        </p>
+        {/* the headline already says what and when; the small print says only what the registry holds */}
+        <p className={`${k.monoL} mt-5`}>{p.story[p.story.length - 1]}</p>
+        <dl className="mt-6">
+          {p.details.map((d) => (
+            <div key={d.label} className="grid grid-cols-[8rem_1fr] gap-4 border-t border-[var(--k10-line)] py-2">
+              <dt className={`${k.mono} text-[var(--k10-grey)]`}>{d.label}</dt>
+              <dd className={k.monoL}>{d.value}</dd>
+            </div>
+          ))}
+          <div className="grid grid-cols-[8rem_1fr] gap-4 border-t border-[var(--k10-line)] py-2">
+            <dt className={`${k.mono} text-[var(--k10-grey)]`}>Price</dt>
+            <dd className={k.monoL}>{priceLabel(p)}</dd>
+          </div>
+        </dl>
+        <button ref={btnRef} type="button" aria-haspopup="dialog" onClick={() => openTakeover(p.slug, btnRef.current)} className={`${k.btn} mt-8 w-full`}>
+          <span className={k.btnLabel}>{copy.button}</span>
+          <span className={`${k.mono} opacity-70`}>{priceLabel(p)}</span>
+        </button>
+      </div>
+    </div>
   );
 }

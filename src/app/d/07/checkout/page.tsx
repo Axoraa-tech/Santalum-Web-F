@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Checkout } from "../_components/Checkout";
+import { PageFooter } from "../_components/PageFooter";
 
 export const metadata: Metadata = {
   title: "Checkout",
@@ -7,5 +8,10 @@ export const metadata: Metadata = {
 };
 
 export default function StackCheckout() {
-  return <Checkout />;
+  return (
+    <>
+      <Checkout />
+      <PageFooter />
+    </>
+  );
 }

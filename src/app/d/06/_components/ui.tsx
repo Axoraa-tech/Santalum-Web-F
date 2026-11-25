@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { bag } from "@/lib/cart";
+import { bag } from "@/lib/shop/bag";
 import type { Wood } from "@/lib/wood-boot";
 import { s } from "./cls";
 import { cx } from "./data";
@@ -70,6 +70,38 @@ export const IconArrow = ({ size = 18, className }: IconProps) => (
   </svg>
 );
 
+export const IconHeart = ({ size = 18, className, filled = false }: IconProps & { filled?: boolean }) => (
+  <svg {...base(size)} className={className} fill={filled ? "currentColor" : "none"}>
+    <path d="M12 19.5s-7-4.3-7-9.6A3.9 3.9 0 0 1 12 7.6a3.9 3.9 0 0 1 7 2.3c0 5.3-7 9.6-7 9.6Z" />
+  </svg>
+);
+export const IconUser = ({ size = 18, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <circle cx="12" cy="8.5" r="3.6" />
+    <path d="M5 19.5c1.2-3.3 3.8-5 7-5s5.8 1.7 7 5" />
+  </svg>
+);
+export const IconTrack = ({ size = 18, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <circle cx="6" cy="17" r="2" />
+    <circle cx="18" cy="7" r="2" />
+    <path d="M8 17h5a3 3 0 0 0 0-6h-2a3 3 0 0 1 0-6h5" />
+  </svg>
+);
+export const IconGrid = ({ size = 18, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <rect x="4" y="4" width="7" height="7" rx="2" />
+    <rect x="13" y="4" width="7" height="7" rx="2" />
+    <rect x="4" y="13" width="7" height="7" rx="2" />
+    <rect x="13" y="13" width="7" height="7" rx="2" />
+  </svg>
+);
+export const IconOut = ({ size = 18, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <path d="M14 5h4a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-4M10 16l4-4-4-4M14 12H4" />
+  </svg>
+);
+
 /** The round open mark in a tile corner (decorative; the tile's hit button carries the label). */
 export function Corner({ className, icon = "plus" }: { className?: string; icon?: "plus" | "expand" }) {
   return (
@@ -106,9 +138,9 @@ export function Mark({ size = 22 }: { size?: number }) {
   );
 }
 
-/** Add to the shared bag and nudge the bag tile. */
-export function addToBag(slug: string, wood: Wood) {
-  bag.add(slug, wood);
+/** Add to the shared bag and nudge every bag in the chrome. */
+export function addToBag(slug: string, opts: { option?: string; qty?: number; note?: string } = {}) {
+  bag.add(slug, opts);
   added.bump();
 }
 
@@ -136,3 +168,34 @@ export function trapTab(e: KeyboardEvent, root: HTMLElement) {
     first.focus();
   }
 }
+
+const STAR = "M12 3.2l2.6 5.5 6 .8-4.4 4.1 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.5l6-.8L12 3.2Z";
+function StarRow({ size, className }: { size: number; className?: string }) {
+  return (
+    <span className={cx("flex", className)}>
+      {Array.from({ length: 5 }, (_, i) => (
+        <svg key={i} width={size} height={size} viewBox="0 0 24 24" aria-hidden className="shrink-0">
+          <path d={STAR} fill="currentColor" />
+        </svg>
+      ))}
+    </span>
+  );
+}
+
+/** Five stars, filled to the rating (fractions included). */
+export function Stars({ value, size = 14, className }: { value: number; size?: number; className?: string }) {
+  return (
+    <span role="img" aria-label={`${value.toFixed(1)} out of 5`} className={cx("relative inline-flex shrink-0", className)}>
+      <StarRow size={size} className="text-[var(--b-dim)]" />
+      <span className="absolute inset-y-0 left-0 overflow-hidden" style={{ width: `${(value / 5) * 100}%` }}>
+        <StarRow size={size} className="text-accent" />
+      </span>
+    </span>
+  );
+}
+
+export const StarIcon = ({ size = 18, className }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden className={className}>
+    <path d={STAR} fill="currentColor" />
+  </svg>
+);

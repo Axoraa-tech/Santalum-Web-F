@@ -2,6 +2,8 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { CONTENT } from "@/lib/shop/content";
+import { WT } from "@/components/maison/W";
 import k from "../k";
 import { EASE, fv, measure, onFonts, wdthFor } from "./lib";
 
@@ -52,14 +54,13 @@ export function Circle() {
   };
 
   return (
-    <section id="circle" aria-labelledby="k10-circle" className="relative scroll-mt-12 border-t border-[var(--k-line)] pb-[6vw] pt-10 md:pt-14">
+    <section id="circle" aria-labelledby="k10-circle" className="relative scroll-mt-12 border-t border-[var(--k10-line)] pb-[6vw] pt-10 md:pt-14">
       <div className={`${k.gut} grid grid-cols-1 gap-6 md:grid-cols-12 md:items-end`}>
         <h2 id="k10-circle" className={`${k.disp} whitespace-normal text-[13.5vw] leading-[0.82] [font-variation-settings:'wdth'_118,'wght'_860] md:whitespace-nowrap md:text-[length:clamp(40px,5vw,88px)] md:col-span-7`}>
           Santalum Circle
         </h2>
         <p className={`${k.monoL} md:col-span-4 md:col-start-9`}>
-          Letters from the Maison: when a new batch is finished, when there is news from the 2011 Vault, and when there is something
-          worth knowing about the wood. Leave whenever you like.
+          <WT red={CONTENT.red.circle.text} white={CONTENT.white.circle.text} /> Leave whenever you like.
         </p>
       </div>
 
@@ -72,10 +73,10 @@ export function Circle() {
             transition={{ duration: 0.4, ease: EASE }}
             className={`${k.gut} mt-10 md:mt-14`}
           >
-            <label htmlFor="k10-circle-email" className={`${k.mono} text-[var(--k-grey)]`}>
-              Your email address, typed large
+            <label htmlFor="k10-circle-email" className={`${k.mono} text-[var(--k10-grey)]`}>
+              <WT red="Your email, for word of the next red batch" white="Your email, for word of the next distillation" />
             </label>
-            <div ref={boxRef} className="mt-3 border-b-2 border-[var(--k-ink)] pb-2 transition-colors focus-within:border-[var(--m-accent)]">
+            <div ref={boxRef} className="mt-3 border-b-2 border-[var(--k10-ink)] pb-2 transition-colors focus-within:border-[var(--k10-accent)]">
               <input
                 ref={inputRef}
                 id="k10-circle-email"
@@ -91,7 +92,7 @@ export function Circle() {
               />
             </div>
             <div className="mt-6 flex flex-wrap items-center justify-between gap-6">
-              <p className={`${k.mono} max-w-[48ch] text-[var(--k-grey)]`}>
+              <p className={`${k.mono} max-w-[48ch] text-[var(--k10-grey)]`}>
                 The Circle is a letter, not a programme: no points, no tiers. Preview: sign-ups are not connected yet.
               </p>
               <button type="submit" className={`${k.btn} w-full sm:w-auto sm:min-w-[320px]`}>

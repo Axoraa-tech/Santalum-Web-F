@@ -4,26 +4,34 @@ import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Photo } from "@/components/Photo";
-import { useWood } from "@/lib/wood";
+import { CONTENT } from "@/lib/shop/content";
+import { switchWood, useWood } from "@/lib/wood";
+import type { Wood } from "@/lib/wood-boot";
 import { s } from "./cls";
-import { cx, RECORDS, STEPS, STORIES, WOOD_SHORT, type StoryId } from "./data";
+import { cx, STEPS, STORIES, type StoryId } from "./data";
 import { Fade } from "./ProductBento";
 import { views } from "./store";
 import { IconArrow } from "./ui";
 
 /** Long-form view a story tile grows into. */
 export function StoryView({ id, from, img = false }: { id: StoryId; from?: string; img?: boolean }) {
-  const st = STORIES[id];
   const wood = useWood();
-  const ph = st.photo[wood];
-  const ph2 = st.photo2[wood];
+  const st = STORIES[wood][id];
+  const ph = st.photo;
+  const ph2 = st.photo2;
   const router = useRouter();
+  const steps = STEPS[wood];
 
   const cta = () => {
     const c = st.cta;
     if (!c) return;
     if (c.slug) {
       views.open({ kind: "product", slug: c.slug, from: `solo-${c.slug}`, img: false });
+    } else if (c.shop) {
+      const target = c.shop;
+      views.close();
+      if (target !== wood) switchWood(target);
+      router.push("/d/06/shop");
     } else if (c.section) {
       const target = c.section;
       views.close();
@@ -57,27 +65,29 @@ export function StoryView({ id, from, img = false }: { id: StoryId; from?: strin
       <Fade area="bd" on delay={0.18} className={cx(s.tile, s.r20, "p-6 sm:p-10")}>
         {st.steps ? (
           <ol className="grid gap-2 sm:grid-cols-2">
-            {STEPS.map((step, i) => (
-              <li key={step.name} className={cx(s.inner, "p-5", i === 4 && "sm:col-span-2")}>
-                <p className={cx(s.mono, s.muted, "text-[11px]")}>Step {i + 1} of 5</p>
+            {steps.map((step, i) => (
+              <li key={step.name} className={cx(s.inner, "p-5", i === steps.length - 1 && steps.length % 2 === 1 && "sm:col-span-2")}>
+                <p className={cx(s.mono, s.muted, "text-[11px]")}>
+                  Step {i + 1} of {steps.length}
+                </p>
                 <p className="mt-1 text-[24px] font-medium tracking-[-0.03em]">{step.name}</p>
-                <p className="mt-2 text-[15px] leading-[1.55] text-[#2b2b29]">{step.long}</p>
+                <p className="mt-2 text-[16px] leading-[1.55] text-[var(--b-ink2)]">{step.long}</p>
               </li>
             ))}
           </ol>
         ) : (
-          <div className="max-w-[62ch] space-y-5 text-[18px] leading-[1.6] text-[#2b2b29]">
+          <div className="max-w-[62ch] space-y-5 text-[18px] leading-[1.6] text-[var(--b-ink2)]">
             {st.body.map((p) => (
               <p key={p}>{p}</p>
             ))}
           </div>
         )}
-        {st.record && <ExampleRecord />}
+        {st.record && <ExampleRecord wood={wood} />}
       </Fade>
 
       <Fade area="as" on delay={0.22} className={cx(s.tile, s.tint, s.r20, "p-6 sm:p-8")}>
-        <dl className="divide-y divide-black/[0.08]">
-          {st.facts(wood).map((f) => (
+        <dl className="divide-y divide-[var(--b-line)]">
+          {st.facts.map((f) => (
             <div key={f.label} className="flex items-baseline justify-between gap-4 py-3">
               <dt className={cx(s.mono, "text-[11px] opacity-70")}>{f.label}</dt>
               <dd className="text-right text-[15px] font-medium">{f.value}</dd>
@@ -106,27 +116,19 @@ export function StoryView({ id, from, img = false }: { id: StoryId; from?: strin
   );
 }
 
-function ExampleRecord() {
-  const r = RECORDS[0];
-  const rows = [
-    ["Piece", r.piece],
-    ["Wood", WOOD_SHORT[r.wood]],
-    ["Origin", r.origin],
-    ["Batch", r.batch],
-    ["Artisan", r.artisan],
-    ["Finished", r.finished],
-  ];
+function ExampleRecord({ wood }: { wood: Wood }) {
+  const rows = CONTENT[wood].provenance.record.map((r) => [r.label, r.value]);
   return (
     <div className={cx(s.inner, "mt-8 max-w-[560px] p-5")}>
       <div className="flex items-center justify-between">
-        <p className="text-[16px] font-medium">Batch record</p>
-        <span className={cx(s.mono, "rounded-full bg-accent-soft px-2.5 py-1 text-[10.5px]")}>Example, not a real batch</span>
+        <p className="text-[16px] font-medium">{wood === "red" ? "Batch record" : "Lot record"}</p>
+        <span className={cx(s.mono, "rounded-full bg-accent-soft px-2.5 py-1 text-[10.5px]")}>{wood === "red" ? "Example, not a real batch" : "Example, not a real lot"}</span>
       </div>
       <dl className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-2">
         {rows.map(([k, v]) => (
           <div key={k} className="contents">
             <dt className={cx(s.mono, s.muted, "text-[11px] leading-[22px]")}>{k}</dt>
-            <dd className={cx(k === "Batch" && s.mono, "text-[15px] leading-[22px]")}>{v}</dd>
+            <dd className={cx((k === "Batch" || k === "Lot") && s.mono, "text-[15px] leading-[22px]")}>{v}</dd>
           </div>
         ))}
       </dl>

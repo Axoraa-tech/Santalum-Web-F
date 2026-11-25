@@ -1,9 +1,48 @@
 /* Design 03, Strand. Everything is scoped under .s3 or prefixed s3- so it can't touch the other designs. */
 
+/* ---------- two palettes that ease into each other ---------- */
 @property --s3-bead {
   syntax: "<color>";
   inherits: true;
   initial-value: #7a2a1d;
+}
+@property --s3-bg {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #f6ece6;
+}
+@property --s3-surface {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #fcf7f3;
+}
+@property --s3-ink {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #26140f;
+}
+@property --s3-muted {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #7d5b51;
+}
+@property --s3-line {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgb(38 20 15 / 0.13);
+}
+@property --s3-thread {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #b08d57;
+}
+
+/* the page behind the design (overscroll), per wood */
+html:has(.s3) {
+  --s3-page: #f6ece6;
+}
+html[data-wood="white"]:has(.s3) {
+  --s3-page: #f8f2e3;
 }
 
 @keyframes s3-cue {
@@ -24,28 +63,66 @@
   }
 }
 
+@keyframes s3-now {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--m-accent) 45%, transparent);
+  }
+  60% {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--m-accent) 0%, transparent);
+  }
+}
+
 /* In the components layer, so Tailwind utilities on the same element still win. */
 @layer components {
   .s3 {
-    --linen: #f6f1e9;
-    --warm: #fbf8f3;
-    --ink: #22180f;
-    --muted: #7b6e62;
-    --thread: #b08d57;
-    --line: rgb(34 24 15 / 0.12);
-    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    /* red sandalwood: warm rose-linen, brick accent */
+    --s3-bg: #f6ece6;
+    --s3-surface: #fcf7f3;
+    --s3-ink: #26140f;
+    --s3-muted: #7d5b51;
+    --s3-line: rgb(38 20 15 / 0.13);
+    --s3-thread: #b08d57;
     --s3-bead: #7a2a1d;
+    --m-accent: #9b3520;
+    --m-accent-soft: #f1dcd4;
+    /* the names the components use */
+    --linen: var(--s3-bg);
+    --warm: var(--s3-surface);
+    --ink: var(--s3-ink);
+    --muted: var(--s3-muted);
+    --line: var(--s3-line);
+    --thread: var(--s3-thread);
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
     background: var(--linen);
     color: var(--ink);
     font-family: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
     overflow-x: clip;
-    transition: --s3-bead 0.9s var(--ease);
+    transition:
+      --s3-bead 0.9s var(--ease),
+      --s3-bg 0.9s var(--ease),
+      --s3-surface 0.9s var(--ease),
+      --s3-ink 0.9s var(--ease),
+      --s3-muted 0.9s var(--ease),
+      --s3-line 0.9s var(--ease),
+      --s3-thread 0.9s var(--ease),
+      --m-accent 0.9s var(--ease),
+      --m-accent-soft 0.9s var(--ease);
   }
+  /* white sandalwood: pale ivory-gold, brass accent */
   html[data-wood="white"] .s3 {
+    --s3-bg: #f8f2e3;
+    --s3-surface: #fffbf2;
+    --s3-ink: #2a2216;
+    --s3-muted: #7b6a50;
+    --s3-line: rgb(42 34 22 / 0.13);
+    --s3-thread: #b38c4e;
     --s3-bead: #cfae7d;
+    --m-accent: #a07330;
+    --m-accent-soft: #efe3cc;
   }
   .s3 ::selection {
-    background: var(--thread);
+    background: var(--m-accent);
     color: var(--warm);
   }
   .s3-serif {
@@ -88,6 +165,7 @@
   .s3-btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 10px;
     min-height: 46px;
     padding: 0 20px;
@@ -113,12 +191,17 @@
     background: color-mix(in oklab, var(--ink) 78%, var(--m-accent));
   }
   .s3-btn-line {
-    border: 1px solid rgb(34 24 15 / 0.28);
+    border: 1px solid color-mix(in srgb, var(--ink) 28%, transparent);
     color: var(--ink);
   }
   .s3-btn-line:hover {
     border-color: var(--ink);
-    background: rgb(34 24 15 / 0.04);
+    background: color-mix(in srgb, var(--ink) 4%, transparent);
+  }
+  .s3-btn-sm {
+    min-height: 40px;
+    padding: 0 16px;
+    font-size: 14px;
   }
   .s3-btn-bead {
     width: 10px;
@@ -129,7 +212,8 @@
   .s3-btn:hover .s3-btn-bead {
     transform: translateX(3px);
   }
-  .s3-btn:disabled {
+  .s3-btn:disabled,
+  .s3-btn[aria-disabled="true"] {
     opacity: 0.45;
     pointer-events: none;
   }
@@ -148,6 +232,51 @@
   }
   .s3-link:active {
     opacity: 0.7;
+  }
+
+  /* a link to the shop that ends a section: a long thread that tightens on hover */
+  .s3-shoplink {
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+    min-height: 52px;
+    padding: 0 8px 0 0;
+    font-family: var(--font-gloock), Georgia, serif;
+    font-size: clamp(1.35rem, 2.1vw, 1.9rem);
+    line-height: 1.1;
+    color: var(--ink);
+    transition: color 0.3s var(--ease);
+  }
+  .s3-shoplink-thread {
+    position: relative;
+    display: inline-block;
+    width: 72px;
+    height: 12px;
+    flex: none;
+    transition: width 0.6s var(--ease);
+  }
+  .s3-shoplink-thread::before {
+    content: "";
+    position: absolute;
+    inset: 50% 0 auto 0;
+    height: 1px;
+    background: var(--thread);
+  }
+  .s3-shoplink-thread .s3-bead {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 12px;
+    height: 12px;
+  }
+  .s3-shoplink:hover {
+    color: var(--m-accent);
+  }
+  .s3-shoplink:hover .s3-shoplink-thread {
+    width: 104px;
+  }
+  .s3-shoplink:active {
+    opacity: 0.75;
   }
 
   /* ---------- the strand (pinned 3D) ---------- */
@@ -173,24 +302,79 @@
     animation: s3-cue 2.6s var(--ease) infinite;
   }
 
+  /* the strand fades into the paper before it reaches the bar, so no bead ever sits under the links */
+  .s3-stage-canvas {
+    /* phones: the bead counter sits just under the bar, so the paper runs a little lower there */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 64px, rgb(0 0 0 / 0.35) 124px, #000 188px);
+    mask-image: linear-gradient(to bottom, transparent 64px, rgb(0 0 0 / 0.35) 124px, #000 188px);
+  }
+  @media (min-width: 768px) {
+    .s3-stage-canvas {
+      -webkit-mask-image: linear-gradient(to bottom, transparent 78px, #000 172px);
+      mask-image: linear-gradient(to bottom, transparent 78px, #000 172px);
+    }
+  }
+  .s3-counter {
+    text-shadow:
+      0 0 3px var(--linen),
+      0 0 14px var(--linen),
+      0 0 28px var(--linen);
+  }
+
   .s3-hero-veil {
-    background: linear-gradient(rgb(246 241 233 / 0) 30%, rgb(246 241 233 / 0.86) 62%);
+    background: linear-gradient(
+      color-mix(in srgb, var(--linen) 0%, transparent) 30%,
+      color-mix(in srgb, var(--linen) 86%, transparent) 62%
+    );
   }
   @media (min-width: 768px) {
     .s3-hero-veil {
-      background: radial-gradient(130% 100% at 0% 100%, rgb(246 241 233 / 0.94) 0%, rgb(246 241 233 / 0.8) 42%, rgb(246 241 233 / 0) 74%);
+      background: radial-gradient(
+        130% 100% at 0% 100%,
+        color-mix(in srgb, var(--linen) 94%, transparent) 0%,
+        color-mix(in srgb, var(--linen) 80%, transparent) 42%,
+        color-mix(in srgb, var(--linen) 0%, transparent) 74%
+      );
     }
   }
 
+  /* a paper tag tied under each medallion, so the name and price read over beads as well as over the room */
   .s3-tag {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 3px;
+    gap: 2px;
+    margin-top: 12px;
+    padding: 6px 12px 7px;
+    border-radius: 4px 4px 12px 12px;
+    background: color-mix(in srgb, var(--warm) 92%, transparent);
+    box-shadow:
+      0 0 0 1px var(--line),
+      0 10px 20px -14px rgb(34 24 15 / 0.45);
     white-space: nowrap;
     color: var(--ink);
     text-align: center;
     user-select: none;
+  }
+  .s3-tag::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -12px;
+    width: 1px;
+    height: 15px;
+    background: var(--thread);
+  }
+  .s3-tag::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 2px;
+    width: 5px;
+    height: 5px;
+    margin-left: -2.5px;
+    border-radius: 999px;
+    background: radial-gradient(circle at 35% 30%, #d9bd8c, #8f6c3c 70%);
   }
   .s3-tag-name {
     font-family: var(--font-gloock), Georgia, serif;
@@ -274,9 +458,82 @@
   }
 
   /* ---------- nav ---------- */
+  /* the bar is a band of paper; once the page runs under it, a thread with a knot at each end draws along its foot */
   .s3-head {
-    background: linear-gradient(var(--linen) 35%, rgb(246 241 233 / 0));
+    background: color-mix(in srgb, var(--linen) 90%, transparent);
+    -webkit-backdrop-filter: blur(14px) saturate(1.1);
+    backdrop-filter: blur(14px) saturate(1.1);
   }
+  .s3-head::after {
+    content: "";
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: -3.5px;
+    height: 7px;
+    background:
+      radial-gradient(circle closest-side, #8f6c3c 0 calc(100% - 0.6px), transparent 100%) 0 50% / 7px 7px no-repeat,
+      radial-gradient(circle closest-side, #8f6c3c 0 calc(100% - 0.6px), transparent 100%) 100% 50% / 7px 7px no-repeat,
+      linear-gradient(var(--thread), var(--thread)) 0 50% / 100% 1px no-repeat;
+    opacity: 0;
+    transform: scaleX(0.96);
+    transition:
+      opacity 0.5s var(--ease),
+      transform 0.7s var(--ease);
+    pointer-events: none;
+  }
+  .s3-head[data-scrolled="true"]::after {
+    opacity: 0.75;
+    transform: none;
+  }
+  @media (min-width: 768px) {
+    .s3-head::after {
+      left: 32px;
+      right: 32px;
+    }
+  }
+  /* a page that is leaving for the other wood is taken off before its colours change */
+  .s3 main,
+  .s3 footer {
+    transition: opacity 0.45s var(--ease);
+  }
+  html.s3-leaving .s3 main,
+  html.s3-leaving .s3 footer {
+    opacity: 0;
+    transition: none;
+  }
+  .s3-navlink {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    height: 44px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font-size: 15px;
+    white-space: nowrap;
+    transition:
+      background-color 0.3s var(--ease),
+      color 0.3s var(--ease);
+  }
+  .s3-navlink:hover {
+    background: color-mix(in srgb, var(--ink) 5%, transparent);
+  }
+  .s3-navlink:active {
+    background: color-mix(in srgb, var(--ink) 10%, transparent);
+  }
+  .s3-navlink[aria-current="page"]::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 5px;
+    width: 5px;
+    height: 5px;
+    margin-left: -2.5px;
+    border-radius: 999px;
+    background: var(--m-accent);
+  }
+
+  /* the wood toggle: two beads; the chosen one is pushed up against the knot. Driven by html[data-wood] so it never flashes. */
   .s3-wt {
     position: relative;
     display: flex;
@@ -313,6 +570,20 @@
     margin-top: -15px;
     transition: transform 0.7s var(--ease);
   }
+  .s3-wt-b[data-w="red"] {
+    left: 0;
+    transform: translateX(10px);
+  }
+  .s3-wt-b[data-w="white"] {
+    right: 0;
+    transform: translateX(6px);
+  }
+  html[data-wood="white"] .s3-wt-b[data-w="red"] {
+    transform: translateX(-6px);
+  }
+  html[data-wood="white"] .s3-wt-b[data-w="white"] {
+    transform: translateX(-10px);
+  }
   .s3-wt-b .s3-bead {
     width: 15px;
     height: 15px;
@@ -320,12 +591,16 @@
       transform 0.7s var(--ease),
       opacity 0.4s var(--ease);
   }
-  .s3-wt-b[aria-pressed="false"] .s3-bead {
+  .s3-wt-b[data-w="white"] .s3-bead,
+  html[data-wood="white"] .s3-wt-b[data-w="red"] .s3-bead {
     transform: scale(0.72);
     opacity: 0.72;
   }
-  .s3-wt-b[aria-pressed="false"]:hover .s3-bead {
-    transform: scale(0.9);
+  html[data-wood="white"] .s3-wt-b[data-w="white"] .s3-bead {
+    transform: none;
+    opacity: 1;
+  }
+  .s3-wt-b:hover .s3-bead {
     opacity: 1;
   }
   .s3-wt-b:active .s3-bead {
@@ -353,7 +628,7 @@
   .s3-menu-item a,
   .s3-menu-item button {
     font-family: var(--font-gloock), Georgia, serif;
-    font-size: clamp(1.9rem, 3.4vw, 3.4rem);
+    font-size: clamp(1.7rem, 3.1vw, 3.1rem);
     line-height: 1;
     transition:
       color 0.3s var(--ease),
@@ -379,7 +654,7 @@
   .s3-lede {
     font-size: clamp(1.05rem, 1.35vw, 1.25rem);
     line-height: 1.6;
-    color: rgb(34 24 15 / 0.82);
+    color: color-mix(in srgb, var(--ink) 82%, transparent);
   }
   .s3-hang-thread {
     width: 1.25px;
@@ -393,6 +668,34 @@
     margin: -1px auto 0;
     border-radius: 6px 6px 12px 12px;
     background: linear-gradient(#d8bb84, #96733f);
+  }
+
+  /* the two wood pendants: the current wood gets the ring (CSS, so no flash) */
+  .s3-pend-ring {
+    border-color: transparent;
+    transform: scale(0.95);
+    transition:
+      border-color 0.7s var(--ease),
+      transform 0.7s var(--ease);
+  }
+  .s3-pend[data-w="red"] .s3-pend-ring,
+  html[data-wood="white"] .s3-pend[data-w="white"] .s3-pend-ring {
+    border-color: var(--m-accent);
+    transform: none;
+  }
+  html[data-wood="white"] .s3-pend[data-w="red"] .s3-pend-ring {
+    border-color: transparent;
+    transform: scale(0.95);
+  }
+  .s3-pend-photo img {
+    transition: filter 0.7s var(--ease);
+  }
+  .s3-pend[data-w="white"] .s3-pend-photo img,
+  html[data-wood="white"] .s3-pend[data-w="red"] .s3-pend-photo img {
+    filter: grayscale(0.35);
+  }
+  html[data-wood="white"] .s3-pend[data-w="white"] .s3-pend-photo img {
+    filter: none;
   }
 
   /* footer charms */
@@ -412,43 +715,599 @@
     transform: rotate(-2deg) translateY(2px);
   }
 
-  /* form fields */
+  /* ---------- form fields ---------- */
   .s3-field {
     display: block;
   }
-  .s3-field span {
+  .s3-field > span:first-child {
     display: block;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--muted);
     margin-bottom: 6px;
   }
+  /*
+   * A field is a length of thread with a knot at its start. Writing in it strings a bead: on focus the bead
+   * slides from the knot to the far end and the thread draws tight. Textareas are ruled like the provenance record.
+   */
   .s3-input {
+    --in-thread: var(--thread);
+    --in-th: 1px;
     width: 100%;
     min-height: 48px;
-    padding: 0 16px;
-    border-radius: 14px;
-    border: 1px solid rgb(34 24 15 / 0.18);
-    background: var(--warm);
+    padding: 0 4px 4px 2px;
+    border: 0;
+    border-radius: 0;
+    background-color: transparent;
+    background-image:
+      radial-gradient(circle at 34% 30%, rgb(255 255 255 / 0.55), transparent 38%),
+      radial-gradient(circle closest-side, var(--s3-bead) 0 calc(100% - 0.6px), transparent 100%),
+      radial-gradient(circle closest-side, #8f6c3c 0 calc(100% - 0.6px), transparent 100%),
+      linear-gradient(var(--in-thread), var(--in-thread));
+    background-repeat: no-repeat;
+    background-size:
+      0 0,
+      0 0,
+      7px 7px,
+      100% var(--in-th);
+    background-position:
+      0 calc(100% - 1px),
+      0 calc(100% - 1px),
+      0 calc(100% - 3px),
+      0 calc(100% - 6px);
     color: var(--ink);
     font-size: 16px;
     transition:
-      border-color 0.25s var(--ease),
-      box-shadow 0.25s var(--ease);
+      background-position 0.75s var(--ease),
+      background-size 0.4s var(--ease);
   }
-  textarea.s3-input {
-    padding: 12px 16px;
-    min-height: 96px;
+  .s3-input::placeholder {
+    color: color-mix(in srgb, var(--muted) 75%, transparent);
   }
   .s3-input:hover {
-    border-color: rgb(34 24 15 / 0.36);
+    --in-thread: color-mix(in srgb, var(--ink) 45%, var(--thread));
   }
   .s3-input:focus {
     outline: none;
-    border-color: var(--ink);
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--m-accent) 22%, transparent);
+    --in-thread: var(--ink);
+    --in-th: 1.5px;
+    background-size:
+      11px 11px,
+      11px 11px,
+      7px 7px,
+      100% var(--in-th);
+    background-position:
+      100% calc(100% - 1px),
+      100% calc(100% - 1px),
+      0 calc(100% - 3px),
+      0 calc(100% - 6px);
   }
+  .s3-input[aria-invalid="true"],
   .s3-input:user-invalid {
-    border-color: #a0382a;
+    --in-thread: #a0382a;
+    --in-th: 1.5px;
+  }
+  /* Chrome's autofill drops background images: keep the thread as a line along the foot */
+  .s3-input:-webkit-autofill {
+    box-shadow: inset 0 -1px 0 var(--in-thread);
+    transition:
+      background-color 100000s,
+      color 100000s;
+  }
+  /* search: the bead-hole icon stands in for the knot */
+  .s3-input[type="search"] {
+    background-size:
+      0 0,
+      0 0,
+      0 0,
+      100% var(--in-th);
+  }
+  .s3-input[type="search"]:focus {
+    background-size:
+      11px 11px,
+      11px 11px,
+      0 0,
+      100% var(--in-th);
+  }
+  .s3-input[type="search"]::-webkit-search-cancel-button {
+    display: none;
+  }
+  /* a select keeps its bead at the far end, where you pull it */
+  select.s3-input {
+    appearance: none;
+    padding-right: 26px;
+    cursor: pointer;
+    background-size:
+      11px 11px,
+      11px 11px,
+      7px 7px,
+      100% var(--in-th);
+    background-position:
+      calc(100% - 2px) 50%,
+      calc(100% - 2px) 50%,
+      0 calc(100% - 3px),
+      0 calc(100% - 6px);
+  }
+  select.s3-input:focus {
+    background-position:
+      calc(100% - 2px) 50%,
+      calc(100% - 2px) 50%,
+      0 calc(100% - 3px),
+      0 calc(100% - 6px);
+  }
+  textarea.s3-input {
+    min-height: 104px;
+    padding: 4px 4px 12px 2px;
+    line-height: 30px;
+    resize: vertical;
+    background-image:
+      radial-gradient(circle at 34% 30%, rgb(255 255 255 / 0.55), transparent 38%),
+      radial-gradient(circle closest-side, var(--s3-bead) 0 calc(100% - 0.6px), transparent 100%),
+      radial-gradient(circle closest-side, #8f6c3c 0 calc(100% - 0.6px), transparent 100%),
+      linear-gradient(var(--in-thread), var(--in-thread)),
+      repeating-linear-gradient(transparent 0 29px, var(--line) 29px 30px);
+    background-attachment: scroll, scroll, scroll, scroll, local;
+  }
+  textarea.s3-input,
+  textarea.s3-input:hover {
+    background-size:
+      0 0,
+      0 0,
+      7px 7px,
+      100% var(--in-th),
+      100% calc(100% - 22px);
+    background-position:
+      0 calc(100% - 1px),
+      0 calc(100% - 1px),
+      0 calc(100% - 3px),
+      0 calc(100% - 6px),
+      0 4px;
+  }
+  textarea.s3-input:focus {
+    background-size:
+      11px 11px,
+      11px 11px,
+      7px 7px,
+      100% var(--in-th),
+      100% calc(100% - 22px);
+    background-position:
+      100% calc(100% - 1px),
+      100% calc(100% - 1px),
+      0 calc(100% - 3px),
+      0 calc(100% - 6px),
+      0 4px;
+  }
+  .s3-err {
+    margin-top: 6px;
+    font-size: 14px;
+    color: #9b2f22;
+  }
+  .s3-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  /* a yes/no is a bead on a short thread: pushed up against the knot when it is on, as the wood toggle does */
+  .s3-check input[type="checkbox"],
+  .s3-mala {
+    --mala-x: 0px;
+    --mala-bead: radial-gradient(circle closest-side, var(--linen) 0 calc(100% - 2.2px), var(--thread) calc(100% - 1.7px) calc(100% - 0.5px), transparent 100%);
+    --mala-hi: linear-gradient(transparent, transparent);
+    appearance: none;
+    -webkit-appearance: none;
+    display: inline-block;
+    position: relative;
+    flex: none;
+    width: 40px;
+    height: 20px;
+    margin: 2px 0 0;
+    border-radius: 999px;
+    cursor: pointer;
+    background:
+      var(--mala-hi) var(--mala-x) 50% / 15px 15px no-repeat,
+      var(--mala-bead) var(--mala-x) 50% / 15px 15px no-repeat,
+      radial-gradient(circle closest-side, #8f6c3c 0 calc(100% - 0.6px), transparent 100%) 100% 50% / 7px 7px no-repeat,
+      linear-gradient(var(--thread), var(--thread)) 0 50% / 100% 1px no-repeat;
+    transition: background-position 0.6s var(--ease);
+  }
+  .s3-check input[type="checkbox"]:checked,
+  [aria-pressed="true"] > .s3-mala {
+    --mala-x: calc(100% - 7px);
+    --mala-bead: radial-gradient(circle closest-side, var(--s3-bead) 0 calc(100% - 0.6px), transparent 100%);
+    --mala-hi: radial-gradient(circle at 34% 30%, rgb(255 255 255 / 0.55), transparent 38%);
+  }
+  .s3-check:hover input[type="checkbox"]:not(:checked),
+  :hover > .s3-mala {
+    --mala-x: 4px;
+  }
+  .s3-check:hover input[type="checkbox"]:checked,
+  [aria-pressed="true"]:hover > .s3-mala {
+    --mala-x: calc(100% - 7px);
+  }
+  .s3-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+    font-size: 15px;
+    white-space: nowrap;
+    color: var(--ink);
+    transition: color 0.3s var(--ease);
+  }
+  .s3-toggle .s3-mala {
+    margin: 0;
+  }
+  .s3-toggle:hover {
+    color: var(--m-accent);
+  }
+
+  /* a choice strung as a bead: radios for delivery, payment, saved addresses */
+  /*
+   * Each choice is a tag hanging from the row's thread by its own bead: the row reads as one line with the
+   * options strung under it. The chosen tag is pulled down a little and its bead fills.
+   */
+  .s3-choice {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-top: 22px;
+    padding: 16px 18px;
+    border-radius: 5px 5px 22px 22px;
+    border: 1px solid var(--line);
+    background: color-mix(in srgb, var(--warm) 60%, transparent);
+    cursor: pointer;
+    transform-origin: 27px -22px;
+    transition:
+      border-color 0.3s var(--ease),
+      background-color 0.3s var(--ease),
+      transform 0.6s var(--ease);
+  }
+  /* the stretch of row thread above this tag (tags side by side join into one line) */
+  .s3-choice::before {
+    content: "";
+    position: absolute;
+    top: -23px;
+    left: -7px;
+    right: -7px;
+    height: 1px;
+    background: var(--thread);
+    pointer-events: none;
+  }
+  /* the drop from the thread through the tag's eyelet to its bead */
+  .s3-choice::after {
+    content: "";
+    position: absolute;
+    top: -23px;
+    left: 26.5px;
+    width: 1px;
+    height: 42px;
+    background: var(--thread);
+    pointer-events: none;
+    transition: height 0.6s var(--ease);
+  }
+  .s3-choice:hover {
+    border-color: color-mix(in srgb, var(--ink) 40%, transparent);
+  }
+  .s3-choice:has(input:checked) {
+    border-color: var(--ink);
+    background: var(--warm);
+    transform: translateY(3px);
+  }
+  .s3-choice:has(input:checked)::before {
+    top: -26px;
+  }
+  .s3-choice:has(input:checked)::after {
+    top: -26px;
+    height: 45px;
+  }
+  .s3-choice:has(input:focus-visible) {
+    outline: 2px solid var(--m-accent);
+    outline-offset: 2px;
+  }
+  .s3-choice:has(input:disabled) {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .s3-choice-dot {
+    position: relative;
+    z-index: 1;
+    margin-top: 3px;
+    width: 18px;
+    height: 18px;
+    flex: none;
+    border-radius: 999px;
+    border: 1px solid var(--thread);
+    background: var(--linen);
+    transition: background-color 0.3s var(--ease);
+  }
+  .s3-choice:has(input:checked) .s3-choice-dot {
+    background:
+      radial-gradient(circle at 32% 28%, rgb(255 255 255 / 0.5), transparent 36%),
+      var(--s3-bead);
+    border-color: transparent;
+  }
+
+  /* chips (filters, option values) */
+  .s3-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 42px;
+    padding: 0 16px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
+    font-size: 15px;
+    white-space: nowrap;
+    color: var(--ink);
+    transition:
+      border-color 0.3s var(--ease),
+      background-color 0.3s var(--ease),
+      color 0.3s var(--ease),
+      transform 0.3s var(--ease);
+  }
+  .s3-chip:hover {
+    border-color: var(--ink);
+  }
+  .s3-chip:active {
+    transform: scale(0.97);
+  }
+  .s3-chip[aria-pressed="true"],
+  .s3-chip[aria-checked="true"] {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--warm);
+  }
+
+  /* ---------- the shop: categories as beads on one thread ---------- */
+  .s3-cats {
+    position: relative;
+    display: flex;
+    gap: 6px;
+    padding: 18px 4px 6px;
+  }
+  .s3-cats::before {
+    content: "";
+    position: absolute;
+    left: -16px;
+    right: -16px;
+    top: 26px;
+    height: 1px;
+    background: var(--thread);
+  }
+  .s3-cat {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    min-width: 92px;
+    padding: 0 8px 8px;
+    font-size: 15px;
+    white-space: nowrap;
+    color: var(--muted);
+    transition: color 0.3s var(--ease);
+  }
+  .s3-cat-bead {
+    width: 17px;
+    height: 17px;
+    border-radius: 999px;
+    border: 1px solid var(--thread);
+    background: var(--linen);
+    transition:
+      transform 0.5s var(--ease),
+      background-color 0.3s var(--ease);
+  }
+  .s3-cat:hover {
+    color: var(--ink);
+  }
+  .s3-cat:hover .s3-cat-bead {
+    transform: scale(1.2);
+  }
+  .s3-cat:active .s3-cat-bead {
+    transform: scale(0.95);
+  }
+  .s3-cat[aria-pressed="true"] {
+    color: var(--ink);
+  }
+  .s3-cat[aria-pressed="true"] .s3-cat-bead {
+    transform: scale(1.35);
+    border-color: transparent;
+    background:
+      radial-gradient(circle at 32% 28%, rgb(255 255 255 / 0.5), transparent 36%),
+      radial-gradient(circle at 66% 74%, rgb(0 0 0 / 0.3), transparent 64%),
+      var(--s3-bead);
+  }
+  .s3-cat-n {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* ---------- medallion cards: each piece hangs from the row's thread ---------- */
+  .s3-meds {
+    --gap: 28px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--gap);
+    row-gap: 40px;
+    align-items: start;
+  }
+  @media (min-width: 640px) {
+    .s3-meds {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      --gap: 36px;
+    }
+  }
+  @media (min-width: 1100px) {
+    .s3-meds {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      --gap: 44px;
+      row-gap: 56px;
+    }
+  }
+  .s3-med {
+    --drop: 30px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-top: var(--drop);
+  }
+  .s3-med:nth-child(3n + 2) {
+    --drop: 52px;
+  }
+  .s3-med:nth-child(3n + 3) {
+    --drop: 40px;
+  }
+  /* the row thread: every card draws the stretch above itself, so a row reads as one line */
+  .s3-med::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: calc(var(--gap) / -2);
+    right: calc(var(--gap) / -2);
+    height: 1px;
+    background: var(--thread);
+  }
+  .s3-med-hang {
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform-origin: 50% calc(-1 * var(--drop));
+    transition: transform 0.9s var(--ease);
+  }
+  .s3-med-drop {
+    position: absolute;
+    left: 50%;
+    bottom: 100%;
+    width: 1.25px;
+    height: var(--drop);
+    margin-left: -0.6px;
+    background: var(--thread);
+  }
+  .s3-med-drop::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -4px;
+    width: 8px;
+    height: 8px;
+    margin-left: -4px;
+    border-radius: 999px;
+    background: radial-gradient(circle at 35% 30%, #d9bd8c, #8f6c3c 70%);
+  }
+  .s3-med-ring {
+    position: relative;
+    display: block;
+    width: 100%;
+    max-width: 280px;
+    aspect-ratio: 1;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 3px solid var(--warm);
+    background: var(--warm);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--thread) 75%, transparent),
+      0 26px 40px -30px rgb(34 24 15 / 0.55);
+  }
+  .s3-med-ring img {
+    transition:
+      opacity 0.6s var(--ease),
+      transform 1.2s var(--ease);
+  }
+  .s3-med-alt {
+    opacity: 0;
+  }
+  @media (hover: hover) {
+    .s3-med:hover .s3-med-hang {
+      transform: rotate(-1.6deg);
+    }
+    .s3-med:hover .s3-med-alt {
+      opacity: 1;
+    }
+    .s3-med:hover .s3-med-ring img {
+      transform: scale(1.04);
+    }
+  }
+  .s3-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    line-height: 1.4;
+    background: var(--m-accent-soft);
+    color: color-mix(in srgb, var(--m-accent) 80%, var(--ink));
+  }
+
+  /* wishlist: a bead that fills when kept */
+  .s3-wish {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font-size: 14px;
+    color: var(--muted);
+    transition:
+      color 0.3s var(--ease),
+      background-color 0.3s var(--ease);
+  }
+  .s3-wish:hover {
+    color: var(--ink);
+    background: color-mix(in srgb, var(--ink) 5%, transparent);
+  }
+  .s3-wish-bead {
+    width: 13px;
+    height: 13px;
+    border-radius: 999px;
+    border: 1.5px solid var(--thread);
+    background: transparent;
+    transition:
+      transform 0.5s var(--ease),
+      background-color 0.3s var(--ease);
+  }
+  .s3-wish[aria-pressed="true"] {
+    color: var(--ink);
+  }
+  .s3-wish[aria-pressed="true"] .s3-wish-bead {
+    border-color: transparent;
+    background:
+      radial-gradient(circle at 32% 28%, rgb(255 255 255 / 0.5), transparent 36%),
+      var(--m-accent);
+    transform: scale(1.12);
+  }
+  .s3-wish:active .s3-wish-bead {
+    transform: scale(0.85);
+  }
+
+  /* ---------- tracking: six beads on a thread ---------- */
+  .s3-stage-bead {
+    position: relative;
+    display: block;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    border: 1.5px solid var(--thread);
+    background: var(--linen);
+    transition:
+      background-color 0.6s var(--ease),
+      transform 0.6s var(--ease);
+  }
+  .s3-stage-bead[data-done="true"] {
+    border-color: transparent;
+    background:
+      radial-gradient(circle at 32% 28%, rgb(255 255 255 / 0.5), transparent 36%),
+      radial-gradient(circle at 66% 74%, rgb(0 0 0 / 0.3), transparent 64%),
+      var(--s3-bead);
+  }
+  .s3-stage-bead[data-now="true"] {
+    transform: scale(1.3);
+    animation: s3-now 2.4s var(--ease) infinite;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -456,6 +1315,10 @@
       animation: none;
       transform: translateX(18px);
     }
+    .s3-stage-bead[data-now="true"] {
+      animation: none;
+    }
+    .s3,
     .s3 *,
     .s3 *::before,
     .s3 *::after {
@@ -471,5 +1334,237 @@
   html[data-wood="white"] .s3-vnum {
     color: var(--ink);
     text-shadow: none;
+  }
+}
+
+/* grouped shop strands: two across on phones and tablets, four on wide screens, so a strand of four never leaves one alone */
+@layer components {
+  .s3-meds.s3-meds-even {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  @media (min-width: 1100px) {
+    .s3-meds.s3-meds-even {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+}
+
+@layer components {
+  /* chips that wrap a native radio (option values) */
+  .s3-chip:has(input:checked) {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--warm);
+  }
+  .s3-chip:has(input:focus-visible) {
+    outline: 2px solid var(--m-accent);
+    outline-offset: 2px;
+  }
+  .s3-chip:has(input) {
+    cursor: pointer;
+  }
+  /* three related pieces: a row you can swipe on phones, three across from tablets up */
+  .s3-meds.s3-meds-row {
+    grid-template-columns: repeat(3, 210px);
+  }
+  @media (min-width: 640px) {
+    .s3-meds.s3-meds-row {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+}
+
+/* ratings: five star-shaped beads strung on a thread */
+@layer components {
+  .s3-rate {
+    --bs: 12px;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: calc(var(--bs) * 0.4);
+    vertical-align: middle;
+  }
+  .s3-rate::before {
+    content: "";
+    position: absolute;
+    left: -3px;
+    right: -3px;
+    top: 50%;
+    height: 1px;
+    background: var(--thread);
+  }
+  .s3-star {
+    position: relative;
+    display: block;
+    width: var(--bs);
+    height: var(--bs);
+    clip-path: polygon(50% 0%, 61.8% 35.4%, 100% 38.2%, 69.1% 61.8%, 80.9% 100%, 50% 76.4%, 19.1% 100%, 30.9% 61.8%, 0% 38.2%, 38.2% 35.4%);
+    background: color-mix(in srgb, var(--thread) 38%, var(--linen));
+  }
+  .s3-star > span {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background:
+      radial-gradient(circle at 40% 30%, rgb(255 255 255 / 0.45), transparent 40%),
+      var(--s3-bead);
+  }
+  html[data-wood="white"] .s3-star > span {
+    background:
+      radial-gradient(circle at 40% 30%, rgb(255 255 255 / 0.45), transparent 40%),
+      #b8893f;
+  }
+  /* the star picker: radios strung as stars, filled up to the hovered or chosen one */
+  .s3-pick {
+    position: relative;
+    display: inline-flex;
+    flex-direction: row-reverse;
+    gap: 6px;
+  }
+  .s3-pick::before {
+    content: "";
+    position: absolute;
+    left: -6px;
+    right: -6px;
+    top: 50%;
+    height: 1px;
+    background: var(--thread);
+  }
+  .s3-pick label {
+    position: relative;
+    cursor: pointer;
+    padding: 4px;
+  }
+  .s3-pick .s3-star {
+    --bs: 30px;
+    transition: transform 0.4s var(--ease);
+  }
+  .s3-pick label:hover .s3-star,
+  .s3-pick label:hover ~ label .s3-star,
+  .s3-pick label:has(input:checked) .s3-star,
+  .s3-pick label:has(input:checked) ~ label .s3-star {
+    background:
+      radial-gradient(circle at 40% 30%, rgb(255 255 255 / 0.45), transparent 40%),
+      var(--m-accent);
+  }
+  .s3-pick label:hover .s3-star {
+    transform: scale(1.12);
+  }
+  .s3-pick label:has(input:focus-visible) {
+    outline: 2px solid var(--m-accent);
+    outline-offset: 1px;
+    border-radius: 8px;
+  }
+  /* the house speaking: replies from Santalum Maison */
+  .s3-house {
+    background: var(--m-accent-soft);
+    border-radius: 18px;
+  }
+}
+
+/* the shop's price bands: one thread cut into four lengths at knots; the chosen length takes three beads */
+@layer components {
+  .s3-price {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    min-width: 0;
+  }
+  .s3-price::before {
+    content: "";
+    position: absolute;
+    left: -8px;
+    right: -8px;
+    bottom: 11px;
+    height: 1px;
+    background: var(--thread);
+  }
+  .s3-price-seg {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 52px;
+    padding: 4px 2px 0;
+    font-size: 13.5px;
+    white-space: nowrap;
+    color: var(--muted);
+    transition: color 0.3s var(--ease);
+  }
+  .s3-price-seg::before {
+    content: "";
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    bottom: 10px;
+    height: 3px;
+    border-radius: 3px;
+    background: var(--s3-bead);
+    opacity: 0;
+    transform: scaleX(0.4);
+    transition:
+      opacity 0.3s var(--ease),
+      transform 0.6s var(--ease);
+  }
+  .s3-price-seg::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 6px;
+    width: 45px;
+    height: 11px;
+    margin-left: -22.5px;
+    background:
+      radial-gradient(circle at 4px 3.5px, rgb(255 255 255 / 0.55) 0 1.4px, transparent 2.6px) 0 0 / 17px 11px repeat-x,
+      radial-gradient(circle at 5.5px 5.5px, var(--s3-bead) 0 5px, transparent 5.6px) 0 0 / 17px 11px repeat-x;
+    opacity: 0;
+    transform: scale(0.3);
+    transition:
+      opacity 0.3s var(--ease),
+      transform 0.6s var(--ease);
+  }
+  .s3-price-seg:hover {
+    color: var(--ink);
+  }
+  .s3-price-seg:hover::before {
+    opacity: 0.35;
+    transform: scaleX(0.7);
+  }
+  .s3-price-seg[aria-pressed="true"] {
+    color: var(--ink);
+  }
+  .s3-price-seg[aria-pressed="true"]::before {
+    opacity: 0.28;
+    transform: none;
+  }
+  .s3-price-seg[aria-pressed="true"]::after {
+    opacity: 1;
+    transform: none;
+  }
+  .s3-price-seg:active::after {
+    transform: scale(0.9);
+  }
+  .s3-price-knot {
+    position: absolute;
+    right: -4px;
+    bottom: 7.5px;
+    z-index: 1;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: radial-gradient(circle at 35% 30%, #d9bd8c, #8f6c3c 70%);
+  }
+  /* the review stars: an unchosen rating turns the thread red, under the stars it is about */
+  .s3-pick[data-invalid="true"]::before {
+    background: #a0382a;
+  }
+  /* the white hero line is longer than the red one: a size that keeps it to two lines */
+  .s3-hero-h-white {
+    display: inline-block;
+    font-size: 0.7em;
+  }
+  @media (max-width: 767px) {
+    .s3-hero-h-white {
+      font-size: 0.86em;
+    }
   }
 }

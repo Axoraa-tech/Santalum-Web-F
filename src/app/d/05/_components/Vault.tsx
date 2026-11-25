@@ -3,23 +3,73 @@
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useState } from "react";
-import { WT } from "@/components/maison/W";
-import { getFamily, WOOD_NAMES } from "@/lib/catalog";
-import { PHOTOS } from "@/lib/photos";
-import { useWood } from "@/lib/wood";
-import { EASE, sectionNo } from "./content";
-import { AddLine } from "./Entry";
+import { W, WT } from "@/components/maison/W";
+import { CONTENT } from "@/lib/shop/content";
+import { getProduct, type Wood } from "@/lib/shop/products";
+import { EASE, EDITION, sectionNo } from "./content";
+import { AddLine, MarkButton } from "./Entry";
 import { Head } from "./Head";
 import { WPhoto } from "./WPhoto";
 
-const CUFF = getFamily("vault-cuff")!;
-const NUMBERS = Array.from({ length: 21 }, (_, i) => i + 1);
-
-/** The 2011 Vault: No. 1 to No. 21 set as a typographic grid, with one feature photograph. */
-export function Vault() {
-  const wood = useWood();
+function EditionBody({ wood }: { wood: Wood }) {
+  const copy = EDITION[wood];
+  const product = getProduct(CONTENT[wood].edition.productSlug)!;
+  const size = product.edition?.size ?? CONTENT[wood].edition.size;
+  const left = product.edition?.left ?? size;
+  const numbers = Array.from({ length: size }, (_, i) => i + 1);
   const [no, setNo] = useState<number | null>(null);
 
+  return (
+    <div className="x5-vaultBody">
+      <p className="x5-vaultLead">{product.story.join(" ")}</p>
+
+      <p className="x5-vaultCount">
+        <b>
+          {left} of {size}
+        </b>{" "}
+        still to be placed. {wood === "red" ? "When a number is returned, the Circle hears first." : "When a vial is placed, its number closes in the registry."}
+      </p>
+
+      <div className={`x5-vaultGrid ${size > 21 ? "x5-vaultGrid50" : ""}`} role="group" aria-label={`Choose a number from 1 to ${size}`}>
+        {numbers.map((n) => (
+          <button key={n} type="button" className="x5-vaultCell" aria-pressed={no === n} onClick={() => setNo(no === n ? null : n)}>
+            <span className="x5-vaultNo">{copy.unit}</span>
+            <span className="x5-vaultNum">{n}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="x5-vaultOrder">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.p
+            key={no ?? 0}
+            className="x5-vaultLine"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3, ease: EASE }}
+          >
+            {no ? copy.chosen(no, size) : copy.prompt}
+          </motion.p>
+        </AnimatePresence>
+        <div className="x5-vaultActions">
+          <AddLine
+            product={product}
+            note={no ? `${copy.unit === "No." ? "Cuff" : "Vial"} No. ${no} of ${size}` : undefined}
+            label={no ? `Add No. ${no} to bag` : wood === "red" ? "Add a cuff to bag" : "Add a vial to bag"}
+          />
+          <MarkButton slug={product.slug} name={product.name} />
+          <Link href={`/d/05/p/${product.slug}`} className="x5-textLink">
+            Read the full entry
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** The current wood's numbered edition: the 2011 Vault cuffs in red, the 2011 Reserve oil in white. */
+export function Vault() {
   return (
     <section id="vault" className="x5-section" aria-labelledby="vault-title">
       <Head
@@ -29,71 +79,30 @@ export function Vault() {
           <>
             The 2011
             <br />
-            Vault
+            <WT red="Vault" white="Reserve" />
           </>
         }
         meta="Figure 14"
-        dek={<p>Twenty-one numbered cuffs, turned from aged heartwood sourced in 2011. An edition of 21, each entered in the registry.</p>}
+        dek={
+          <p>
+            <WT red={EDITION.red.dek} white={EDITION.white.dek} />
+          </p>
+        }
       />
 
       <div className="x5-vault">
         <figure className="x5-vaultFig">
           <div className="x5-vaultFrame">
-            <WPhoto red={{ p: PHOTOS.turned, tone: "red" }} white={{ p: PHOTOS.turned }} sizes="(min-width: 768px) 34vw, 90vw" />
+            <WPhoto red={EDITION.red.photo} white={EDITION.white.photo} sizes="(min-width: 768px) 34vw, 90vw" />
           </div>
           <figcaption className="x5-caption">
             <b>Fig. 14</b>
-            Turned from aged <WT red="red" white="white" /> heartwood. Each cuff is numbered.
+            <span>
+              <WT red={EDITION.red.caption} white={EDITION.white.caption} />
+            </span>
           </figcaption>
         </figure>
-
-        <div className="x5-vaultBody">
-          <p className="x5-vaultLead">
-            {CUFF.story[0]} {CUFF.story[1]}
-          </p>
-
-          <div className="x5-vaultGrid" role="group" aria-label="Choose a number from 1 to 21">
-            {NUMBERS.map((n) => (
-              <button key={n} type="button" className="x5-vaultCell" aria-pressed={no === n} onClick={() => setNo(no === n ? null : n)}>
-                <span className="x5-vaultNo">No.</span>
-                <span className="x5-vaultNum">{n}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="x5-vaultOrder">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.p
-                key={no ?? 0}
-                className="x5-vaultLine"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.3, ease: EASE }}
-              >
-                {no ? (
-                  <>
-                    <b>No. {no} of 21</b>, in {WOOD_NAMES[wood].common.toLowerCase()}. Made to your measurement, with its registry
-                    certificate and a sealed vial of heartwood oil. We confirm the number with you before the cuff is made.
-                  </>
-                ) : (
-                  <>Choose a number. Made to your measurement, with its registry certificate and a sealed vial of heartwood oil.</>
-                )}
-              </motion.p>
-            </AnimatePresence>
-            <div className="x5-vaultActions">
-              <AddLine
-                family={CUFF}
-                wood={wood}
-                custom={no ? `Vault No. ${no}` : undefined}
-                label={no ? `Add No. ${no} to bag` : "Add a cuff to bag"}
-              />
-              <Link href="/d/05/p/vault-cuff" className="x5-textLink">
-                Read the full entry
-              </Link>
-            </div>
-          </div>
-        </div>
+        <W red={<EditionBody wood="red" />} white={<EditionBody wood="white" />} />
       </div>
     </section>
   );

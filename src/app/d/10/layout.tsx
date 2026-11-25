@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Anybody, JetBrains_Mono } from "next/font/google";
 import type { ReactNode } from "react";
-import { BodyBackground } from "@/components/BodyBackground";
 import { BagSheet } from "./_components/BagSheet";
+import { BodyTint } from "./_components/BodyTint";
 import { Footer } from "./_components/Footer";
 import { MotionPrefs } from "./_components/MotionPrefs";
 import { Nav } from "./_components/Nav";
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
 export default function KineticLayout({ children }: { children: ReactNode }) {
   return (
     <div data-k10 className={`${anybody.variable} ${mono.variable} ${k.root}`}>
-      <BodyBackground color="#F2F0EB" />
+      <BodyTint />
       <SmoothScroll />
       <MotionPrefs>
         <Nav />

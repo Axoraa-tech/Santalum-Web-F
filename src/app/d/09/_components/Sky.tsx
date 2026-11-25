@@ -1,92 +1,110 @@
 "use client";
 
-import { animate, motion, useMotionValue, useTransform, type MotionValue } from "motion/react";
-import { useEffect } from "react";
-import { DAY_END, DAY_START, EASE, HORIZON, SKY, SUN, T } from "./data";
+import { motion, useTransform, type MotionValue } from "motion/react";
+import type { Wood } from "@/lib/wood";
+import s from "../styles";
+import { SKIES, T } from "./data";
 
-/** The sun's path across the top of the screen, in viewport percent (also drawn as a faint arc). */
-function sunPos(v: number) {
-  return { x: 6 + 88 * v, y: 13 + 20 * (2 * v - 1) ** 2 };
+/** One wood's colours for the whole sky at the current minute. */
+export function useSkyColours(minutes: MotionValue<number>, wood: Wood) {
+  const k = SKIES[wood];
+  const sky = useTransform(minutes, T, k.sky);
+  const horizon = useTransform(minutes, T, k.horizon);
+  const horizonBg = useTransform(horizon, (c) => `linear-gradient(to top, ${c} 0%, transparent 100%)`);
+  // the band under the header: solid sky where the wordmark and links sit, then a short fade
+  const band = useTransform(sky, (c) => `linear-gradient(to bottom, ${c} 0px, ${c} 70px, transparent 100%)`);
+  const sun = useTransform(minutes, T, k.sun);
+  // a soft disc with a feathered edge: light in the sky, not an object laid over the words
+  const sunFill = useTransform(sun, (c) => `radial-gradient(circle at 44% 40%, #fff6ea 0%, ${c} 46%, ${c} 56%, transparent 71%)`);
+  const glow = useTransform(sun, (c) => `radial-gradient(circle, ${c} 0%, transparent 64%)`);
+  return { sky, horizonBg, band, sunFill, glow };
 }
-const ARC = (() => {
-  const pts: string[] = [];
-  for (let i = 0; i <= 60; i++) {
-    const p = sunPos(i / 60);
-    pts.push(`${p.x.toFixed(2)},${p.y.toFixed(2)}`);
-  }
-  return `M${pts.join(" L")}`;
-})();
+
+/** The thin moon, drawn the same everywhere. */
+export function Moon({ size = 44 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 44 44" aria-hidden>
+      <defs>
+        <mask id={`d09-moon-mask-${size}`}>
+          <rect width="44" height="44" fill="white" />
+          <circle cx="30" cy="16" r="16" fill="black" />
+        </mask>
+      </defs>
+      <circle cx="22" cy="22" r="17" fill="#fdfcff" stroke="rgb(42 36 32 / 0.12)" mask={`url(#d09-moon-mask-${size})`} />
+    </svg>
+  );
+}
 
 /**
- * The fixed sky behind every page of the design: its colour, a warmer horizon, the sun on its arc
- * (with a faint glow) and, after sunset, a thin moon. `minutes` is the time of day.
+ * The fixed sky behind every page of the design: its colour, a warmer horizon and the band under the
+ * header. The sun is never fixed to the screen, so it can never stand behind words: on the home page
+ * each scene carries its own sun (see SceneSun), and on the calm pages it is drawn at the top of the
+ * page (see HeldSun). On the home page (`held` false), after sunset a thin moon comes up inside the
+ * header band, where no words pass under it.
+ * Both woods' skies are drawn; CSS fades the white day in over the red one, so the right sky
+ * shows before hydration and the switch eases.
  */
-export function Sky({ minutes, intro = false }: { minutes: MotionValue<number>; intro?: boolean }) {
-  const sky = useTransform(minutes, T, SKY);
-  const horizon = useTransform(minutes, T, HORIZON);
-  const horizonBg = useTransform(horizon, (c) => `linear-gradient(to top, ${c} 0%, transparent 100%)`);
-  const topFade = useTransform(sky, (c) => `linear-gradient(to bottom, ${c} 0%, ${c} 38%, transparent 100%)`);
-  const sun = useTransform(minutes, T, SUN);
-  const sunFill = useTransform(sun, (c) => `radial-gradient(circle at 40% 36%, #fff8ee 0%, ${c} 62%)`);
-  const glow = useTransform(sun, (c) => `radial-gradient(circle, ${c} 0%, transparent 64%)`);
-
-  // one page-load moment: the sun rises into place
-  const rise = useMotionValue(intro ? 1 : 0);
-  useEffect(() => {
-    if (!intro) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      rise.set(0);
-      return;
-    }
-    const c = animate(rise, 0, { duration: 2.8, ease: EASE, delay: 0.1 });
-    return () => c.stop();
-  }, [intro, rise]);
-
-  const frac = useTransform(minutes, (m) => Math.min(1, Math.max(0, (m - DAY_START) / (DAY_END - DAY_START))));
-  const x = useTransform(frac, (v) => `${sunPos(v).x.toFixed(3)}vw`);
-  const y = useTransform([frac, minutes, rise], ([v, m, r]: number[]) => {
-    const set = m > 1138 ? ((m - 1138) / 42) * 34 : 0;
-    return `${(sunPos(v).y + set + r * 40).toFixed(3)}vh`;
-  });
-  const sunOpacity = useTransform(minutes, [1136, 1174], [1, 0]);
+export function Sky({ minutes, held = false }: { minutes: MotionValue<number>; held?: boolean }) {
+  const red = useSkyColours(minutes, "red");
+  const white = useSkyColours(minutes, "white");
   const moon = useTransform(minutes, [1140, 1178], [0, 1]);
 
   return (
-    <div aria-hidden>
-      <motion.div className="pointer-events-none fixed inset-0 -z-10" style={{ backgroundColor: sky }} />
-      <motion.div className="pointer-events-none fixed inset-x-0 bottom-0 -z-10 h-[60svh]" style={{ backgroundImage: horizonBg }} />
-      <motion.svg
-        className="pointer-events-none fixed inset-0 -z-10 hidden h-svh w-screen lg:block"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        style={{ opacity: sunOpacity }}
-      >
-        <path d={ARC} fill="none" stroke="rgb(42 36 32 / 0.11)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-      </motion.svg>
+    <div aria-hidden data-sky>
+      <div className="pointer-events-none fixed inset-0 -z-10">
+        <motion.div className="absolute inset-0" style={{ backgroundColor: red.sky }} />
+        <motion.div className="absolute inset-x-0 bottom-0 h-[60svh]" style={{ backgroundImage: red.horizonBg }} />
+      </div>
+      <div className={`pointer-events-none fixed inset-0 -z-10 ${s.skyWhite}`}>
+        <motion.div className="absolute inset-0" style={{ backgroundColor: white.sky }} />
+        <motion.div className="absolute inset-x-0 bottom-0 h-[60svh]" style={{ backgroundImage: white.horizonBg }} />
+      </div>
 
-      <motion.div className="pointer-events-none fixed left-[9vw] top-[15vh] -z-10" style={{ opacity: moon }}>
-        <svg width="44" height="44" viewBox="0 0 44 44">
-          <defs>
-            <mask id="d09-moon-mask">
-              <rect width="44" height="44" fill="white" />
-              <circle cx="30" cy="16" r="16" fill="black" />
-            </mask>
-          </defs>
-          <circle cx="22" cy="22" r="17" fill="#fdfcff" stroke="rgb(42 36 32 / 0.08)" mask="url(#d09-moon-mask)" />
-        </svg>
+      {!held && (
+        /* the moon rises inside the header band, between the wordmark and the links */
+        <motion.div
+          className="pointer-events-none fixed left-[calc(44%-17px)] top-[22px] z-[115] lg:left-[38%] lg:top-[16px]"
+          style={{ opacity: moon }}
+        >
+          <Moon size={34} />
+        </motion.div>
+      )}
+
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-[110] h-[100px]">
+        <motion.div className="absolute inset-0" style={{ backgroundImage: red.band }} />
+        <motion.div className={`absolute inset-0 ${s.skyWhite}`} style={{ backgroundImage: white.band }} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The sun of a calm page, held at the page's hour: drawn at the top right of the page, in the open sky
+ * above the heading's right side, and scrolling away with it. After sunset it is the moon.
+ */
+export function HeldSun({ minutes }: { minutes: MotionValue<number> }) {
+  const red = useSkyColours(minutes, "red");
+  const white = useSkyColours(minutes, "white");
+  const sunOpacity = useTransform(minutes, [1136, 1174], [1, 0]);
+  const moon = useTransform(minutes, [1140, 1178], [0, 1]);
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute right-6 top-[104px] -z-[1] size-9 sm:right-10 lg:right-[max(2.5rem,8vw)] lg:top-[112px] lg:size-[clamp(64px,6.4vw,104px)]"
+    >
+      <motion.div className="absolute inset-0" style={{ opacity: sunOpacity }}>
+        <div className="absolute left-1/2 top-1/2 size-[300%] -translate-x-1/2 -translate-y-1/2 opacity-40">
+          <motion.div className="absolute inset-0 rounded-full" style={{ backgroundImage: red.glow }} />
+          <motion.div className={`absolute inset-0 rounded-full ${s.skyWhite}`} style={{ backgroundImage: white.glow }} />
+        </div>
+        <motion.div className="absolute inset-0 rounded-full" style={{ backgroundImage: red.sunFill }} />
+        <motion.div className={`absolute inset-0 rounded-full ${s.skyWhite}`} style={{ backgroundImage: white.sunFill }} />
       </motion.div>
-
-      <motion.div className="pointer-events-none fixed left-0 top-0 -z-10" style={{ x, y, opacity: sunOpacity }}>
-        <div className="relative -translate-x-1/2 -translate-y-1/2">
-          <motion.div
-            className="absolute left-1/2 top-1/2 size-[clamp(240px,28vw,460px)] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-55"
-            style={{ backgroundImage: glow }}
-          />
-          <motion.div className="relative size-[clamp(62px,7vw,118px)] rounded-full" style={{ backgroundImage: sunFill }} />
+      <motion.div className="absolute inset-0 grid place-items-center" style={{ opacity: moon }}>
+        <div className="size-[90%] [&>svg]:size-full">
+          <Moon />
         </div>
       </motion.div>
-
-      <motion.div className="pointer-events-none fixed inset-x-0 top-0 z-[110] h-[84px] opacity-95" style={{ backgroundImage: topFade }} />
     </div>
   );
 }

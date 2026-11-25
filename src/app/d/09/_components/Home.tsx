@@ -12,6 +12,7 @@ import { Noon } from "./chapters/Noon";
 import { CHAPTERS, DAY_END, T } from "./data";
 import { Sky } from "./Sky";
 import { Sundial } from "./Sundial";
+import s from "../styles";
 
 /**
  * Maps scroll position onto the clock. Each chapter's top is pinned to its start time and the
@@ -63,15 +64,17 @@ export function DayHome() {
   useDayClock(minutes);
   return (
     <>
-      <Sky minutes={minutes} intro />
+      <Sky minutes={minutes} />
       <Sundial minutes={minutes} mode="scroll" />
-      <Dawn />
-      <Morning />
-      <Noon />
-      <Afternoon />
-      <Golden />
-      <Dusk />
-      <Evening />
+      <div className={s.swap}>
+        <Dawn />
+        <Morning />
+        <Noon />
+        <Afternoon />
+        <Golden />
+        <Dusk />
+        <Evening />
+      </div>
     </>
   );
 }

@@ -4,12 +4,56 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { bagTotals, useBag } from "@/lib/cart";
+import { useUser } from "@/lib/shop/account";
+import { bagSummary, useBag } from "@/lib/shop/bag";
+import { useHydrated } from "@/lib/shop/store";
 import { switchWood, useWood } from "@/lib/wood";
-import { HOME, NAV_LINKS } from "./copy";
+import { ACCOUNT, ANCHORS, HOME, SHOP, TRACK } from "./copy";
 import { bagUI, scrollToId, useBagUI, useMedia } from "./store";
 import { BagIcon } from "./ui";
 import { s } from "./cls";
+
+/** The signed-in customer's first name, only after hydration (the session lives in this browser). */
+function useFirstName() {
+  const user = useUser();
+  const hydrated = useHydrated();
+  return hydrated && user ? user.name.split(" ")[0] : null;
+}
+
+/** Shop, tracking and the account, as one capsule beside the knob (large screens). */
+function ShopLinks() {
+  const pathname = usePathname();
+  const first = useFirstName();
+  const links = [
+    { href: SHOP, label: "Shop" },
+    { href: TRACK, label: "Track order" },
+    { href: ACCOUNT, label: first ?? "Sign in" },
+  ];
+  return (
+    <nav aria-label="Shop and account" className="hidden h-14 items-center gap-1 rounded-full border border-[var(--o-line)] bg-white/85 p-1.5 shadow-[0_10px_30px_-18px_rgb(25_23_20/0.5)] backdrop-blur-md lg:flex">
+      {links.map((l) => {
+        const on = pathname === l.href || (l.href === SHOP && pathname.startsWith("/d/02/p/"));
+        return (
+          <Link
+            key={l.href}
+            href={l.href}
+            aria-current={on ? "page" : undefined}
+            className={`${s.syne} flex h-full items-center gap-2 rounded-full px-4 text-[14px] font-bold tracking-[-0.01em] transition-colors duration-300 active:scale-[0.97] ${
+              on ? "bg-[var(--o-ink)] text-white" : "text-[var(--o-ink)] hover:bg-[var(--o-floor)]"
+            }`}
+          >
+            {l.href === ACCOUNT && (
+              <span aria-hidden className={`grid size-6 place-items-center rounded-full text-[11px] ${first ? "bg-[var(--m-accent)] text-white" : "border border-current"}`}>
+                {first ? first[0].toUpperCase() : ""}
+              </span>
+            )}
+            {l.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
 
 /** Round menu button that fans its links out along a quarter circle. */
 function RadialMenu() {
@@ -19,8 +63,16 @@ function RadialMenu() {
   const desktop = useMedia("(min-width: 768px)", true);
   const btnRef = useRef<HTMLButtonElement>(null);
   const firstRef = useRef<HTMLAnchorElement>(null);
+  const wood = useWood();
+  const first = useFirstName();
+  const items: { href: string; label: string; id?: string; strong?: boolean }[] = [
+    { href: SHOP, label: "Shop", strong: true },
+    { href: TRACK, label: "Track your order", strong: true },
+    { href: ACCOUNT, label: first ?? "Sign in", strong: true },
+    ...ANCHORS.map((a) => ({ href: `${HOME}#${a.id}`, id: a.id, label: a[wood] })),
+  ];
   // links sit on a quarter circle around the button: even vertical steps, right edge on the arc
-  const r = desktop ? 440 : 340;
+  const r = desktop ? 520 : 400;
   const step = desktop ? 48 : 36;
   const cx = desktop ? 52 : 44;
 
@@ -66,13 +118,13 @@ function RadialMenu() {
             />
             <motion.nav key="links" id="o2-menu" aria-label="Main" className="fixed left-0 top-0 z-[121]" initial="closed" animate="open" exit="closed">
               <ul>
-                {NAV_LINKS.map((l, i) => {
+                {items.map((l, i) => {
                   const dy = 40 + i * step;
                   const maxX = (typeof window === "undefined" ? 1440 : window.innerWidth) - 14;
                   const x = Math.round(Math.min(maxX, cx + Math.sqrt(r * r - dy * dy)));
                   const y = Math.round(cx + dy);
                   return (
-                    <li key={l.id} className="absolute" style={{ left: x, top: y }}>
+                    <li key={l.href} className="absolute" style={{ left: x, top: y }}>
                       <motion.div
                         variants={{
                           closed: reduced ? { opacity: 0 } : { opacity: 0, x: cx - x, y: cx - y, scale: 0.3 },
@@ -82,12 +134,16 @@ function RadialMenu() {
                       >
                         <Link
                           ref={i === 0 ? firstRef : undefined}
-                          href={`${HOME}#${l.id}`}
+                          href={l.href}
                           onClick={(e) => {
                             setOpen(false);
-                            if (onHome && scrollToId(l.id)) e.preventDefault();
+                            if (onHome && l.id && scrollToId(l.id)) e.preventDefault();
                           }}
-                          className={`${s.syne} block whitespace-nowrap rounded-full border border-[var(--o-line)] bg-white px-4 py-1.5 text-[14px] font-bold tracking-[-0.01em] text-[var(--o-ink)] shadow-[0_8px_20px_-12px_rgb(25_23_20/0.4)] transition-colors duration-200 hover:border-[var(--o-ink)] hover:bg-[var(--o-ink)] hover:text-white active:scale-95 md:px-5 md:py-2.5 md:text-[16px]`}
+                          className={`${s.syne} block whitespace-nowrap rounded-full border px-4 py-1.5 text-[14px] font-bold tracking-[-0.01em] shadow-[0_8px_20px_-12px_rgb(25_23_20/0.4)] transition-colors duration-200 active:scale-95 md:px-5 md:py-2.5 md:text-[16px] ${
+                            l.strong
+                              ? "border-[var(--o-ink)] bg-[var(--o-ink)] text-white hover:bg-[var(--m-accent)] hover:border-[var(--m-accent)]"
+                              : "border-[var(--o-line)] bg-white text-[var(--o-ink)] hover:border-[var(--o-ink)] hover:bg-[var(--o-ink)] hover:text-white"
+                          }`}
                         >
                           {l.label}
                         </Link>
@@ -179,7 +235,7 @@ export function WoodKnob() {
 
 export function BagButton({ className = "" }: { className?: string }) {
   const lines = useBag();
-  const { count } = bagTotals(lines);
+  const { count } = bagSummary(lines);
   const { bump, open } = useBagUI();
   return (
     <button
@@ -204,9 +260,42 @@ export function BagButton({ className = "" }: { className?: string }) {
   );
 }
 
+/**
+ * A band of the page colour behind the floating capsules, faded in once the page moves. Text and
+ * sticky columns sliding up under the nav fade out instead of peeking between the capsules.
+ * On the landing page it waits until the ring has scrolled away, so the giant name stays clear.
+ */
+function TopVeil() {
+  const pathname = usePathname();
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    const check = () => {
+      let v = window.scrollY > 24;
+      if (v && pathname === HOME) {
+        const ring = document.getElementById("ring");
+        if (ring && ring.getBoundingClientRect().bottom > 140) v = false;
+      }
+      setOn(v);
+    };
+    const raf = window.requestAnimationFrame(check);
+    window.addEventListener("scroll", check, { passive: true });
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", check);
+    };
+  }, [pathname]);
+  return (
+    <div
+      aria-hidden
+      className={`pointer-events-none fixed inset-x-0 top-0 z-[90] h-[92px] bg-[linear-gradient(to_bottom,var(--o-bg)_0%,var(--o-bg)_50%,transparent_100%)] transition-opacity duration-500 md:h-[116px] ${on ? "opacity-100" : "opacity-0"}`}
+    />
+  );
+}
+
 export function Nav() {
   return (
     <>
+      <TopVeil />
       <RadialMenu />
       <Link
         href={HOME}
@@ -215,6 +304,7 @@ export function Nav() {
         Santalum Maison
       </Link>
       <div className="fixed right-4 top-4 z-[100] flex items-center gap-2 md:right-6 md:top-6">
+        <ShopLinks />
         <WoodKnob />
         <BagButton className="hidden md:grid" />
       </div>

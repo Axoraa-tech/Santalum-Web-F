@@ -14,11 +14,12 @@ export function WoodDisc({ className = "" }: { className?: string }) {
   );
 }
 
-export function Logo() {
+/** `full` keeps the name on phones (the header shows only the slice there, to fit the account and bag). */
+export function Logo({ full = false }: { full?: boolean }) {
   return (
-    <Link href="/maison" className="group flex items-center gap-2.5" aria-label="Santalum Maison, home">
+    <Link href="/maison" className="group flex items-center gap-2.5 rounded-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--mz-accent)" aria-label="Santalum Maison, home">
       <WoodDisc className="size-7 transition-transform duration-700 ease-out-soft group-hover:rotate-[120deg]" />
-      <span className="font-display text-[20px] leading-none tracking-[-0.02em] max-[379px]:hidden sm:text-[24px]">santalum</span>
+      <span className={`font-display text-[20px] leading-none tracking-[-0.02em] ${full ? "" : "max-sm:hidden"} sm:text-[24px]`}>santalum</span>
     </Link>
   );
 }

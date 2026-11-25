@@ -1,0 +1,117 @@
+/* Design 05 — Index: stars, the reader's slip, coupons, order actions, and letters to the editor. */
+
+/* stars, set in type */
+.x5-stars { position: relative; display: inline-block; flex: none; font-family: var(--sans); font-size: 13px; line-height: 1; letter-spacing: 1px; color: var(--faint); white-space: nowrap; vertical-align: baseline; }
+.x5-starsFill { position: absolute; left: 0; top: 0; overflow: hidden; color: var(--spot); }
+.x5-rating { display: flex; align-items: baseline; gap: 6px; margin-top: 6px; font-size: 12.5px; color: var(--grey); }
+.x5-rating b { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.x5-cName .x5-rating { margin-top: 8px; }
+.x5a-rated { display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-top: 10px; font-size: 14px; color: var(--grey); text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 4px; transition: text-decoration-color 0.25s var(--ease); }
+.x5a-rated .x5-stars { font-size: 16px; }
+.x5a-rated b { font-size: 16px; color: var(--ink); }
+.x5a-rated:hover { text-decoration-color: var(--spot); }
+
+/* the reader's slip: a library call slip for every sign-in */
+.x5c-rslip { position: relative; padding: 30px clamp(16px, 2.4vw, 28px) 24px; background: var(--white); border: 1px solid var(--rule); box-shadow: 0 30px 50px -40px color-mix(in srgb, var(--ink) 45%, transparent); -webkit-mask: radial-gradient(circle 4.5px at 50% 0, #0000 96%, #000) 0 0 / 13px 100% repeat-x; mask: radial-gradient(circle 4.5px at 50% 0, #0000 96%, #000) 0 0 / 13px 100% repeat-x; }
+.x5c-rslip .x5-perf { top: 14px; }
+.x5c-rslipHead { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 14px; padding-bottom: 12px; margin-bottom: 18px; border-bottom: 2px solid var(--ink); }
+.x5c-rslipBrand { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; }
+.x5c-rslipForm { grid-row: 1 / 3; grid-column: 2; align-self: end; padding: 3px 8px; border: 1.5px solid var(--spot); color: var(--spot); font-size: 12px; font-weight: 800; transform: rotate(-3deg); }
+.x5c-rslipTitle { font-family: var(--serif); font-style: italic; color: var(--grey); }
+.x5c-rslip .x5c-input { border-bottom-style: dotted; }
+.x5c-rslip .x5c-input:focus { border-bottom-style: solid; }
+.x5c-rslip .x5c-authTabs { margin-bottom: 18px; }
+
+/* coupons */
+.x5c-discount dt, .x5c-discount dd { color: var(--spot); font-weight: 600; }
+.x5c-code { display: grid; gap: 6px; padding: 12px 0 14px; border-top: 1px dashed var(--faint); }
+.x5c-codeRow { display: flex; align-items: center; gap: 12px; }
+.x5c-codeInput { flex: 1; min-width: 0; font-family: var(--sans); font-size: 17px; font-weight: 600; letter-spacing: 0.06em; }
+/* a set code is printed in the spot colour over a double rule, like a total; it is removed, not typed over */
+.x5c-code[data-applied] .x5c-codeInput { color: var(--spot); border-bottom: 3px double var(--spot); cursor: default; }
+.x5c-code[data-applied] .x5c-codeInput:hover, .x5c-code[data-applied] .x5c-codeInput:focus { box-shadow: none; }
+
+/* order actions on the file */
+.x5f-orderAct { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 20px; }
+@media (min-width: 1024px) { .x5f-orderAct { grid-column: auto; justify-content: flex-end; } }
+.x5f-order[data-status="cancelled"] .x5f-orderWhat, .x5f-order[data-status="cancelled"] .x5f-orderTotal { color: var(--grey); text-decoration: line-through; text-decoration-color: var(--faint); }
+.x5f-order[data-status] .x5f-orderStage b { background: var(--grey); }
+.x5f-orderNote, .x5f-orderForm { grid-column: 1 / -1; }
+.x5f-orderNote { font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--grey); }
+.x5f-orderForm { display: grid; gap: 10px; margin-top: 6px; padding: 14px 16px; background: var(--wash); border-left: 3px solid var(--spot); font-family: var(--serif); font-size: 17px; }
+.x5t-status { margin-bottom: 18px; padding: 12px 16px; border-left: 3px solid var(--spot); background: var(--wash); font-family: var(--serif); font-size: 17px; }
+.x5t-stages[data-status="cancelled"] .x5t-stage[data-state="pending"] { opacity: 0.35; text-decoration: line-through; }
+.x5t-rule[data-status="cancelled"] span { background: var(--grey); }
+
+/* letters to the editor */
+.x5r-avg { display: flex; align-items: baseline; gap: 8px; margin-top: clamp(18px, 2.4vw, 40px); }
+.x5r-avg b { font-size: clamp(56px, 6vw, 104px); font-weight: 820; line-height: 0.85; letter-spacing: -0.055em; font-variant-numeric: tabular-nums; }
+.x5r-avg span { font-size: 14px; color: var(--grey); }
+.x5r-block .x5a-side > .x5-stars { margin-top: 10px; font-size: 18px; }
+.x5r-dist { margin-top: 18px; border-top: 1px solid var(--rule); }
+.x5r-distBtn { display: grid; grid-template-columns: 34px minmax(0, 1fr) 24px; gap: 10px; align-items: center; width: 100%; padding: 6px 0; border-bottom: 1px solid var(--rule); font-size: 13px; text-align: left; transition: color 0.25s var(--ease); }
+.x5r-distBtn:disabled { opacity: 0.45; cursor: default; }
+.x5r-distBtn:not(:disabled):hover, .x5r-distBtn[aria-pressed="true"] { color: var(--spot); }
+.x5r-distBtn[aria-pressed="true"] { font-weight: 700; }
+.x5r-distN { white-space: nowrap; }
+.x5r-distBar { height: 6px; background: var(--wash); }
+.x5r-distBar span { display: block; height: 100%; background: var(--ink); transition: width 0.6s var(--ease); }
+.x5r-distBtn[aria-pressed="true"] .x5r-distBar span { background: var(--spot); }
+.x5r-distC { text-align: right; font-variant-numeric: tabular-nums; color: var(--grey); }
+.x5r-filter { margin-top: 12px; font-size: 14px; }
+.x5r-letters { margin-top: 18px; border-top: 1px solid var(--ink); }
+.x5r-letter { padding: 22px 0 24px; border-bottom: 1px solid var(--rule); }
+.x5r-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; font-size: 12.5px; color: var(--grey); }
+.x5r-meta > span:first-child { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.x5r-verified { padding: 1px 6px; border: 1px solid var(--spot); color: var(--spot); font-size: 11px; font-weight: 700; }
+.x5r-title { margin-top: 10px; font-size: clamp(22px, 2.2vw, 32px); font-weight: 800; line-height: 1.05; letter-spacing: -0.03em; }
+.x5r-body { margin-top: 10px; max-width: 60ch; font-family: var(--serif); font-size: clamp(17px, 1.4vw, 20px); line-height: 1.5; }
+.x5r-body::first-letter { float: left; margin: 0.06em 0.08em 0 0; font-family: var(--sans); font-size: 3.1em; font-weight: 800; line-height: 0.8; color: var(--spot); }
+.x5r-sign { margin-top: 10px; font-family: var(--serif); font-style: italic; font-size: 16px; }
+.x5r-sign span { color: var(--grey); font-style: normal; font-family: var(--sans); font-size: 13px; }
+.x5r-actions { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 22px; margin-top: 12px; }
+.x5r-helpful { display: inline-flex; align-items: baseline; gap: 6px; padding: 4px 10px; border: 1px solid var(--rule); font-size: 13px; font-weight: 600; transition: border-color 0.25s var(--ease), background 0.25s var(--ease), color 0.25s var(--ease); }
+.x5r-helpful span { font-variant-numeric: tabular-nums; color: var(--grey); }
+.x5r-helpful:hover { border-color: var(--ink); }
+.x5r-helpful[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.x5r-helpful[aria-pressed="true"] span { color: inherit; }
+.x5r-helpful:active { transform: scale(0.97); }
+.x5r-replies { margin-top: 14px; margin-left: clamp(16px, 4vw, 56px); display: grid; gap: 10px; }
+.x5r-reply { padding: 4px 0 4px 14px; border-left: 1px solid var(--rule); }
+.x5r-reply[data-house] { border-left: 3px solid var(--spot); background: color-mix(in srgb, var(--spot-soft) 45%, transparent); padding: 10px 14px; }
+.x5r-replyBy { font-size: 12.5px; font-weight: 700; }
+.x5r-reply[data-house] .x5r-replyBy { color: var(--spot); }
+.x5r-replyBody { margin-top: 2px; font-family: var(--serif); font-size: 16px; line-height: 1.45; }
+.x5r-reply[data-house] .x5r-replyBody { font-style: italic; }
+.x5r-replyAt { margin-top: 2px; font-size: 12px; color: var(--grey); }
+.x5r-respond, .x5r-ask { display: grid; gap: 8px; width: 100%; margin-top: 8px; }
+.x5r-ask { margin-top: 22px; justify-items: start; }
+.x5r-ask .x5c-textarea { width: 100%; }
+.x5r-writeWrap { margin-top: clamp(40px, 5vw, 72px); padding-top: 10px; border-top: 2px solid var(--ink); scroll-margin-top: calc(var(--top) + 12px); }
+.x5r-writeHead { margin-bottom: 18px; font-size: clamp(26px, 2.6vw, 40px); font-weight: 800; line-height: 1; letter-spacing: -0.035em; }
+.x5r-writeLead { margin-bottom: 18px; max-width: 52ch; font-family: var(--serif); font-size: 18px; line-height: 1.45; color: var(--grey); }
+.x5r-write { display: grid; gap: 20px; }
+.x5r-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.x5r-pickStars { display: inline-flex; gap: 2px; }
+.x5r-pickStar { width: 40px; height: 40px; font-size: 28px; line-height: 1; color: var(--faint); transition: color 0.2s var(--ease), transform 0.2s var(--ease); }
+.x5r-pickStar[data-on] { color: var(--spot); }
+.x5r-pickStar:hover { transform: scale(1.12); color: var(--spot); }
+.x5r-pickStar:active { transform: scale(0.94); }
+.x5r-pickWord { font-family: var(--serif); font-style: italic; font-size: 17px; color: var(--grey); }
+.x5r-queries { border-top: 1px solid var(--ink); }
+.x5r-query { padding: 18px 0 20px; border-bottom: 1px solid var(--rule); display: grid; justify-items: start; gap: 4px; }
+.x5r-q { display: grid; grid-template-columns: 34px minmax(0, 1fr); font-size: clamp(19px, 1.7vw, 24px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+.x5r-q span { color: var(--spot); font-weight: 800; }
+.x5r-query > .x5r-sign { margin: 0 0 0 34px; }
+.x5r-query .x5r-replies { margin-left: 34px; width: calc(100% - 34px); }
+.x5r-query > .x5-textBtn, .x5r-query > .x5r-respond { margin-left: 34px; }
+.x5r-query > .x5r-respond { width: calc(100% - 34px); }
+.x5r-waiting { margin-left: 34px; font-family: var(--serif); font-style: italic; color: var(--grey); }
+
+/* round-3 fixes from the screenshots */
+.x5f-pane .x5c-legend { float: none; }
+.x5c-rslip { clear: both; isolation: isolate; }
+@media (min-width: 1024px) {
+  .x5f-order { grid-template-columns: 130px minmax(0, 1fr) 180px 90px; }
+  .x5f-orderAct { grid-column: 2 / -1; justify-content: flex-start; }
+}

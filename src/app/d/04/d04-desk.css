@@ -1,0 +1,886 @@
+/* Design 04 "Corridor" — the membership desk (account) and the shipping register (track). */
+
+.c4m-desk,
+.c4t-reg {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 28px 18px 64px;
+}
+@media (min-width: 900px) {
+  .c4m-desk,
+  .c4t-reg {
+    padding: 40px 56px 80px;
+  }
+}
+.c4m-head,
+.c4t-head {
+  display: grid;
+  gap: 14px;
+  padding-bottom: 22px;
+  border-bottom: 3px double var(--ink);
+}
+@media (min-width: 900px) {
+  .c4m-head,
+  .c4t-head {
+    grid-template-columns: 1fr minmax(280px, 440px);
+    align-items: end;
+    gap: 40px;
+  }
+}
+.c4m-title,
+.c4t-title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(44px, 8vw, 104px);
+  line-height: 0.9;
+  letter-spacing: -0.015em;
+}
+.c4m-title i,
+.c4t-title i {
+  color: var(--acc-deep);
+}
+.c4m-lede,
+.c4t-lede {
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--mute);
+}
+.c4m-h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 34px;
+  line-height: 1.05;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--ink);
+}
+.c4m-btnSm {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 14px;
+  border: 1px solid var(--ink);
+  cursor: pointer;
+  transition:
+    background-color 0.3s var(--ease),
+    color 0.3s var(--ease);
+}
+.c4m-btnSm:hover {
+  background: var(--ink);
+  color: var(--wall);
+}
+.c4m-btnSm:active {
+  transform: scale(0.98);
+}
+
+/* signed out: two panes, the second a membership card */
+.c4m-panes {
+  display: grid;
+  gap: 28px;
+  margin-top: 34px;
+}
+@media (min-width: 900px) {
+  .c4m-panes {
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: start;
+  }
+}
+.c4m-pane {
+  position: relative;
+  padding: 22px 18px 26px;
+  background: var(--paper);
+  box-shadow:
+    0 0 0 1px var(--hair),
+    0 30px 50px -40px rgb(29 27 24 / 0.5);
+}
+@media (min-width: 700px) {
+  .c4m-pane {
+    padding: 30px 34px 34px;
+  }
+}
+.c4m-paneJoin {
+  box-shadow:
+    inset 0 4px 0 var(--acc),
+    0 0 0 1px var(--hair),
+    0 30px 50px -40px rgb(29 27 24 / 0.5);
+}
+.c4m-paneTitle {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 32px;
+  line-height: 1.05;
+}
+.c4m-paneLede {
+  margin: 6px 0 6px;
+  font-size: 15px;
+  color: var(--mute);
+}
+.c4m-cardHole {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  width: 26px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--wall);
+  box-shadow: inset 0 1px 2px rgb(29 27 24 / 0.25);
+}
+.c4m-keptNote {
+  margin-top: 22px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 17px;
+  color: var(--mute);
+}
+
+/* signed in */
+.c4m-dash {
+  display: grid;
+  gap: 36px;
+  margin-top: 34px;
+}
+@media (min-width: 1000px) {
+  .c4m-dash {
+    grid-template-columns: 320px minmax(0, 1fr);
+    gap: 56px;
+    align-items: start;
+  }
+  .c4m-side {
+    position: sticky;
+    top: 88px;
+  }
+}
+.c4m-side {
+  display: grid;
+  gap: 18px;
+}
+.c4m-card {
+  position: relative;
+  padding: 22px 22px 18px;
+  background: linear-gradient(150deg, var(--acc-soft), var(--paper) 70%);
+  box-shadow:
+    0 0 0 1px var(--hair),
+    0 26px 36px -26px rgb(29 27 24 / 0.5);
+  transform: rotate(-1deg);
+}
+.c4m-cardHouse {
+  font-family: var(--serif);
+  font-size: 15px;
+}
+.c4m-cardHouse i {
+  color: var(--grey);
+}
+.c4m-cardName {
+  margin: 22px 0 12px;
+  font-family: var(--serif);
+  font-size: 30px;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+.c4m-cardRows {
+  display: grid;
+  font-size: 13px;
+}
+.c4m-cardRows div {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr;
+  gap: 8px;
+  padding: 4px 0;
+  border-top: 1px solid var(--hair);
+}
+.c4m-cardRows dt {
+  color: var(--mute);
+}
+.c4m-cardRows dd {
+  overflow-wrap: anywhere;
+}
+.c4m-index {
+  display: grid;
+}
+.c4m-index a {
+  display: flex;
+  justify-content: space-between;
+  padding: 9px 0;
+  font-size: 15px;
+  border-bottom: 1px solid var(--hair);
+  transition:
+    color 0.3s var(--ease),
+    padding 0.4s var(--ease);
+}
+.c4m-index a span {
+  font-family: var(--serif);
+  color: var(--mute);
+}
+.c4m-index a:hover {
+  color: var(--acc);
+  padding-left: 4px;
+}
+.c4m-signOut {
+  justify-self: start;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--stone);
+  cursor: pointer;
+}
+.c4m-signOut:hover {
+  color: var(--acc);
+}
+.c4m-sections {
+  display: grid;
+  gap: 48px;
+  min-width: 0;
+}
+.c4m-section {
+  scroll-margin-top: 80px;
+}
+.c4m-emptyRow {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  padding: 16px 0;
+  font-size: 15px;
+  color: var(--mute);
+}
+
+.c4m-orders {
+  display: grid;
+}
+.c4m-order {
+  display: grid;
+  gap: 8px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--stone);
+}
+.c4m-orderHead {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 16px;
+}
+.c4m-orderNo {
+  font-family: var(--serif);
+  font-size: 24px;
+  color: var(--acc-deep);
+}
+.c4m-orderDate,
+.c4m-orderItems {
+  font-size: 14px;
+  color: var(--mute);
+}
+.c4m-progress {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+.c4m-progress span {
+  height: 3px;
+  background: var(--stone);
+}
+.c4m-progress span[data-done] {
+  background: var(--ink);
+}
+.c4m-progress span[data-current] {
+  background: var(--acc);
+}
+.c4m-orderFoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 20px;
+}
+.c4m-stage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin-right: auto;
+  font-family: var(--serif);
+  font-size: 18px;
+}
+.c4m-stage small {
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--mute);
+}
+.c4m-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--acc);
+  align-self: center;
+}
+.c4m-orderTotal {
+  font-family: var(--serif);
+  font-size: 18px;
+}
+.c4m-trackLink {
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--acc);
+}
+.c4m-trackLink:hover {
+  color: var(--acc);
+}
+
+.c4m-kept {
+  display: grid;
+  gap: 18px;
+  margin-top: 16px;
+}
+@media (min-width: 700px) {
+  .c4m-kept {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.c4m-keptCard {
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  gap: 14px;
+  padding: 10px;
+  background: var(--paper);
+  box-shadow: 0 0 0 1px var(--hair);
+}
+.c4m-keptFrame {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: var(--stone-2);
+}
+.c4m-keptText {
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  min-width: 0;
+}
+.c4m-keptWood,
+.c4m-keptNoteSm {
+  font-size: 12px;
+  color: var(--mute);
+}
+.c4m-keptName {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 19px;
+  line-height: 1.15;
+}
+.c4m-keptName a:hover {
+  color: var(--acc);
+}
+.c4m-keptPrice {
+  font-family: var(--serif);
+  font-size: 16px;
+}
+.c4m-keptActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-top: 6px;
+}
+
+.c4m-addrs {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+@media (min-width: 700px) {
+  .c4m-addrs {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.c4m-addr {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  padding: 16px 18px;
+  background: var(--paper);
+  box-shadow: 0 0 0 1px var(--hair);
+}
+.c4m-addr[data-default] {
+  box-shadow:
+    inset 3px 0 0 var(--acc),
+    0 0 0 1px var(--hair);
+}
+.c4m-addrLabel {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-family: var(--serif);
+  font-size: 19px;
+}
+.c4m-addrLabel span {
+  font-family: var(--sans);
+  font-size: 11px;
+  padding: 1px 7px;
+  color: var(--acc-deep);
+  border: 1px solid currentColor;
+}
+.c4m-addrActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 4px;
+}
+.c4m-addrEdit {
+  grid-column: 1 / -1;
+  margin-top: 12px;
+  padding: 6px 18px 20px;
+  background: var(--paper);
+  box-shadow: 0 0 0 1px var(--hair);
+}
+.c4m-profile {
+  margin-top: 8px;
+}
+.c4m-saved {
+  font-size: 14px;
+  color: var(--acc-deep);
+}
+
+/* ---------------- shipping register ---------------- */
+.c4t-top {
+  display: grid;
+  gap: 28px;
+  margin-top: 30px;
+}
+@media (min-width: 1000px) {
+  .c4t-top {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 48px;
+    align-items: start;
+  }
+}
+.c4t-form {
+  padding: 8px 18px 22px;
+  background: var(--paper);
+  box-shadow: 0 0 0 1px var(--hair);
+}
+@media (min-width: 700px) {
+  .c4t-form {
+    padding: 10px 30px 26px;
+  }
+}
+.c4t-example {
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--acc);
+  cursor: pointer;
+}
+.c4t-example:hover {
+  color: var(--acc);
+}
+.c4t-mineTitle {
+  font-family: var(--serif);
+  font-size: 22px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--ink);
+}
+.c4t-mine button {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 0;
+  text-align: left;
+  font-size: 14px;
+  border-bottom: 1px solid var(--hair);
+  cursor: pointer;
+  transition: padding 0.4s var(--ease);
+}
+.c4t-mine button span:first-child {
+  font-family: var(--serif);
+  font-size: 16px;
+}
+.c4t-mine button:hover,
+.c4t-mine button[aria-pressed="true"] {
+  color: var(--acc);
+  padding-left: 4px;
+}
+.c4t-small {
+  font-size: 13px;
+  color: var(--mute);
+}
+.c4t-h3 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 19px;
+  margin-bottom: 6px;
+}
+.c4t-result {
+  margin-top: 40px;
+}
+.c4t-resultHead {
+  display: grid;
+  gap: 18px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--ink);
+}
+@media (min-width: 800px) {
+  .c4t-resultHead {
+    grid-template-columns: auto 1fr auto;
+    gap: 40px;
+    align-items: end;
+  }
+}
+.c4t-orderNo {
+  font-family: var(--serif);
+  /* sturdier hairlines at display size, so every numeral holds its shape */
+  font-variation-settings: "opsz" 11;
+  font-size: clamp(34px, 5vw, 56px);
+  line-height: 1;
+  color: var(--acc-deep);
+}
+.c4t-nowStage {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--serif);
+  font-size: 30px;
+  line-height: 1.1;
+}
+.c4t-nowDetail {
+  font-size: 15px;
+  color: var(--mute);
+}
+.c4t-live {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--acc);
+}
+.c4t-live::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 1px solid var(--acc);
+  animation: c4t-pulse 2.4s var(--ease) infinite;
+}
+@keyframes c4t-pulse {
+  from {
+    transform: scale(0.6);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+.c4t-window {
+  font-family: var(--serif);
+  font-size: 22px;
+}
+
+/* six stops along a corridor: each a doorway, the current one lit */
+.c4t-line {
+  display: grid;
+  gap: 0;
+  margin-top: 26px;
+}
+@media (min-width: 900px) {
+  .c4t-line {
+    grid-template-columns: repeat(6, 1fr);
+    border-bottom: 3px double var(--ink);
+  }
+}
+.c4t-stop {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--hair);
+}
+@media (min-width: 900px) {
+  .c4t-stop {
+    grid-template-columns: 1fr;
+    align-content: start;
+    gap: 14px;
+    padding: 0 14px 18px;
+    border-bottom: 0;
+    border-left: 1px solid var(--hair);
+  }
+  .c4t-stop:first-child {
+    border-left: 0;
+    padding-left: 0;
+  }
+}
+.c4t-door {
+  position: relative;
+  display: grid;
+  place-items: end center;
+  width: 44px;
+  height: 64px;
+  border: 1px solid var(--stone);
+  border-bottom: 0;
+  background: var(--stone-2);
+}
+@media (min-width: 900px) {
+  .c4t-door {
+    width: 58%;
+    height: 110px;
+    justify-self: start;
+  }
+}
+.c4t-doorN {
+  margin-bottom: 6px;
+  font-family: var(--serif);
+  /* the text cut: in the display cut the 1 and the 4 thin to a single stroke */
+  font-variation-settings: "opsz" 9;
+  font-weight: 500;
+  font-size: 18px;
+  color: var(--grey);
+}
+.c4t-stop[data-state="done"] .c4t-door {
+  border-color: var(--ink);
+  background: var(--paper);
+}
+.c4t-stop[data-state="done"] .c4t-doorN {
+  color: var(--ink);
+}
+.c4t-stop[data-state="current"] .c4t-door {
+  border-color: var(--acc);
+  background: linear-gradient(var(--acc-soft), var(--paper));
+  box-shadow: 0 -10px 30px -6px var(--acc-soft);
+}
+.c4t-stop[data-state="current"] .c4t-doorN {
+  color: var(--acc-deep);
+}
+.c4t-stop[data-state="current"] .c4t-door::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  width: 40%;
+  height: 4px;
+  translate: -50% 0;
+  background: #3a3631;
+}
+.c4t-stopName {
+  font-family: var(--serif);
+  font-size: 19px;
+  line-height: 1.15;
+}
+.c4t-stop[data-state="todo"] .c4t-stopName {
+  color: var(--mute);
+}
+.c4t-stopTime {
+  margin-top: 2px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.c4t-stop[data-state="todo"] .c4t-stopTime {
+  color: var(--grey);
+  font-style: italic;
+}
+.c4t-stopDetail {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--mute);
+}
+
+.c4t-meta {
+  display: grid;
+  gap: 32px;
+  margin-top: 30px;
+}
+@media (min-width: 900px) {
+  .c4t-meta {
+    grid-template-columns: 1.3fr 1fr;
+    gap: 56px;
+  }
+}
+.c4t-items {
+  display: grid;
+}
+.c4t-items li {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--hair);
+}
+.c4t-items li > span:nth-child(2) {
+  display: grid;
+}
+.c4t-itemPhoto {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  overflow: hidden;
+  background: var(--stone-2);
+}
+.c4t-itemName {
+  font-family: var(--serif);
+  font-size: 17px;
+}
+.c4t-itemName:hover {
+  color: var(--acc);
+}
+.c4t-itemPrice {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.c4t-total {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 3px double var(--ink);
+  font-family: var(--serif);
+  font-size: 22px;
+}
+.c4t-total span {
+  font-family: var(--sans);
+  font-size: 15px;
+}
+.c4t-facts {
+  display: grid;
+  gap: 22px;
+  align-content: start;
+}
+.c4t-awb {
+  display: block;
+  font-size: 14px;
+  color: var(--mute);
+  font-variant-numeric: tabular-nums;
+}
+
+.c4t-missing {
+  display: grid;
+  gap: 24px;
+  align-items: center;
+  margin-top: 40px;
+  padding-top: 28px;
+  border-top: 1px solid var(--ink);
+}
+@media (min-width: 700px) {
+  .c4t-missing {
+    grid-template-columns: 180px 1fr;
+    gap: 44px;
+  }
+}
+/* not found: an empty vitrine on its plinth, still lit */
+.c4t-plinth {
+  position: relative;
+  width: 160px;
+  height: 210px;
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  justify-items: center;
+}
+.c4t-lamp {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 14px;
+  height: 5px;
+  translate: -50% 0;
+  background: #3a3631;
+}
+.c4t-lamp::before {
+  /* its rod to the ceiling */
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: 1px;
+  height: 10px;
+  background: #3a3631;
+}
+.c4t-lamp::after {
+  /* the cone of light it throws on the empty case */
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 5px;
+  width: 150px;
+  height: 110px;
+  translate: -50% 0;
+  background: radial-gradient(ellipse 38% 100% at 50% 0%, rgb(255 251 238 / 0.95), rgb(255 251 238 / 0) 78%);
+  pointer-events: none;
+}
+.c4t-case {
+  position: relative;
+  grid-row: 2;
+  width: 118px;
+  height: 84px;
+  display: grid;
+  place-items: end center;
+  padding-bottom: 10px;
+  background:
+    linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 0.55) 31%, transparent 44%),
+    linear-gradient(135deg, rgb(255 255 255 / 0.6), rgb(255 255 255 / 0.18) 46%, rgb(255 255 255 / 0.5));
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.9),
+    0 0 0 1px rgb(29 27 24 / 0.32);
+}
+.c4t-mount {
+  /* the little stand, with nothing on it */
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  width: 30px;
+  height: 22px;
+  translate: -50% 0;
+  border-top: 2px solid var(--grey);
+}
+.c4t-mount::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  translate: -50% 0;
+  background: var(--grey);
+}
+.c4t-caseCard {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  padding: 1px 6px;
+  font-family: var(--serif);
+  font-size: 11px;
+  color: var(--mute);
+  background: var(--paper);
+  box-shadow: 0 0 0 1px var(--hair);
+  rotate: -6deg;
+}
+.c4t-caseCard i {
+  font-style: normal;
+  color: var(--acc);
+}
+.c4t-block {
+  grid-row: 3;
+  width: 140px;
+  height: 92px;
+  background: linear-gradient(var(--paper), var(--stone));
+  border-top: 4px solid var(--paper);
+  box-shadow:
+    0 0 0 1px var(--hair),
+    0 16px 20px -16px rgb(29 27 24 / 0.45);
+}
+.c4t-missingTitle {
+  font-family: var(--serif);
+  /* sturdier hairlines, so the hyphens of the number stay on the page */
+  font-variation-settings: "opsz" 11;
+  font-size: 32px;
+  line-height: 1.05;
+}
+.c4t-missingText {
+  margin: 8px 0 18px;
+  max-width: 38em;
+  font-size: 16px;
+  color: var(--mute);
+}
+@media (prefers-reduced-motion: reduce) {
+  .c4t-live::after {
+    animation: none;
+  }
+}

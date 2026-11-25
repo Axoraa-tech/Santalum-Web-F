@@ -14,13 +14,14 @@ const figtree = Figtree({ variable: "--font-figtree", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: { default: "Santalum Maison, the strand", template: "%s, Santalum Maison" },
-  description: "Red and white sandalwood from India, turned and carved by hand. Every piece hangs on one strand of 108 beads.",
+  description: "Red and white sandalwood from India, turned, carved and distilled by hand. Eight pieces of each wood hang on one strand of 108 beads.",
 };
 
 export default function StrandLayout({ children }: { children: ReactNode }) {
   return (
     <div className={`${gloock.variable} ${figtree.variable} s3 min-h-svh`}>
-      <BodyBackground color="#F6F1E9" />
+      {/* the page colour follows the wood (defined per wood in strand.css) */}
+      <BodyBackground color="var(--s3-page)" />
       <SmoothScroll />
       <Nav />
       <main>{children}</main>

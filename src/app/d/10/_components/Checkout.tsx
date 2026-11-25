@@ -1,187 +1,364 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
-import { formatINR, getFamily, getVariant, WOOD_NAMES } from "@/lib/catalog";
-import { bag, bagTotals, useBag, type Line } from "@/lib/cart";
+import { useState, type FormEvent, type ReactNode } from "react";
+import { saveAddress, signOut, useUser, type User } from "@/lib/shop/account";
+import { bagSummary, DELIVERY, useBag, type BagItem, type DeliveryId } from "@/lib/shop/bag";
+import { CONTENT } from "@/lib/shop/content";
+import { applyCoupon, formatDate, PAYMENTS, placeOrder, trackingFor, type Order, type PaymentId } from "@/lib/shop/orders";
+import { formatINR } from "@/lib/shop/products";
+import { useHydrated } from "@/lib/shop/store";
+import { useWood } from "@/lib/wood";
 import k from "../k";
+import { Check, Stretch, Thumb } from "./bits";
+import { AddressForm, AddressLines, AuthPanel, PREVIEW_ACCOUNTS, Submit, type AddressDraft } from "./forms";
 import { scrollToTop, splitName } from "./lib";
 
-const STATES = [
-  "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chandigarh", "Chhattisgarh",
-  "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir",
-  "Jharkhand", "Karnataka", "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya",
-  "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
-  "Uttar Pradesh", "Uttarakhand", "West Bengal",
-];
+type StepId = 1 | 2 | 3 | 4;
+const TITLES: Record<StepId, string> = { 1: "Account", 2: "Address", 3: "Delivery and payment", 4: "Review and place" };
+const COD_LIMIT = 10000;
 
-/** Called from the submit handler only. */
-function orderNumber() {
-  return `SK-${Date.now().toString(36).toUpperCase().slice(-6)}`;
-}
-
-type Placed = { number: string; email: string; name: string; city: string; lines: Line[]; total: number; gift: boolean };
-
-function Title({ text }: { text: string }) {
-  return (
-    <h1 aria-label={text} className={`${k.disp} text-[length:min(10.8vw,200px)] leading-[0.8]`}>
-      {text.split("").map((c, i) => (
-        <span key={i} aria-hidden className={k.titleL} style={{ animationDelay: `${i * 36}ms` }}>
-          {c === " " ? " " : c}
-        </span>
-      ))}
-    </h1>
-  );
-}
-
-/** Checkout with large type fields. Payments are not connected: placing the order shows the confirmation and empties the bag. */
+/**
+ * Checkout in four steps, set as type: the open step's title is stretched wide, finished steps condense
+ * to one line with a summary, the ones to come wait as hairlines. Signing in is required to place an order.
+ */
 export function Checkout() {
+  const hydrated = useHydrated();
   const lines = useBag();
-  const { count, subtotal } = bagTotals(lines);
-  const [gift, setGift] = useState(false);
-  const [placed, setPlaced] = useState<Placed | null>(null);
+  const user = useUser();
+  const [placed, setPlaced] = useState<Order | null>(null);
 
-  if (placed) return <Confirmation order={placed} />;
-
-  if (count === 0) {
+  if (!hydrated) {
     return (
-      <div className={`${k.gut} flex min-h-[78svh] flex-col justify-center pb-16 pt-28`}>
-        <Title text="Bag empty" />
-        <p className={`${k.monoL} mt-6 max-w-[48ch]`}>Nothing to check out yet. The collection is on the home page, in both woods.</p>
-        <Link href="/d/10#collection" className={`${k.btn} mt-8 self-start`}>
-          <span className={k.btnLabel}>See the collection</span>
-        </Link>
+      <div className={`${k.gut} min-h-[80svh] pb-16 pt-24 md:pt-32`}>
+        <Stretch text="Checkout" cap={0.3} />
+        <p className={`${k.mono} mt-6 text-[var(--k10-grey)]`}>Opening your bag</p>
       </div>
     );
   }
+  if (placed) return <Confirmation order={placed} />;
+  if (!bagSummary(lines).count) return <Empty />;
+  return <Flow user={user} onPlaced={setPlaced} key={user?.id ?? "guest"} />;
+}
 
-  const submit = (e: FormEvent<HTMLFormElement>) => {
+function Empty() {
+  const wood = useWood();
+  return (
+    <div className={`${k.gut} flex min-h-[78svh] flex-col justify-center pb-16 pt-28`}>
+      <Stretch text="Bag empty" cap={0.3} />
+      <p className={`${k.monoL} mt-6 max-w-[52ch]`}>
+        {wood === "red"
+          ? "Nothing to check out yet. The shop holds 26 pieces turned from red heartwood: malas, objects, powder, gifting and jewellery."
+          : "Nothing to check out yet. The shop holds 26 pieces in white sandalwood: oil, attar, incense, chandan and Mysuru carving."}
+      </p>
+      <div className="mt-8 flex flex-wrap items-center gap-6">
+        <Link href="/d/10/shop" className={k.btn}>
+          <span className={k.btnLabel}>Go to the shop</span>
+        </Link>
+        <Link href="/d/10/track" className={`${k.mono} ${k.link}`}>
+          Track an order instead
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function Flow({ user, onPlaced }: { user: User | null; onPlaced: (o: Order) => void }) {
+  const lines = useBag();
+  const [step, setStep] = useState<StepId>(user ? (user.addresses.length ? 3 : 2) : 1);
+  const def = user?.addresses.find((a) => a.isDefault) ?? user?.addresses[0];
+  const [addrId, setAddrId] = useState<string | "new">(def?.id ?? "new");
+  const [draft, setDraft] = useState<AddressDraft | null>(null);
+  const [save, setSave] = useState(true);
+  const [delivery, setDelivery] = useState<DeliveryId>("standard");
+  const [payment, setPayment] = useState<PaymentId>("upi");
+  const [gift, setGift] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [codeInput, setCodeInput] = useState("");
+  const [code, setCode] = useState("");
+  const sum = bagSummary(lines, delivery);
+  const promo = code ? applyCoupon(code, sum.subtotal) : null;
+  const discount = promo?.ok ? promo.discount : 0;
+  const total = sum.total - discount;
+  const codOk = total < COD_LIMIT;
+  const applyCode = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const d = new FormData(e.currentTarget);
-    setPlaced({
-      number: orderNumber(),
-      email: String(d.get("email") ?? ""),
-      name: String(d.get("name") ?? ""),
-      city: String(d.get("city") ?? ""),
-      lines,
-      total: subtotal,
-      gift,
-    });
-    bag.clear();
+    setCode(codeInput.trim().toUpperCase());
+  };
+  const pay = payment === "cod" && !codOk ? "upi" : payment;
+
+  const saved = user?.addresses.find((a) => a.id === addrId);
+  const address: AddressDraft | null = saved ?? (addrId === "new" ? draft : null);
+
+  const place = () => {
+    if (!address) {
+      setStep(2);
+      return;
+    }
+    const { label, name, phone, line1, line2, city, state, pin } = address;
+    const r = placeOrder({ lines, address: { label, name, phone, line1, line2, city, state, pin }, delivery, payment: pay, giftNote: gift.trim() || undefined, coupon: promo?.ok ? promo.code : undefined });
+    if (!r.ok) {
+      setError(r.error);
+      return;
+    }
+    onPlaced(r.order);
     scrollToTop();
   };
+
+  const summary: Record<StepId, ReactNode> = {
+    1: user ? `${user.name}, ${user.email}` : null,
+    2: address ? `${address.name}, ${address.city} ${address.pin}` : null,
+    3: `${delivery === "express" ? "Express" : "Standard"}, ${PAYMENTS.find((x) => x.id === pay)?.label}${gift.trim() ? ", with a gift note" : ""}`,
+    4: null,
+  };
+  const can = (s: StepId) => s === 1 || (!!user && (s === 2 || !!address));
 
   return (
     <div className="pb-16 pt-24 md:pt-32">
       <div className={k.gut}>
-        <Title text="Checkout" />
-        <p className={`${k.mono} mt-6 inline-flex items-center gap-3 rounded-full bg-[var(--k-ink)] px-4 py-2 text-[var(--k-bg)]`}>
-          <span className="size-2 shrink-0 rounded-full bg-[var(--m-accent)]" />
-          Preview: payments are not connected yet. Nothing is charged and nothing is sent.
+        <Stretch text="Checkout" cap={0.3} />
+        <p className={`${k.mono} mt-5 text-[var(--k10-grey)]`}>
+          {sum.count} {sum.count === 1 ? "piece" : "pieces"}, {formatINR(total)}.{" "}
+          {user
+            ? `Signed in as ${user.name.trim().split(/\s+/)[0]}: the order goes into your account, and you can follow it from there.`
+            : "Sign in or create an account to place the order, so you can follow it afterwards."}
         </p>
       </div>
 
-      <div className={`${k.gut} mt-12 grid grid-cols-1 gap-14 md:mt-16 lg:grid-cols-12 lg:gap-10`}>
-        <form onSubmit={submit} className="min-w-0 space-y-16 lg:col-span-7">
-          <Step n={1} title="Contact">
-            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
-              <Field label="Email" name="email" type="email" autoComplete="email" required placeholder="name@example.in" />
-              <Field label="Phone (WhatsApp)" name="phone" type="tel" autoComplete="tel" pattern="[0-9+ ]{10,15}" required placeholder="+91" />
-            </div>
-          </Step>
+      <div className={`${k.gut} mt-10 grid grid-cols-1 gap-14 md:mt-14 lg:grid-cols-12 lg:gap-10`}>
+        <div className="min-w-0 lg:col-span-7">
+          {([1, 2, 3, 4] as StepId[]).map((s) => (
+            <Step
+              key={s}
+              n={s}
+              title={TITLES[s]}
+              state={s === step ? "current" : s < step && can(s) ? "done" : "todo"}
+              summary={s < step ? summary[s] : null}
+              onOpen={can(s) && s !== step && s < step ? () => setStep(s) : undefined}
+            >
+              {s === 1 &&
+                (user ? (
+                  <div className="space-y-6">
+                    <p className={`${k.monoL}`}>
+                      Signed in as {user.name}. Not you?{" "}
+                      <button type="button" onClick={signOut} className={`${k.link} underline`}>
+                        Sign out
+                      </button>
+                    </p>
+                    <button type="button" onClick={() => setStep(user.addresses.length ? 3 : 2)} className={`${k.btn} w-full`}>
+                      <span className={k.btnLabel}>Continue to the address</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <p className={`${k.monoL} mb-8 max-w-[56ch]`}>
+                      An account keeps your addresses and lets you follow the order to your door. The bag stays as it is while you sign in.
+                    </p>
+                    <AuthPanel idBase="k10-co-auth" big={false} />
+                  </div>
+                ))}
 
-          <Step n={2} title="Delivery, within India">
-            <div className="grid gap-8">
-              <Field label="Full name" name="name" autoComplete="name" required />
-              <Field label="House, street" name="line1" autoComplete="address-line1" required />
-              <Field label="Area, landmark (optional)" name="line2" autoComplete="address-line2" />
-              <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
-                <Field label="City" name="city" autoComplete="address-level2" required />
-                <Field
-                  label="PIN code"
-                  name="pin"
-                  autoComplete="postal-code"
-                  inputMode="numeric"
-                  pattern="[1-9][0-9]{5}"
-                  maxLength={6}
-                  title="Six digits, not starting with 0"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="k10-state" className={`${k.mono} text-[var(--k-grey)]`}>
-                  State or union territory
-                </label>
-                <select id="k10-state" name="state" required defaultValue="" autoComplete="address-level1" className={k.field}>
-                  <option value="" disabled>
-                    Choose
-                  </option>
-                  {STATES.map((s) => (
-                    <option key={s}>{s}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </Step>
+              {s === 2 && user && (
+                <div className="space-y-8">
+                  {user.addresses.length > 0 && (
+                    <fieldset>
+                      <legend className={`${k.mono} text-[var(--k10-grey)]`}>Deliver to</legend>
+                      <div className="mt-2 border-b border-[var(--k10-line)]">
+                        {user.addresses.map((a) => (
+                          <label key={a.id} className={`${k.opt} grid-cols-[18px_minmax(0,1fr)] items-start gap-4 py-4`}>
+                            <input type="radio" name="k10-co-addr" checked={addrId === a.id} onChange={() => setAddrId(a.id)} />
+                            <span className={`${k.optDot} mt-2`} aria-hidden />
+                            <span className="min-w-0">
+                              <span className={`${k.optName} block text-[length:clamp(28px,2.8vw,42px)]`}>
+                                {a.label || "Address"}
+                                {a.isDefault ? <span className={`${k.mono} ml-2 align-middle text-[var(--k10-grey)]`}>default</span> : null}
+                              </span>
+                              <span className={`${k.monoL} mt-1 block`}>
+                                <AddressLines a={a} />
+                              </span>
+                            </span>
+                          </label>
+                        ))}
+                        <label className={`${k.opt} grid-cols-[18px_minmax(0,1fr)] items-center gap-4 py-4`}>
+                          <input type="radio" name="k10-co-addr" checked={addrId === "new"} onChange={() => setAddrId("new")} />
+                          <span className={k.optDot} aria-hidden />
+                          <span className={`${k.optName} text-[length:clamp(28px,2.8vw,42px)]`}>A new address</span>
+                        </label>
+                      </div>
+                    </fieldset>
+                  )}
+                  {addrId === "new" ? (
+                    <AddressForm
+                      initial={draft ?? { label: "Home", name: user.name, phone: user.phone, line1: "", line2: "", city: "", state: "", pin: "" }}
+                      submitLabel="Use this address"
+                      extra={<Check checked={save} onChange={(e) => setSave(e.target.checked)} label="Save this address" note="It will be in your account for next time." />}
+                      onSubmit={(a) => {
+                        if (save) {
+                          const s2 = saveAddress({ ...a, isDefault: user.addresses.length === 0 });
+                          setAddrId(s2.id);
+                          setDraft(null);
+                        } else {
+                          setDraft(a);
+                        }
+                        setStep(3);
+                      }}
+                    />
+                  ) : (
+                    <button type="button" onClick={() => setStep(3)} className={`${k.btn} w-full`}>
+                      <span className={k.btnLabel}>Deliver here</span>
+                    </button>
+                  )}
+                </div>
+              )}
 
-          <Step n={3} title="Gift">
-            <label className="flex cursor-pointer items-start gap-4">
-              <input type="checkbox" checked={gift} onChange={(e) => setGift(e.target.checked)} className={`${k.check} mt-1`} />
-              <span>
-                <span className={`${k.disp} block text-[length:clamp(26px,2.6vw,38px)] leading-none [font-variation-settings:'wdth'_80,'wght'_700]`}>
-                  This is a gift
-                </span>
-                <span className={`${k.mono} mt-1 block text-[var(--k-grey)]`}>Prices are left off the packing slip, and your note goes in with the piece.</span>
-              </span>
-            </label>
-            {gift && (
-              <div className="mt-8">
-                <label htmlFor="k10-note" className={`${k.mono} text-[var(--k-grey)]`}>
-                  Your note, up to 200 characters
-                </label>
-                <textarea id="k10-note" name="note" maxLength={200} rows={3} className={`${k.field} resize-none`} placeholder="For you, from the heartwood." />
-              </div>
-            )}
-          </Step>
+              {s === 3 && (
+                <div className="space-y-10">
+                  <fieldset>
+                    <legend className={`${k.mono} text-[var(--k10-grey)]`}>Delivery</legend>
+                    <div className="mt-2 border-b border-[var(--k10-line)]">
+                      {Object.values(DELIVERY).map((d) => (
+                        <label key={d.id} className={`${k.opt} grid-cols-[18px_minmax(0,1fr)_auto] items-center gap-4 py-3`}>
+                          <input type="radio" name="k10-co-del" checked={delivery === d.id} onChange={() => setDelivery(d.id)} />
+                          <span className={k.optDot} aria-hidden />
+                          <span className="min-w-0">
+                            <span className={`${k.optName} block text-[length:clamp(28px,2.8vw,42px)]`}>{d.id === "express" ? "Express" : "Standard"}</span>
+                            <span className={`${k.mono} block text-[var(--k10-grey)]`}>{d.label}</span>
+                          </span>
+                          <span className={`${k.monoL} tabular-nums`}>{d.price ? formatINR(d.price) : "Free"}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                  <fieldset>
+                    <legend className={`${k.mono} text-[var(--k10-grey)]`}>Payment</legend>
+                    <p className={`${k.mono} mt-1`}>Payments are not connected yet, so no money is taken.</p>
+                    <div className="mt-2 border-b border-[var(--k10-line)]">
+                      {PAYMENTS.map((pm) => {
+                        const off = pm.id === "cod" && !codOk;
+                        return (
+                          <label key={pm.id} className={`${k.opt} grid-cols-[18px_minmax(0,1fr)] items-center gap-4 py-3`}>
+                            <input type="radio" name="k10-co-pay" checked={pay === pm.id} disabled={off} onChange={() => setPayment(pm.id)} />
+                            <span className={k.optDot} aria-hidden />
+                            <span className="min-w-0">
+                              <span className={`${k.optName} block text-[length:clamp(28px,2.8vw,42px)]`}>{pm.label}</span>
+                              <span className={`${k.mono} block text-[var(--k10-grey)]`}>
+                                {off ? `Only for orders under ${formatINR(COD_LIMIT)}; this one is ${formatINR(total)}.` : pm.note}
+                              </span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+                  <div>
+                    <label htmlFor="k10-co-gift" className={`${k.mono} block text-[var(--k10-grey)]`}>
+                      A gift note, optional. Prices are left off the slip when there is one.
+                    </label>
+                    <textarea
+                      id="k10-co-gift"
+                      maxLength={200}
+                      rows={2}
+                      value={gift}
+                      onChange={(e) => setGift(e.target.value)}
+                      placeholder="For you, from the heartwood."
+                      className={`${k.field} resize-none !text-[length:clamp(22px,2.2vw,32px)]`}
+                    />
+                    <p className={`${k.mono} mt-1 text-right text-[var(--k10-grey)] tabular-nums`}>{gift.length} / 200</p>
+                  </div>
+                  <p className={`${k.mono} text-[var(--k10-grey)]`}>{PREVIEW_ACCOUNTS}</p>
+                  <button type="button" onClick={() => setStep(4)} className={`${k.btn} w-full`}>
+                    <span className={k.btnLabel}>Review the order</span>
+                  </button>
+                </div>
+              )}
 
-          <Step n={4} title="Payment">
-            <p className={`${k.monoL} max-w-[56ch]`}>
-              Payments are not connected in this preview. Placing the order shows the confirmation and empties the bag; no card, UPI or
-              bank details are asked for or stored.
-            </p>
-            <button type="submit" className={`${k.btn} mt-8 w-full`}>
-              <span className={k.btnLabel}>Place order</span>
-              <span className={`${k.mono} opacity-70`}>{formatINR(subtotal)}</span>
-            </button>
-          </Step>
-        </form>
+              {s === 4 && address && (
+                <div className="space-y-8">
+                  <dl className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
+                    <div>
+                      <dt className={`${k.mono} text-[var(--k10-grey)]`}>To</dt>
+                      <dd className={`${k.monoL} mt-1`}>
+                        <AddressLines a={address} />
+                      </dd>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <dt className={`${k.mono} text-[var(--k10-grey)]`}>Delivery</dt>
+                        <dd className={`${k.monoL} mt-1`}>{DELIVERY[delivery].label}</dd>
+                      </div>
+                      <div>
+                        <dt className={`${k.mono} text-[var(--k10-grey)]`}>Payment</dt>
+                        <dd className={`${k.monoL} mt-1`}>{PAYMENTS.find((x) => x.id === pay)?.label}, not charged in this preview</dd>
+                      </div>
+                      {gift.trim() && (
+                        <div>
+                          <dt className={`${k.mono} text-[var(--k10-grey)]`}>Gift note</dt>
+                          <dd className={`${k.monoL} mt-1`}>{gift.trim()}</dd>
+                        </div>
+                      )}
+                    </div>
+                  </dl>
+                  {error && (
+                    <p role="alert" className={k.err}>
+                      {error}
+                    </p>
+                  )}
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      place();
+                    }}
+                  >
+                    <Submit note={formatINR(total)}>Place the order</Submit>
+                  </form>
+                </div>
+              )}
+            </Step>
+          ))}
+        </div>
 
         <aside aria-label="Order summary" className="lg:col-span-5">
           <div className="lg:sticky lg:top-24">
-            <p className={`${k.mono} text-[var(--k-grey)]`}>
-              In the bag, {count} {count === 1 ? "piece" : "pieces"}
-            </p>
-            <ul className="mt-3 border-t border-[var(--k-ink)]">
-              {lines.map((l) => (
-                <SummaryLine key={`${l.slug}-${l.wood}-${l.custom ?? ""}`} line={l} />
-              ))}
-            </ul>
-            <dl className="mt-4">
-              <div className="flex justify-between border-b border-[var(--k-line)] py-2">
-                <dt className={`${k.mono} text-[var(--k-grey)]`}>Subtotal</dt>
-                <dd className={`${k.monoL} tabular-nums`}>{formatINR(subtotal)}</dd>
+            <Summary items={sum.items} subtotal={sum.subtotal} shipping={sum.shipping} total={total} discount={discount} code={promo?.ok ? promo.code : undefined} />
+            <form onSubmit={applyCode} noValidate className="mt-8 border-t border-[var(--k10-ink)] pt-4">
+              <label htmlFor="k10-co-code" className={`${k.mono} block text-[var(--k10-grey)]`}>
+                A code from the Circle
+              </label>
+              <div className="flex items-end gap-3">
+                <input
+                  id="k10-co-code"
+                  value={codeInput}
+                  onChange={(e) => setCodeInput(e.target.value)}
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  placeholder="WELCOME10"
+                  aria-invalid={promo && !promo.ok ? true : undefined}
+                  aria-describedby="k10-co-code-n"
+                  className={`${k.field} min-w-0 flex-1 uppercase tabular-nums`}
+                />
+                {code && promo?.ok ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCode("");
+                      setCodeInput("");
+                    }}
+                    data-ghost
+                    className={k.mini}
+                  >
+                    Remove
+                  </button>
+                ) : (
+                  <button type="submit" className={k.mini}>
+                    Apply
+                  </button>
+                )}
               </div>
-              <div className="flex justify-between border-b border-[var(--k-line)] py-2">
-                <dt className={`${k.mono} text-[var(--k-grey)]`}>Delivery in India</dt>
-                <dd className={k.monoL}>Complimentary</dd>
-              </div>
-              <div className="flex items-end justify-between pt-4">
-                <dt className={`${k.mono} pb-2`}>Total</dt>
-                <dd className={`${k.disp} text-[length:clamp(52px,6vw,96px)] tabular-nums [font-variation-settings:'wdth'_62,'wght'_840]`}>
-                  {formatINR(subtotal)}
-                </dd>
-              </div>
-            </dl>
+              <p id="k10-co-code-n" className={`${promo && !promo.ok ? k.err : `${k.mono} text-[var(--k10-grey)]`} mt-2`} aria-live="polite">
+                {promo ? (promo.ok ? `${promo.code}: ${promo.label}. You save ${formatINR(promo.discount)}.` : promo.error) : "Preview codes: WELCOME10, CIRCLE500, HEARTWOOD15."}
+              </p>
+            </form>
           </div>
         </aside>
       </div>
@@ -189,83 +366,140 @@ export function Checkout() {
   );
 }
 
-function Step({ n, title, children }: { n: number; title: string; children: ReactNode }) {
+/** A step: the number condensed, the title stretched when open, condensed with a summary when done, hairline when to come. */
+function Step({
+  n,
+  title,
+  state,
+  summary,
+  onOpen,
+  children,
+}: {
+  n: StepId;
+  title: string;
+  state: "current" | "done" | "todo";
+  summary: ReactNode;
+  onOpen?: () => void;
+  children: ReactNode;
+}) {
   return (
-    <fieldset className="grid grid-cols-1 min-w-0 gap-6 border-t border-[var(--k-ink)] pt-5 md:grid-cols-[5rem_minmax(0,1fr)]">
-      <legend className="sr-only">{title}</legend>
-      <p aria-hidden className={`${k.disp} text-[64px] leading-[0.8] text-[var(--k-grey)] [font-variation-settings:'wdth'_50,'wght'_300]`}>
-        {n}
-      </p>
-      <div>
-        <p aria-hidden className={`${k.disp} mb-8 whitespace-normal text-[length:clamp(34px,3.6vw,56px)] leading-[0.9] [font-variation-settings:'wdth'_120,'wght'_820]`}>
+    <section aria-labelledby={`k10-co-step-${n}`} aria-current={state === "current" ? "step" : undefined} className="border-t border-[var(--k10-ink)] pb-8 pt-4">
+      <div className="grid grid-cols-[2.6rem_minmax(0,1fr)_auto] items-baseline gap-x-3 md:grid-cols-[4.5rem_minmax(0,1fr)_auto]">
+        <p aria-hidden className={`${k.disp} text-[44px] leading-[0.8] text-[var(--k10-grey)] [font-variation-settings:'wdth'_50,'wght'_300] md:text-[64px]`}>
+          {n}
+        </p>
+        <h2
+          id={`k10-co-step-${n}`}
+          data-state={state === "todo" ? undefined : state}
+          className={`${k.stage} whitespace-normal text-[length:clamp(30px,4.4vw,72px)]`}
+        >
           {title}
-        </p>
-        {children}
+        </h2>
+        {onOpen && (
+          <button type="button" onClick={onOpen} className={`${k.mono} ${k.link}`} aria-label={`Change ${title.toLowerCase()}`}>
+            Change
+          </button>
+        )}
       </div>
-    </fieldset>
+      {summary && state === "done" && <p className={`${k.mono} mt-2 pl-[2.6rem] text-[var(--k10-grey)] md:pl-[4.5rem]`}>{summary}</p>}
+      {state === "current" && <div className="mt-8 md:pl-[4.5rem]">{children}</div>}
+    </section>
   );
 }
 
-function Field({ label, name, ...rest }: { label: string; name: string } & InputHTMLAttributes<HTMLInputElement>) {
-  const id = `k10-${name}`;
+function Summary({ items, subtotal, shipping, total, discount = 0, code }: { items: BagItem[]; subtotal: number; shipping: number; total: number; discount?: number; code?: string }) {
   return (
-    <div>
-      <label htmlFor={id} className={`${k.mono} text-[var(--k-grey)]`}>
-        {label}
-      </label>
-      <input id={id} name={name} className={k.field} {...rest} />
-    </div>
+    <>
+      <p className={`${k.mono} text-[var(--k10-grey)]`}>In the bag</p>
+      <ul className="mt-3 border-t border-[var(--k10-ink)]">
+        {items.map((it) => (
+          <li key={it.key} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-b border-[var(--k10-line)] py-3">
+            <Thumb p={it.product} sizes="90px" className="h-[44px] w-[76px]" />
+            <div className="min-w-0">
+              <p className={`${k.disp} truncate text-[length:clamp(26px,2.6vw,40px)] leading-[0.9] [font-variation-settings:'wdth'_58,'wght'_800]`}>
+                {splitName(it.product.name).head}
+              </p>
+              <p className={`${k.mono} mt-1 text-[var(--k10-grey)]`}>
+                {[CONTENT[it.product.wood].short, it.optionValue?.label, `quantity ${it.qty}`].filter(Boolean).join(", ")}
+              </p>
+            </div>
+            <p className={`${k.monoL} tabular-nums`}>{formatINR(it.total)}</p>
+          </li>
+        ))}
+      </ul>
+      <dl className="mt-4">
+        <div className="flex justify-between border-b border-[var(--k10-line)] py-2">
+          <dt className={`${k.mono} text-[var(--k10-grey)]`}>Subtotal</dt>
+          <dd className={`${k.monoL} tabular-nums`}>{formatINR(subtotal)}</dd>
+        </div>
+        <div className="flex justify-between border-b border-[var(--k10-line)] py-2">
+          <dt className={`${k.mono} text-[var(--k10-grey)]`}>Delivery in India</dt>
+          <dd className={`${k.monoL} tabular-nums`}>{shipping ? formatINR(shipping) : "Free"}</dd>
+        </div>
+        {discount > 0 && (
+          <div className="flex justify-between border-b border-[var(--k10-line)] py-2 text-[var(--k10-accent)]">
+            <dt className={k.mono}>Code {code}</dt>
+            <dd className={`${k.monoL} tabular-nums`}>−{formatINR(discount)}</dd>
+          </div>
+        )}
+        <div className="flex items-end justify-between pt-4">
+          <dt className={`${k.mono} pb-2`}>Total</dt>
+          <dd className={`${k.disp} text-[length:clamp(52px,6vw,96px)] tabular-nums [font-variation-settings:'wdth'_62,'wght'_840]`}>{formatINR(total)}</dd>
+        </div>
+      </dl>
+    </>
   );
 }
 
-function SummaryLine({ line }: { line: Line }) {
-  const f = getFamily(line.slug);
-  const v = getVariant(line.slug, line.wood);
-  if (!f || !v) return null;
-  return (
-    <li className="grid grid-cols-[1fr_auto] items-end gap-4 border-b border-[var(--k-line)] py-3">
-      <div className="min-w-0">
-        <p className={`${k.disp} truncate text-[length:clamp(28px,3vw,44px)] leading-[0.9] [font-variation-settings:'wdth'_58,'wght'_800]`}>
-          {splitName(f.name).head}
-        </p>
-        <p className={`${k.mono} mt-1 text-[var(--k-grey)]`}>
-          {WOOD_NAMES[line.wood].common}, quantity {line.qty}
-        </p>
-        {line.custom && <p className={`${k.mono} mt-1`}>Your note: {line.custom}</p>}
-      </div>
-      <p className={`${k.monoL} tabular-nums`}>{formatINR(v.price * line.qty)}</p>
-    </li>
-  );
-}
-
-function Confirmation({ order }: { order: Placed }) {
+function Confirmation({ order }: { order: Order }) {
   const first = order.name.trim().split(/\s+/)[0];
+  const t = trackingFor(order, order.placedAt);
   return (
-    <div className={`${k.gut} pb-20 pt-28 md:pt-36`}>
-      <Title text="Thank you" />
-      <div className="mt-10 grid grid-cols-1 gap-10 md:grid-cols-12">
+    <div className={`${k.gut} pb-20 pt-24 md:pt-32`}>
+      <p className={`${k.mono} text-[var(--k10-grey)]`}>Thank you{first ? `, ${first}` : ""}. The order is placed.</p>
+      <Stretch text={order.id} cap={0.3} className="mt-3" tnum />
+      <div className="mt-10 grid grid-cols-1 gap-12 md:grid-cols-12">
         <div className="md:col-span-6">
           <p className={`${k.disp} whitespace-normal text-[length:clamp(30px,3.2vw,50px)] leading-[0.95] [font-variation-settings:'wdth'_80,'wght'_640]`}>
-            {first ? `${first}, your` : "Your"} order {order.number} is noted{order.city ? ` for delivery to ${order.city}` : ""}.
+            Expected between {formatDate(t.estimate.from)} and {formatDate(t.estimate.to)}, to {order.address.city}.
           </p>
-          <p className={`${k.monoL} mt-6 max-w-[52ch]`}>
-            Preview: payments are not connected yet, so nothing was charged and no email was sent to {order.email}. In the live shop, each
-            piece would leave with its batch record{order.gift ? ", without prices on the slip, and with your note" : ""}.
+          <p className={`${k.monoL} mt-6 max-w-[54ch]`}>
+            {DELIVERY[order.delivery].label}. Paid by {PAYMENTS.find((x) => x.id === order.payment)?.label}: payments are not connected yet, so no money was
+            taken. {PREVIEW_ACCOUNTS}
           </p>
-          <Link href="/d/10" className={`${k.btn} mt-8`}>
-            <span className={k.btnLabel}>Back to the Maison</span>
-          </Link>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Link href={`/d/10/track?o=${order.id}`} className={`${k.btn} sm:flex-1`}>
+              <span className={k.btnLabel}>Track this order</span>
+            </Link>
+            <Link href="/d/10/account" className={`${k.btn} ${k.ghost} sm:flex-1`}>
+              <span className={k.btnLabel}>Your orders</span>
+            </Link>
+          </div>
         </div>
         <div className="md:col-span-5 md:col-start-8">
-          <p className={`${k.mono} text-[var(--k-grey)]`}>Order {order.number}</p>
-          <ul className="mt-3 border-t border-[var(--k-ink)]">
+          <p className={`${k.mono} text-[var(--k10-grey)]`}>Order {order.id}, placed {formatDate(order.placedAt, true)}</p>
+          <ul className="mt-3 border-t border-[var(--k10-ink)]">
             {order.lines.map((l) => (
-              <SummaryLine key={`${l.slug}-${l.wood}-${l.custom ?? ""}`} line={l} />
+              <li key={`${l.slug}-${l.option ?? ""}-${l.note ?? ""}`} className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4 border-b border-[var(--k10-line)] py-3">
+                <div className="min-w-0">
+                  <p className={`${k.disp} truncate text-[length:clamp(26px,2.6vw,40px)] leading-[0.9] [font-variation-settings:'wdth'_58,'wght'_800]`}>{splitName(l.name).head}</p>
+                  <p className={`${k.mono} mt-1 text-[var(--k10-grey)]`}>{[CONTENT[l.wood].short, l.optionLabel, `quantity ${l.qty}`].filter(Boolean).join(", ")}</p>
+                </div>
+                <p className={`${k.monoL} tabular-nums`}>{formatINR(l.unitPrice * l.qty)}</p>
+              </li>
             ))}
           </ul>
-          <p className={`${k.disp} mt-4 text-right text-[length:clamp(44px,5vw,80px)] tabular-nums [font-variation-settings:'wdth'_62,'wght'_840]`}>
-            {formatINR(order.total)}
-          </p>
+          <div className="mt-4 flex items-end justify-between">
+            <p className={`${k.mono} pb-2`}>
+              Total{order.shipping ? `, with express ${formatINR(order.shipping)}` : ""}
+              {order.discount ? (
+                <span className="block text-[var(--k10-accent)]">
+                  {order.coupon} saved {formatINR(order.discount)}
+                </span>
+              ) : null}
+            </p>
+            <p className={`${k.disp} text-[length:clamp(44px,5vw,80px)] tabular-nums [font-variation-settings:'wdth'_62,'wght'_840]`}>{formatINR(order.total)}</p>
+          </div>
         </div>
       </div>
     </div>

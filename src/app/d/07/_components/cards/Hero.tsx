@@ -1,17 +1,64 @@
 "use client";
 
 import { motion, useMotionValue, useReducedMotion, useSpring, useTransform, type MotionValue } from "motion/react";
+import Link from "next/link";
 import type { CSSProperties, PointerEvent, ReactNode } from "react";
 import { Photo } from "@/components/Photo";
-import { WOOD_NAMES } from "@/lib/catalog";
-import { PHOTOS } from "@/lib/photos";
-import { useWood } from "@/lib/wood";
+import { W, WT } from "@/components/maison/W";
+import { CONTENT } from "@/lib/shop/content";
+import { productsFor } from "@/lib/shop/products";
+import { PHOTOS, type PhotoRef } from "@/lib/photos";
+import type { Wood } from "@/lib/wood";
 import { IconArrow } from "../Icons";
-import { inWood, scrollToCard } from "../store";
+import { scrollToCard, SHOP } from "../store";
 
-/** Card 1: the condensed headline and a three-photo collage that drifts with the pointer. */
+type HeroCopy = {
+  tagline: string;
+  lines: [string, string, string];
+  size: string;
+  arch: PhotoRef;
+  archCaption: string;
+  circle: PhotoRef;
+  square: PhotoRef;
+  compare: string;
+  stats: [string, string][];
+};
+
+const COPY: Record<Wood, HeroCopy> = {
+  red: {
+    tagline: "Turned in our workshop from documented lots of Eastern Ghats heartwood, dense enough to sink in water.",
+    lines: ["Objects", "time cannot", "repeat"],
+    size: "text-[23vw] md:text-[15vw] lg:text-[clamp(3.6rem,min(11.8vw,20vh),14rem)]",
+    arch: PHOTOS.carving,
+    archCaption: "The billet is read before the first cut",
+    circle: PHOTOS.redGrain,
+    square: PHOTOS.beadStrandsDark,
+    compare: "Compare with white",
+    stats: [
+      [String(productsFor("red").length), "pieces in red sandalwood"],
+      [String(CONTENT.red.edition.size), "numbered Vault cuffs"],
+      [String(CONTENT.red.making.length), "steps, billet to box"],
+    ],
+  },
+  white: {
+    tagline: "Distilled and carved from Karnataka heartwood that has grown for fifteen years or more before it holds any oil.",
+    lines: ["Fragrance", "lives in the", "heartwood"],
+    size: "text-[21vw] md:text-[14vw] lg:text-[clamp(3.4rem,min(10.6vw,18.5vh),13rem)]",
+    arch: PHOTOS.oilHands,
+    archCaption: "One drop of heartwood oil is enough",
+    circle: PHOTOS.whiteLog,
+    square: PHOTOS.fanCarved,
+    compare: "Compare with red",
+    stats: [
+      [String(productsFor("white").length), "pieces in white sandalwood"],
+      [String(CONTENT.white.edition.size), "numbered Reserve vials"],
+      ["15", "years before the oil forms"],
+    ],
+  },
+};
+
+/** Card 1: the condensed headline and a three-photo collage that drifts with the pointer. Both woods render; CSS shows one. */
 export function Hero() {
-  const wood = useWood();
   const reduce = useReducedMotion();
   const px = useMotionValue(0);
   const py = useMotionValue(0);
@@ -29,8 +76,8 @@ export function Hero() {
     py.set(0);
   };
 
-  const names = WOOD_NAMES[wood];
-  const count = inWood(wood).length;
+  const both = (pick: (c: HeroCopy) => ReactNode) => <W red={pick(COPY.red)} white={pick(COPY.white)} />;
+  const bothT = (pick: (c: HeroCopy, w: Wood) => ReactNode) => <WT red={pick(COPY.red, "red")} white={pick(COPY.white, "white")} />;
 
   return (
     <div
@@ -44,14 +91,19 @@ export function Hero() {
           <br />
           Maison
         </p>
-        <p className="hidden max-w-[34ch] text-[14px] leading-snug text-[#77706A] md:block">
-          Sandalwood objects, beads and jewellery. Shaped by hand in India and recorded piece by piece.
-        </p>
+        <p className="hidden max-w-[38ch] text-[14px] leading-snug text-(--s7-muted) md:block">{bothT((c) => c.tagline)}</p>
         <p className="text-right text-[13px] leading-snug md:text-[14px]">
-          <span className="block">{names.latin}</span>
-          <span className="block text-[#77706A]" lang="sa">
-            {names.sa}
-          </span>
+          {bothT((_, w) => (
+            <>
+              <span className="block italic">{CONTENT[w].latin}</span>
+              <span className="block text-(--s7-muted)">
+                <span lang="sa">{CONTENT[w].sanskrit}</span>
+                <span lang="kn" className="ml-2">
+                  {CONTENT[w].kannada}
+                </span>
+              </span>
+            </>
+          ))}
         </p>
       </header>
 
@@ -60,81 +112,86 @@ export function Hero() {
         <div className="relative order-1 h-[80vw] max-h-[520px] lg:order-2 lg:col-span-6 lg:h-auto lg:max-h-none">
           <Drift sx={sx} sy={sy} depth={-24} turn={-2} className="absolute right-0 top-0 h-full w-[46%] lg:h-[80%] lg:w-[44%]">
             <div className="s7-settle relative size-full overflow-hidden rounded-b-[30px] rounded-t-full" style={{ "--d": "0.25s" } as CSSProperties}>
-              <Photo p={PHOTOS.carving} sizes="(min-width: 1024px) 26vw, 46vw" priority />
-              <span className="absolute bottom-3 left-3 right-3 hidden rounded-full bg-[#1B1712]/80 px-3 py-1.5 text-center text-[12px] leading-tight text-white sm:block md:bottom-4 md:text-[12.5px]">
-                The grain is read before the first cut
-              </span>
+              {both((c) => (
+                <>
+                  <Photo p={c.arch} sizes="(min-width: 1024px) 26vw, 46vw" priority />
+                  <span className="absolute bottom-3 left-3 right-3 hidden rounded-full bg-(--s7-ink)/80 px-3 py-1.5 text-center text-[12px] leading-tight text-white sm:block md:bottom-4 md:text-[12.5px]">
+                    {c.archCaption}
+                  </span>
+                </>
+              ))}
             </div>
           </Drift>
           <Drift sx={sx} sy={sy} depth={36} turn={3} className="absolute left-[2%] top-[2%] w-[50%] lg:left-[8%] lg:top-[3%] lg:w-[44%]">
             <div
-              className="s7-settle relative aspect-square overflow-hidden rounded-full ring-[6px] ring-[#EFE9E0]"
+              className="s7-settle relative aspect-square overflow-hidden rounded-full ring-[6px] ring-(--s7-sand)"
               style={{ "--d": "0.4s" } as CSSProperties}
             >
-              <Photo p={wood === "red" ? PHOTOS.redGrain : PHOTOS.whiteLog} sizes="(min-width: 1024px) 24vw, 50vw" priority />
+              {both((c) => (
+                <Photo p={c.circle} sizes="(min-width: 1024px) 24vw, 50vw" priority />
+              ))}
             </div>
           </Drift>
           <Drift sx={sx} sy={sy} depth={-48} turn={-4} className="absolute bottom-0 left-[26%] w-[36%] lg:bottom-auto lg:left-[30%] lg:top-[47%] lg:w-[30%]">
             <div
-              className="s7-settle relative aspect-square overflow-hidden rounded-[38%] ring-[6px] ring-[#EFE9E0]"
+              className="s7-settle relative aspect-square overflow-hidden rounded-[38%] ring-[6px] ring-(--s7-sand)"
               style={{ "--d": "0.55s" } as CSSProperties}
             >
-              <Photo p={wood === "red" ? PHOTOS.beadStrandsDark : PHOTOS.whiteBeads} sizes="(min-width: 1024px) 18vw, 36vw" />
+              {both((c) => (
+                <Photo p={c.square} sizes="(min-width: 1024px) 18vw, 36vw" />
+              ))}
             </div>
           </Drift>
-          <Stats count={count} wood={names.common} className="absolute bottom-0 left-0 hidden w-[56%] lg:grid" />
+          <div className="absolute bottom-0 left-0 hidden w-[56%] lg:block">{both((c) => <Stats stats={c.stats} />)}</div>
         </div>
 
         {/* headline + intro */}
         <div className="order-2 flex flex-col justify-end lg:order-1 lg:col-span-6">
-          <h1 className="d1 text-[23vw] md:text-[15vw] lg:text-[clamp(3.6rem,min(11.8vw,20vh),14rem)]">
-            <Line d="0.05s">Objects</Line>
-            <Line d="0.14s">time cannot</Line>
-            <Line d="0.23s">
-              repeat<span className="text-[var(--m-accent)]">.</span>
-            </Line>
-          </h1>
+          {both((c) => (
+            <h1 className={`d1 ${c.size}`}>
+              <Line d="0.05s">{c.lines[0]}</Line>
+              <Line d="0.14s">{c.lines[1]}</Line>
+              <Line d="0.23s">
+                {c.lines[2]}
+                <span className="text-(--s7-accent)">.</span>
+              </Line>
+            </h1>
+          ))}
 
-          <p className="mt-7 max-w-[46ch] text-[16px] leading-relaxed text-[#3d3731] md:text-[17px] lg:mt-8">
-            Beads, small objects and jewellery in two sandalwoods: deep red <i>Pterocarpus santalinus</i> and fragrant white{" "}
-            <i>Santalum album</i>. Each piece leaves with its own record.
+          <p className="mt-7 max-w-[46ch] text-[16px] leading-relaxed text-(--s7-body) md:text-[17px] lg:mt-8">
+            {bothT((_, w) => CONTENT[w].hero.sub)}
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => scrollToCard("pieces")}
-              className="group inline-flex h-12 items-center gap-3 rounded-full bg-[#1B1712] pl-5 pr-2 text-[15px] font-medium text-white transition hover:bg-[var(--m-accent)] active:scale-[0.98]"
+            <Link
+              href={SHOP}
+              className="group inline-flex h-12 items-center gap-3 rounded-full bg-(--s7-ink) pl-5 pr-2 text-[15px] font-medium text-(--s7-page) transition hover:bg-(--s7-accent) active:scale-[0.98]"
             >
-              See the {count} pieces
+              {bothT((_, w) => CONTENT[w].hero.cta)}
               <span className="grid size-8 place-items-center rounded-full bg-white/15 transition group-hover:translate-x-0.5">
                 <IconArrow width={16} height={16} />
               </span>
-            </button>
+            </Link>
             <button
               type="button"
               onClick={() => scrollToCard("woods")}
-              className="inline-flex h-12 items-center rounded-full px-5 text-[15px] font-medium ring-1 ring-[#1B1712]/20 transition hover:bg-white hover:ring-[#1B1712]/40 active:scale-[0.98]"
+              className="inline-flex h-12 items-center rounded-full px-5 text-[15px] font-medium ring-1 ring-(--s7-ink)/20 transition hover:bg-(--s7-surface) hover:ring-(--s7-ink)/40 active:scale-[0.98]"
             >
-              Compare the woods
+              {bothT((c) => c.compare)}
             </button>
           </div>
-          <Stats count={count} wood={names.common} className="mt-8 grid lg:hidden" />
+          <div className="mt-8 lg:hidden">{both((c) => <Stats stats={c.stats} />)}</div>
         </div>
       </div>
     </div>
   );
 }
 
-function Stats({ count, wood, className }: { count: number; wood: string; className: string }) {
+function Stats({ stats }: { stats: [string, string][] }) {
   return (
-    <dl className={`grid-cols-3 gap-3 border-t border-[#1B1712]/12 pt-4 ${className}`}>
-      {[
-        [String(count), `pieces in ${wood.toLowerCase().replace(" sandalwood", "")}`],
-        ["21", "numbered Vault cuffs"],
-        ["5", "steps, log to box"],
-      ].map(([n, t]) => (
-        <div key={t} className="flex flex-col-reverse">
-          <dt className="mt-1 text-[13px] leading-snug text-[#77706A]">{t}</dt>
+    <dl className="grid grid-cols-3 gap-3 border-t border-(--s7-ink)/12 pt-4">
+      {stats.map(([n, t]) => (
+        <div key={t} className="flex flex-col-reverse justify-end">
+          <dt className="mt-1 text-[13px] leading-snug text-(--s7-muted)">{t}</dt>
           <dd className="d1 num text-[44px] md:text-[52px]">{n}</dd>
         </div>
       ))}

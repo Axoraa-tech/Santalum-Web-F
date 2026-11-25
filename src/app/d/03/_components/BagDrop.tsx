@@ -4,9 +4,10 @@ import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { Fragment, useEffect, useRef } from "react";
 import { Photo } from "@/components/Photo";
-import { formatINR, getFamily, getVariant, WOOD_NAMES } from "@/lib/catalog";
-import { bag, bagTotals, useBag } from "@/lib/cart";
-import { useSectionLink } from "./Nav";
+import { bag, bagSummary, useBag } from "@/lib/shop/bag";
+import { CONTENT } from "@/lib/shop/content";
+import { formatINR } from "@/lib/shop/products";
+import { productHref, SHOP } from "./bits";
 import { ui, useUI } from "./store";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -15,9 +16,8 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 export function BagDrop() {
   const { bag: open } = useUI();
   const lines = useBag();
-  const { count, subtotal } = bagTotals(lines);
+  const { items, count, subtotal } = bagSummary(lines);
   const close = useRef<HTMLButtonElement>(null);
-  const go = useSectionLink();
 
   useEffect(() => {
     if (!open) return;
@@ -88,11 +88,11 @@ export function BagDrop() {
                   <span className="h-px w-16 bg-(--thread)" />
                 </div>
                 <p className="mt-6 max-w-[34rem] text-[16px] leading-[1.6] text-(--ink)/80">
-                  Every piece on the strand has its own card with an add to bag button. Scroll the strand, or open the menu for the full list.
+                  The shop has every piece in both woods, strung by category. Add one and it hangs here.
                 </p>
-                <Link href="/d/03#strand" onClick={go("strand")} className="s3-btn s3-btn-dark mt-6">
+                <Link href={SHOP} onClick={ui.closeBag} className="s3-btn s3-btn-dark mt-6">
                   <span className="s3-bead s3-btn-bead" aria-hidden />
-                  Back to the strand
+                  Go to the shop
                 </Link>
               </div>
             ) : (
@@ -100,38 +100,38 @@ export function BagDrop() {
                 <div className="overflow-x-auto px-5 pb-2 md:px-10" role="list" aria-label="Pieces in your bag">
                   <div className="relative flex min-w-max items-start pt-7">
                     <span className="absolute left-[-40px] right-[-40px] top-[calc(1.75rem+56px)] h-px bg-(--thread) md:top-[calc(1.75rem+66px)]" aria-hidden />
-                    {lines.map((l, i) => {
-                      const f = getFamily(l.slug);
-                      const v = getVariant(l.slug, l.wood);
-                      if (!f || !v) return null;
-                      const shot = v.shots[0];
+                    {items.map((l, i) => {
+                      const shot = l.product.shots[0];
                       return (
-                        <Fragment key={`${l.slug}-${l.wood}-${l.custom ?? ""}`}>
+                        <Fragment key={l.key}>
                           {i > 0 && <span className="s3-knot relative mx-3 mt-[52px] shrink-0 md:mx-5 md:mt-[62px]" aria-hidden />}
                           <motion.div
                             role="listitem"
-                            className="w-[168px] shrink-0 md:w-[200px]"
+                            className="w-[176px] shrink-0 md:w-[208px]"
                             initial={{ opacity: 0, x: -36 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.7, ease: EASE, delay: 0.15 + i * 0.06 }}
                           >
-                            <button
-                              type="button"
-                              onClick={() => ui.openProduct(l.slug)}
+                            <Link
+                              href={productHref(l.slug)}
+                              onClick={ui.closeBag}
                               className="relative block h-28 w-28 overflow-hidden rounded-full border-[3px] border-(--warm) shadow-[0_0_0_1px_rgba(176,141,87,0.6)] transition-transform duration-500 hover:scale-[1.04] active:scale-95 md:h-[132px] md:w-[132px]"
-                              aria-label={`View ${f.name}`}
+                              aria-label={`View ${l.product.name}`}
                             >
                               <Photo p={shot.photo} tone={shot.tone} sizes="132px" />
-                            </button>
-                            <p className="s3-serif mt-4 text-[20px] leading-[1.1]">{f.name}</p>
-                            <p className="mt-1 text-[13px] text-(--muted)">{WOOD_NAMES[l.wood].common}</p>
-                            {l.custom && <p className="mt-1 text-[13px] text-(--muted)">{l.custom}</p>}
+                            </Link>
+                            <p className="s3-serif mt-4 text-[20px] leading-[1.1]">{l.product.name}</p>
+                            <p className="mt-1 text-[14px] text-(--muted)">
+                              {CONTENT[l.product.wood].name}
+                              {l.optionValue ? `, ${l.optionValue.label}` : ""}
+                            </p>
+                            {l.note && <p className="mt-1 text-[13px] text-(--muted)">{l.note}</p>}
                             <div className="mt-3 flex items-center gap-3">
                               <div className="flex items-center rounded-full border border-(--ink)/20">
                                 <button
                                   type="button"
-                                  onClick={() => bag.setQty(l, l.qty - 1)}
-                                  aria-label={`One fewer ${f.name}`}
+                                  onClick={() => bag.setQty(l.key, l.qty - 1)}
+                                  aria-label={`One fewer ${l.product.name}`}
                                   className="grid h-9 w-9 place-items-center rounded-full text-[18px] transition-colors hover:bg-(--ink)/5 active:bg-(--ink)/10"
                                 >
                                   −
@@ -141,19 +141,19 @@ export function BagDrop() {
                                 </span>
                                 <button
                                   type="button"
-                                  onClick={() => bag.setQty(l, l.qty + 1)}
-                                  aria-label={`One more ${f.name}`}
+                                  onClick={() => bag.setQty(l.key, l.qty + 1)}
+                                  aria-label={`One more ${l.product.name}`}
                                   disabled={l.qty >= 9}
                                   className="grid h-9 w-9 place-items-center rounded-full text-[18px] transition-colors hover:bg-(--ink)/5 active:bg-(--ink)/10 disabled:opacity-30"
                                 >
                                   +
                                 </button>
                               </div>
-                              <span className="text-[15px] tabular-nums">{formatINR(v.price * l.qty)}</span>
+                              <span className="text-[15px] tabular-nums">{formatINR(l.total)}</span>
                             </div>
                             <button
                               type="button"
-                              onClick={() => bag.setQty(l, 0)}
+                              onClick={() => bag.remove(l.key)}
                               className="mt-2 text-[13px] text-(--muted) underline decoration-(--thread) underline-offset-4 transition-colors hover:text-(--m-accent)"
                             >
                               Take it off the thread
@@ -171,12 +171,12 @@ export function BagDrop() {
                       <span className="text-[14px] text-(--muted)">Subtotal</span>
                       <span className="s3-serif text-[30px] leading-none">{formatINR(subtotal)}</span>
                     </p>
-                    <p className="mt-2 text-[13px] text-(--muted)">Delivery within India is included. Payments are not connected in this preview.</p>
+                    <p className="mt-2 text-[14px] text-(--muted)">Free delivery across India, 3–5 working days. Express {formatINR(350)}.</p>
                   </div>
                   <div className="flex flex-wrap gap-3">
-                    <button type="button" onClick={ui.closeBag} className="s3-btn s3-btn-line">
+                    <Link href={SHOP} onClick={ui.closeBag} className="s3-btn s3-btn-line">
                       Keep looking
-                    </button>
+                    </Link>
                     <Link href="/d/03/checkout" onClick={ui.closeBag} className="s3-btn s3-btn-dark">
                       <span className="s3-bead s3-btn-bead" aria-hidden />
                       Go to checkout

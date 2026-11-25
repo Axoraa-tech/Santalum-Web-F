@@ -3,8 +3,10 @@
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
-import { getFamily } from "@/lib/catalog";
-import { ProductDetail } from "./ProductDetail";
+import { getProduct } from "@/lib/shop/products";
+import { useWood } from "@/lib/wood";
+import { productHref } from "./bits";
+import { ProductView } from "./ProductView";
 import { ui, useUI } from "./store";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -12,9 +14,15 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 /** A piece opened from the strand: rises from below over the page. */
 export function ProductOverlay() {
   const { product } = useUI();
-  const f = product ? getFamily(product) : null;
+  const wood = useWood();
+  const p = product ? getProduct(product) : null;
   const close = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
+
+  // the overlay shows the current wood's pieces only; flipping the wood closes it
+  useEffect(() => {
+    if (p && p.wood !== wood) ui.closeProduct();
+  }, [p, wood]);
 
   useEffect(() => {
     if (!product) return;
@@ -33,7 +41,7 @@ export function ProductOverlay() {
 
   return (
     <AnimatePresence>
-      {f && (
+      {p && (
         <>
           <motion.div
             key="veil"
@@ -50,7 +58,7 @@ export function ProductOverlay() {
             ref={panel}
             role="dialog"
             aria-modal="true"
-            aria-label={f.name}
+            aria-label={p.name}
             data-lenis-prevent
             className="fixed inset-x-0 bottom-0 top-3 z-[90] overflow-y-auto rounded-t-[36px] bg-(--linen) md:inset-x-4 md:top-4 md:rounded-t-[48px]"
             initial={{ y: "104%" }}
@@ -66,7 +74,7 @@ export function ProductOverlay() {
               </div>
               <div className="flex items-center gap-2">
                 <Link
-                  href={`/d/03/p/${f.slug}`}
+                  href={productHref(p.slug)}
                   onClick={ui.closeProduct}
                   className="hidden h-11 items-center rounded-full px-4 text-[14px] transition-colors hover:bg-(--ink)/5 active:bg-(--ink)/10 sm:flex"
                 >
@@ -87,7 +95,7 @@ export function ProductOverlay() {
               </div>
             </div>
             <div className="mx-auto max-w-[1360px] px-5 pb-28 pt-4 md:px-10 md:pt-6">
-              <ProductDetail slug={f.slug} mode="overlay" />
+              <ProductView slug={p.slug} mode="overlay" />
             </div>
           </motion.div>
         </>

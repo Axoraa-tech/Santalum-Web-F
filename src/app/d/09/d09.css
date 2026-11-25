@@ -1,10 +1,65 @@
 /* Design 09, Dawn. Every class is prefixed d09- so nothing leaks into other designs (this project builds CSS as global). */
 
+/* ---------- two palettes: the red day on rose linen, the white day on ivory and pale gold ---------- */
+@property --d09-ink {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #2b1813;
+}
+@property --d09-muted {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #7a5a50;
+}
+@property --d09-paper {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #fcf6f3;
+}
+@property --d09-hair {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgb(66 26 16 / 0.15);
+}
+@property --d09-tint {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #f4e9e4;
+}
+@property --d09-accent {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #9b3520;
+}
+@property --d09-accent-soft {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #f1dcd4;
+}
+@property --d09-sel {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #9b3520;
+}
+
 .d09-root {
-  --ink: #2a2420;
-  --muted: #7a7067;
-  --hair: rgb(42 36 32 / 0.14);
-  --paper: #fbf8f3;
+  /* red sandalwood: brick red on rose linen */
+  --d09-ink: #2b1813;
+  --d09-muted: #7a5a50;
+  --d09-paper: #fcf6f3;
+  --d09-hair: rgb(66 26 16 / 0.15);
+  --d09-tint: #f4e9e4;
+  --d09-accent: #9b3520;
+  --d09-accent-soft: #f1dcd4;
+  --d09-sel: #9b3520;
+
+  --ink: var(--d09-ink);
+  --muted: var(--d09-muted);
+  --hair: var(--d09-hair);
+  --paper: var(--d09-paper);
+  --tint: var(--d09-tint);
+  --m-accent: var(--d09-accent);
+  --m-accent-soft: var(--d09-accent-soft);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   position: relative;
   isolation: isolate;
@@ -13,10 +68,39 @@
   color: var(--ink);
   font-family: var(--font-mulish), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  transition:
+    --d09-ink 0.9s var(--ease),
+    --d09-muted 0.9s var(--ease),
+    --d09-paper 0.9s var(--ease),
+    --d09-hair 0.9s var(--ease),
+    --d09-tint 0.9s var(--ease),
+    --d09-accent 0.9s var(--ease),
+    --d09-accent-soft 0.9s var(--ease),
+    --d09-sel 0.9s var(--ease);
+}
+html[data-wood="white"] .d09-root {
+  /* white sandalwood: aged brass on ivory */
+  --d09-ink: #2a2216;
+  --d09-muted: #76664c;
+  --d09-paper: #fdfaf2;
+  --d09-hair: rgb(74 56 22 / 0.16);
+  --d09-tint: #f8f2e4;
+  --d09-accent: #8e6426;
+  --d09-accent-soft: #efe3cc;
+  --d09-sel: #b48a45;
 }
 .d09-root ::selection {
-  background: var(--m-accent);
+  background: var(--d09-sel);
   color: var(--paper);
+}
+
+/* ---------- the sky: both woods' colours are drawn, the white day fades in over the red ---------- */
+.d09-sky-white {
+  opacity: 0;
+  transition: opacity 0.9s var(--ease);
+}
+html[data-wood="white"] .d09-sky-white {
+  opacity: 1;
 }
 .d09-root :focus-visible {
   outline: 2px solid var(--m-accent);
@@ -34,6 +118,30 @@
 .d09-tab {
   font-variant-numeric: tabular-nums;
 }
+/* figures: Italiana's 0 reads as O, its 1 as I and its 4 as a slash, so every number is set in light Mulish */
+.d09-num {
+  font-family: var(--font-mulish), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* ---------- changing wood: the content sinks out, the day changes behind it, and it rises back ---------- */
+.d09-swap {
+  transition:
+    opacity 0.6s var(--ease),
+    transform 0.8s var(--ease);
+}
+.d09-root[data-swap="out"] .d09-swap {
+  opacity: 0;
+  transform: translateY(12px);
+  transition-duration: 0.26s;
+  transition-timing-function: cubic-bezier(0.5, 0, 0.75, 0);
+}
+/* going to the same piece in the other wood: the page dims while the next one loads, then is replaced */
+.d09-root[data-swap="go"] .d09-swap {
+  opacity: 0.32;
+  transition-duration: 0.3s;
+}
 
 /* ---------- chapters: sticky layered scenes on wide, tall screens; stacked on phones ---------- */
 .d09-chapter {
@@ -41,6 +149,8 @@
 }
 .d09-stage {
   position: relative;
+  /* the scene's own sun sits behind everything in the scene, never behind the next one */
+  isolation: isolate;
 }
 @media (min-width: 1024px) {
   .d09-stage {
@@ -51,6 +161,10 @@
 @media (min-width: 1024px) and (min-height: 640px) {
   .d09-chapter {
     height: var(--len, 200vh);
+  }
+  /* a scene's empty top margin slides over the empty foot of the one before, so no band of bare sky opens between them */
+  .d09-chapter + .d09-chapter {
+    margin-top: -84px;
   }
   .d09-stage {
     position: sticky;
@@ -114,6 +228,13 @@
 }
 .d09-link:active {
   transform: translateY(1px);
+}
+.d09-link-quiet {
+  background-size: 0% 1px;
+}
+.d09-link-quiet:hover,
+.d09-link-quiet[aria-current="page"] {
+  background-size: 100% 1px;
 }
 
 .d09-btn {
@@ -275,39 +396,103 @@ html[data-wood="white"] .d09-mark-red {
   position: relative;
   display: block;
 }
+/*
+ * A field is a line of horizon. When it takes focus, a small sun rises at its left end and travels
+ * the line, which fills with light behind it; the label's own sun comes up at the same time.
+ */
 .d09-field input,
-.d09-field select,
-.d09-field textarea {
+.d09-field select {
   width: 100%;
   border: 0;
-  border-bottom: 1px solid rgb(42 36 32 / 0.25);
-  background: transparent;
-  padding: 0.35rem 0 0.6rem;
+  border-radius: 0;
+  padding: 0.35rem 0 0.7rem;
   font-size: 17px;
   color: var(--ink);
-  border-radius: 0;
   outline: none;
-  transition: border-color 0.3s var(--ease);
   appearance: none;
-}
-.d09-field textarea {
-  resize: none;
+  background:
+    radial-gradient(circle, var(--m-accent) 0 3px, color-mix(in srgb, var(--m-accent) 22%, transparent) 3.5px 6px, transparent 6.5px) 0 calc(100% + 6px) / 14px 14px no-repeat,
+    linear-gradient(var(--m-accent), var(--m-accent)) 0 100% / 0% 1.5px no-repeat,
+    linear-gradient(rgb(42 36 32 / 0.26), rgb(42 36 32 / 0.26)) 0 100% / 100% 1px no-repeat;
+  transition:
+    background-position 0.9s var(--ease),
+    background-size 0.9s var(--ease);
 }
 .d09-field input:focus,
-.d09-field select:focus,
-.d09-field textarea:focus {
-  border-bottom-color: var(--m-accent);
+.d09-field select:focus {
+  background-position:
+    100% calc(100% + 6px),
+    0 100%,
+    0 100%;
+  background-size:
+    14px 14px,
+    100% 1.5px,
+    100% 1px;
 }
 .d09-field input:focus-visible,
-.d09-field select:focus-visible,
-.d09-field textarea:focus-visible {
+.d09-field select:focus-visible {
   outline: none;
-  box-shadow: 0 1px 0 0 var(--m-accent);
+}
+.d09-field input[readonly] {
+  color: var(--muted);
+  background:
+    linear-gradient(90deg, rgb(42 36 32 / 0.26) 0 2px, transparent 2px 6px) 0 100% / 6px 1px repeat-x;
+}
+.d09-field input::placeholder,
+.d09-field textarea::placeholder {
+  color: color-mix(in srgb, var(--muted) 70%, transparent);
 }
 .d09-field-label {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 13px;
   color: var(--muted);
+  transition: color 0.4s var(--ease);
+}
+.d09-field-label::before {
+  content: "";
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: var(--m-accent);
+  transform: translateY(5px) scale(0);
+  transition: transform 0.5s var(--ease);
+}
+.d09-field:focus-within > .d09-field-label {
+  color: var(--ink);
+}
+.d09-field:focus-within > .d09-field-label::before {
+  transform: translateY(0) scale(1);
+}
+
+/* longer notes are written on a ruled slip, the shape of the batch record */
+.d09-field textarea {
+  display: block;
+  width: 100%;
+  margin-top: 0.5rem;
+  resize: none;
+  border: 0;
+  outline: none;
+  font-size: 16px;
+  line-height: 32px;
+  padding: 6px 1.1rem 26px;
+  color: var(--ink);
+  border-radius: 6px 6px 26px 26px;
+  background-color: color-mix(in srgb, var(--paper) 82%, transparent);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 31px, rgb(42 36 32 / 0.13) 31px 32px);
+  background-position: 0 6px;
+  background-attachment: local;
+  box-shadow:
+    inset 0 2px 0 -1px rgb(42 36 32 / 0.08),
+    0 18px 36px -28px rgb(42 36 32 / 0.4);
+  transition: box-shadow 0.4s var(--ease);
+}
+.d09-field textarea:focus {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--m-accent) 55%, transparent),
+    0 18px 36px -24px rgb(42 36 32 / 0.45);
 }
 
 /* ---------- record slip ---------- */
@@ -335,7 +520,380 @@ html[data-wood="white"] .d09-mark-red {
   scrollbar-color: rgb(42 36 32 / 0.2) transparent;
 }
 
+/* ---------- chips: hours, categories, price bands, options ---------- */
+.d09-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 2.75rem;
+  padding: 0 1.1rem;
+  border-radius: 999px;
+  border: 1px solid var(--hair);
+  background: rgb(255 255 255 / 0.28);
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color 0.3s var(--ease),
+    background-color 0.3s var(--ease),
+    color 0.3s var(--ease),
+    transform 0.2s var(--ease);
+}
+.d09-chip:hover {
+  border-color: var(--ink);
+}
+.d09-chip:active {
+  transform: scale(0.97);
+}
+.d09-chip[aria-pressed="true"],
+.d09-chip[aria-checked="true"],
+.d09-chip[aria-current="page"] {
+  border-color: var(--ink);
+  background: var(--m-accent-soft);
+}
+.d09-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.d09-chip-sun {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: var(--m-accent);
+  transform: scale(0);
+  transition: transform 0.35s var(--ease);
+}
+.d09-chip[aria-pressed="true"] .d09-chip-sun,
+.d09-chip[aria-checked="true"] .d09-chip-sun,
+.d09-chip[aria-current="page"] .d09-chip-sun {
+  transform: scale(1);
+}
+
+/* a row that scrolls sideways inside its own box on phones, never the page */
+.d09-rail {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  padding-block: 4px;
+  margin-inline: -1.25rem;
+  padding-inline: 1.25rem;
+}
+.d09-rail::-webkit-scrollbar {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .d09-rail {
+    flex-wrap: wrap;
+    overflow: visible;
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+}
+
+/* ---------- shop: cut-out cards on a staggered field ---------- */
+.d09-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 1rem;
+  row-gap: 3.25rem;
+}
+.d09-grid > :nth-child(2n) {
+  margin-top: 2.75rem;
+}
+@media (min-width: 768px) {
+  .d09-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 2rem;
+    row-gap: 4.5rem;
+  }
+  .d09-grid > :nth-child(2n) {
+    margin-top: 0;
+  }
+  .d09-grid > :nth-child(3n + 2) {
+    margin-top: 4.5rem;
+  }
+}
+@media (min-width: 1280px) {
+  .d09-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: 2.5rem;
+  }
+  .d09-grid > :nth-child(3n + 2) {
+    margin-top: 0;
+  }
+  .d09-grid > :nth-child(2n) {
+    margin-top: 5rem;
+  }
+}
+.d09-card-alt {
+  opacity: 0;
+  transition: opacity 0.6s var(--ease);
+}
+@media (hover: hover) {
+  .d09-press:hover .d09-card-alt,
+  .d09-press:focus-visible .d09-card-alt {
+    opacity: 1;
+  }
+}
+
+/* ---------- wishlist: a small sun that fills when a piece is kept ---------- */
+.d09-keep {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid var(--hair);
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    border-color 0.3s var(--ease),
+    transform 0.2s var(--ease),
+    color 0.3s var(--ease);
+}
+.d09-keep:hover {
+  border-color: var(--ink);
+  color: var(--m-accent);
+}
+.d09-keep:active {
+  transform: scale(0.9);
+}
+.d09-keep svg .d09-keep-disc {
+  fill: transparent;
+  transition: fill 0.35s var(--ease);
+}
+.d09-keep[aria-pressed="true"] {
+  color: var(--m-accent);
+  border-color: var(--m-accent);
+}
+.d09-keep[aria-pressed="true"] svg .d09-keep-disc {
+  fill: currentColor;
+}
+
+/* ---------- step blocks in checkout ---------- */
+.d09-step {
+  position: relative;
+  padding-left: 3.25rem;
+}
+.d09-step::before {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 2.4rem;
+  bottom: -2.5rem;
+  width: 1px;
+  background: var(--hair);
+}
+.d09-step:last-child::before {
+  display: none;
+}
+.d09-step-dot {
+  position: absolute;
+  left: 0;
+  top: 0.25rem;
+  display: grid;
+  place-items: center;
+  width: 31px;
+  height: 31px;
+  border-radius: 999px;
+  border: 1px solid var(--hair);
+  background: var(--paper);
+  font-size: 13px;
+  color: var(--muted);
+  transition:
+    background-color 0.4s var(--ease),
+    color 0.4s var(--ease),
+    border-color 0.4s var(--ease);
+}
+.d09-step[data-state="open"] .d09-step-dot {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.d09-step[data-state="done"] .d09-step-dot {
+  background: var(--m-accent);
+  border-color: var(--m-accent);
+  color: var(--paper);
+}
+.d09-step[data-state="locked"] {
+  opacity: 0.5;
+}
+
+/*
+ * ---------- choices (addresses, delivery, payment) and ticks: a sun on a horizon ----------
+ * Each choice is a small window onto the horizon. Unchosen, its sun sits half below the line;
+ * chosen, the sun rises clear of it and the window fills with first light from below.
+ */
+.d09-option {
+  position: relative;
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+  padding: 1.05rem 1.2rem 1.1rem;
+  border: 1px solid var(--hair);
+  border-bottom-color: rgb(42 36 32 / 0.3);
+  border-radius: 2.4rem 2.4rem 0.35rem 0.35rem;
+  background:
+    radial-gradient(120% 90% at 50% 112%, color-mix(in srgb, var(--m-accent-soft) 95%, transparent) 0%, transparent 70%) 0 100% / 100% 0% no-repeat,
+    rgb(255 255 255 / 0.22);
+  cursor: pointer;
+  transition:
+    border-color 0.35s var(--ease),
+    background-size 0.9s var(--ease);
+}
+.d09-option::after {
+  /* the horizon, drawn in light when chosen */
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--m-accent);
+  transform: scaleX(0);
+  transition: transform 0.7s var(--ease);
+}
+.d09-option:hover {
+  border-color: rgb(42 36 32 / 0.4);
+}
+.d09-option:has(input:checked) {
+  border-color: color-mix(in srgb, var(--m-accent) 45%, var(--hair));
+  background-size:
+    100% 100%,
+    auto;
+}
+.d09-option:has(input:checked)::after {
+  transform: scaleX(1);
+}
+.d09-option:has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.d09-option:has(input:focus-visible) {
+  outline: 2px solid var(--m-accent);
+  outline-offset: 3px;
+}
+.d09-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+/* delivery and payment: an arched window, the sun above the words */
+.d09-option-arch {
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 1.25rem 1rem 1.05rem;
+  border-radius: 999px 999px 0.4rem 0.4rem;
+  text-align: center;
+}
+
+.d09-option-mark,
+.d09-check input {
+  position: relative;
+  flex-shrink: 0;
+  width: 30px;
+  height: 17px;
+  overflow: hidden;
+  border-bottom: 1px solid rgb(42 36 32 / 0.4);
+  transition: border-color 0.4s var(--ease);
+}
+.d09-option-mark {
+  margin-top: 0.15rem;
+}
+.d09-option-mark::after,
+.d09-check input::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  border-radius: 999px;
+  border: 1px solid rgb(42 36 32 / 0.4);
+  background: var(--paper);
+  transform: translateY(55%);
+  transition:
+    transform 0.6s var(--ease),
+    background-color 0.4s var(--ease),
+    border-color 0.4s var(--ease);
+}
+.d09-option:has(input:checked) .d09-option-mark,
+.d09-check input:checked {
+  border-bottom-color: var(--m-accent);
+}
+.d09-option:has(input:checked) .d09-option-mark::after,
+.d09-check input:checked::after {
+  transform: translateY(-2px);
+  background: var(--m-accent);
+  border-color: var(--m-accent);
+}
+
+.d09-check {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.d09-check input {
+  appearance: none;
+  margin: 0.05rem 0 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.d09-check input:focus-visible {
+  outline: 2px solid var(--m-accent);
+  outline-offset: 3px;
+}
+.d09-check:hover input:not(:checked)::after {
+  transform: translateY(30%);
+}
+
+/* field errors */
+.d09-field[data-invalid="true"] input,
+.d09-field[data-invalid="true"] select {
+  background-image:
+    radial-gradient(circle, #a3361f 0 3px, transparent 3.5px),
+    linear-gradient(#a3361f, #a3361f),
+    linear-gradient(#a3361f, #a3361f);
+}
+.d09-field[data-invalid="true"] textarea {
+  box-shadow: inset 0 0 0 1px #a3361f;
+}
+.d09-error {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #a3361f;
+}
+
+/* ---------- tabs (sign in / create account) ---------- */
+.d09-tab-btn {
+  position: relative;
+  padding: 0.25rem 0 0.6rem;
+  font-family: var(--font-italiana), "Times New Roman", serif;
+  font-size: clamp(1.7rem, 3.4vw, 2.3rem);
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.3s var(--ease);
+}
+.d09-tab-btn:hover,
+.d09-tab-btn[aria-selected="true"] {
+  color: var(--ink);
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .d09-root,
   .d09-root *,
   .d09-root *::before,
   .d09-root *::after {

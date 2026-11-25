@@ -1,0 +1,724 @@
+/* Design 04 "Corridor" — the visitors' book (ratings, reviews, replies, questions), coupons and order slips. */
+
+/* ---------------- stars ---------------- */
+.c4v-stars {
+  position: relative;
+  display: inline-block;
+  font-family: "Segoe UI Symbol", "Apple Symbols", serif;
+  font-size: 13px;
+  line-height: 1;
+  letter-spacing: 2px;
+  white-space: nowrap;
+}
+.c4v-starsBase {
+  color: var(--stone);
+}
+.c4v-starsFill {
+  position: absolute;
+  inset: 0;
+  width: var(--fill);
+  overflow: hidden;
+  color: var(--acc);
+}
+.c4v-rating {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 4px 0 2px;
+  font-size: 12px;
+  color: var(--mute);
+  font-variant-numeric: tabular-nums;
+}
+a.c4v-rating {
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 4px;
+  transition: text-decoration-color 0.3s var(--ease);
+}
+a.c4v-rating:hover {
+  text-decoration-color: var(--acc);
+}
+.c4v-ratingNum {
+  font-family: var(--serif);
+  font-size: 14px;
+  color: var(--ink);
+}
+
+/* ---------------- the book: two pages on a lectern ---------------- */
+.c4v-book {
+  max-width: 1344px;
+  margin: 0 auto;
+  padding: 48px 18px 40px;
+  scroll-margin-top: 60px;
+}
+@media (min-width: 900px) {
+  .c4v-book {
+    padding: 80px 48px 56px;
+  }
+}
+.c4v-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px 32px;
+  padding-bottom: 18px;
+  border-bottom: 3px double var(--ink);
+}
+.c4v-title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(40px, 7vw, 84px);
+  line-height: 0.92;
+  letter-spacing: -0.01em;
+}
+.c4v-title i {
+  color: var(--acc-deep);
+}
+.c4v-lede {
+  margin-top: 10px;
+  max-width: 40em;
+  font-size: 16px;
+  color: var(--mute);
+}
+.c4v-ink {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--mute);
+}
+.c4v-spread {
+  position: relative;
+  display: grid;
+  margin-top: 30px;
+  background-color: var(--paper);
+  box-shadow:
+    0 0 0 1px var(--hair),
+    0 40px 60px -46px rgb(29 27 24 / 0.6);
+}
+@media (min-width: 1000px) {
+  .c4v-spread {
+    grid-template-columns: 380px minmax(0, 1fr);
+  }
+  .c4v-spread::before {
+    /* the gutter of the open book */
+    content: "";
+    position: absolute;
+    left: 380px;
+    top: 0;
+    bottom: 0;
+    width: 28px;
+    translate: -14px 0;
+    background: linear-gradient(90deg, transparent, rgb(29 27 24 / 0.07) 45%, rgb(29 27 24 / 0.12) 50%, rgb(29 27 24 / 0.07) 55%, transparent);
+    pointer-events: none;
+  }
+}
+.c4v-tally {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 26px 20px;
+  border-bottom: 1px solid var(--hair);
+}
+@media (min-width: 1000px) {
+  .c4v-tally {
+    padding: 34px 40px 34px 34px;
+    border-bottom: 0;
+  }
+}
+.c4v-avg {
+  font-family: var(--serif);
+  font-variation-settings: "opsz" 96;
+  font-size: 72px;
+  line-height: 0.9;
+}
+.c4v-avg span {
+  font-family: var(--sans);
+  font-size: 16px;
+  color: var(--mute);
+}
+.c4v-starsLg {
+  font-size: 22px;
+  letter-spacing: 4px;
+}
+.c4v-tallyCount {
+  font-size: 14px;
+  color: var(--mute);
+}
+.c4v-dist {
+  display: grid;
+  gap: 2px;
+  margin-top: 8px;
+}
+.c4v-dist button {
+  display: grid;
+  grid-template-columns: 1.2em 1fr 2em;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 30px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: color 0.3s var(--ease);
+}
+.c4v-dist button span:first-child {
+  font-family: var(--serif);
+  font-size: 15px;
+}
+.c4v-dist button span:last-child {
+  text-align: right;
+  color: var(--mute);
+}
+.c4v-bar {
+  height: 6px;
+  background: var(--stone-2);
+  box-shadow: inset 0 0 0 1px var(--hair);
+}
+.c4v-bar span {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+  transition: background-color 0.3s var(--ease);
+}
+.c4v-dist button:hover:not(:disabled),
+.c4v-dist button[aria-pressed="true"] {
+  color: var(--acc-deep);
+}
+.c4v-dist button:hover:not(:disabled) .c4v-bar span,
+.c4v-dist button[aria-pressed="true"] .c4v-bar span {
+  background: var(--acc);
+}
+.c4v-dist button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.c4v-entries {
+  padding: 22px 20px 30px;
+  background-image: repeating-linear-gradient(to bottom, transparent 0 31px, var(--hair) 31px 32px);
+  background-position: 0 14px;
+}
+@media (min-width: 1000px) {
+  .c4v-entries {
+    padding: 30px 40px 40px 56px;
+  }
+}
+.c4v-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ink);
+  background: var(--paper);
+}
+.c4v-showing {
+  margin-right: auto;
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  font-family: var(--serif);
+  font-size: 18px;
+}
+.c4v-sortLabel {
+  font-size: 13px;
+  color: var(--mute);
+}
+.c4v-sort {
+  min-height: 36px;
+  font-size: 15px;
+  background: transparent;
+  border-bottom: 1px solid var(--stone);
+  cursor: pointer;
+}
+.c4v-list {
+  display: grid;
+}
+.c4v-entry {
+  padding: 22px 0 20px;
+  border-bottom: 1px solid var(--stone);
+  background: var(--paper);
+}
+.c4v-entryTop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.c4v-verified {
+  padding: 1px 7px;
+  font-size: 11px;
+  color: var(--acc-deep);
+  border: 1px solid currentColor;
+  transform: rotate(-2deg);
+}
+/* the entry this visitor has just written: the ink is still wet, a ribbon marks the page */
+.c4v-fresh {
+  padding: 1px 7px;
+  font-size: 11px;
+  color: var(--wall);
+  background: var(--acc);
+  transform: rotate(-2deg);
+}
+.c4v-entry[data-fresh] {
+  position: relative;
+  animation: c4v-wet 2.4s var(--ease) both;
+}
+.c4v-entry[data-fresh]::before {
+  /* the ribbon bookmark, down the margin */
+  content: "";
+  position: absolute;
+  left: -14px;
+  top: 0;
+  width: 4px;
+  height: calc(100% + 1px);
+  background: var(--acc);
+}
+@keyframes c4v-wet {
+  from {
+    background-color: var(--acc-soft);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .c4v-entry[data-fresh] {
+    animation: none;
+  }
+}
+.c4v-entryTitle {
+  margin-top: 8px;
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 22px;
+  line-height: 1.15;
+}
+.c4v-entryBody {
+  margin-top: 6px;
+  max-width: 46em;
+  font-size: 16px;
+  line-height: 1.6;
+}
+.c4v-sig {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--mute);
+}
+.c4v-who {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 16px;
+  color: var(--ink);
+}
+.c4v-date {
+  font-variant-numeric: tabular-nums;
+}
+.c4v-entryActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  margin-top: 12px;
+}
+.c4v-helpful {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+  border: 1px solid var(--stone);
+  cursor: pointer;
+  transition:
+    border-color 0.3s var(--ease),
+    background-color 0.3s var(--ease);
+}
+.c4v-helpful span {
+  font-family: var(--serif);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.c4v-helpful:hover {
+  border-color: var(--ink);
+}
+.c4v-helpful[aria-pressed="true"] {
+  border-color: var(--acc);
+  background: var(--acc-soft);
+  color: var(--acc-deep);
+}
+.c4v-helpful:active {
+  transform: scale(0.97);
+}
+.c4v-linkBtn {
+  font-size: 14px;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--stone);
+  cursor: pointer;
+  transition:
+    color 0.3s var(--ease),
+    text-decoration-color 0.3s var(--ease);
+}
+.c4v-linkBtn:hover {
+  color: var(--acc);
+  text-decoration-color: var(--acc);
+}
+
+/* replies: threaded, the house's own in its margin colour */
+.c4v-thread {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0 0 14px;
+  padding-left: 18px;
+  border-left: 1px solid var(--stone);
+}
+.c4v-reply[data-house] {
+  padding: 12px 14px;
+  background: linear-gradient(90deg, var(--acc-soft), transparent 90%);
+  box-shadow: inset 3px 0 0 var(--acc);
+}
+.c4v-replyWho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  font-size: 12px;
+  color: var(--mute);
+}
+.c4v-replyBody {
+  margin-top: 4px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+.c4v-house {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--serif);
+  font-size: 15px;
+  color: var(--acc-deep);
+}
+.c4v-houseMark {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid currentColor;
+  font-size: 13px;
+}
+
+.c4v-write {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  margin: 14px 0 0 14px;
+  padding-left: 18px;
+  border-left: 1px solid var(--stone);
+}
+.c4v-write textarea,
+.c4v-input {
+  width: 100%;
+  padding: 8px 0;
+  font-size: 16px;
+  background: transparent;
+  border-bottom: 1px solid var(--ink);
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.3s var(--ease);
+}
+.c4v-write textarea:focus,
+.c4v-input:focus {
+  border-bottom-color: var(--acc);
+  box-shadow: 0 1px 0 var(--acc);
+}
+.c4v-write textarea::placeholder,
+.c4v-input::placeholder {
+  color: var(--grey);
+  font-style: italic;
+  font-family: var(--serif);
+}
+.c4v-writeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 18px;
+  background: var(--ink);
+  color: var(--wall);
+  font-size: 14px;
+  cursor: pointer;
+  transition:
+    background-color 0.3s var(--ease),
+    transform 0.2s var(--ease);
+}
+.c4v-writeBtn:hover {
+  background: var(--acc);
+}
+.c4v-writeBtn:active {
+  transform: scale(0.98);
+}
+.c4v-prompt {
+  margin-top: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  border: 1px dashed var(--grey);
+  background: var(--wall);
+}
+.c4v-promptForm {
+  margin-top: 8px;
+}
+
+/* signing the book */
+.c4v-sign {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 3px double var(--ink);
+}
+.c4v-signTitle {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 28px;
+  line-height: 1.1;
+}
+.c4v-signForm {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}
+.c4v-signForm .c4v-input {
+  margin-bottom: 8px;
+}
+.c4v-fieldLabel {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--mute);
+}
+.c4v-picker {
+  margin: 8px 0 0;
+  padding: 0;
+  border: 0;
+}
+.c4v-picker legend {
+  font-size: 13px;
+  color: var(--mute);
+}
+.c4v-picker > div {
+  display: flex;
+  gap: 2px;
+}
+.c4v-picker label {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  font-family: "Segoe UI Symbol", "Apple Symbols", serif;
+  font-size: 26px;
+  color: var(--stone);
+  cursor: pointer;
+  transition:
+    color 0.25s var(--ease),
+    transform 0.25s var(--ease);
+}
+.c4v-picker label[data-on] {
+  color: var(--acc);
+}
+.c4v-picker > div:hover label {
+  color: var(--acc);
+}
+.c4v-picker > div label:hover ~ label {
+  color: var(--stone);
+}
+.c4v-picker label:active {
+  transform: scale(0.88);
+}
+.c4v-picker input {
+  position: absolute;
+  opacity: 0;
+}
+.c4v-picker label:has(input:focus-visible) {
+  outline: 2px solid var(--acc);
+  outline-offset: 1px;
+}
+.c4v-thanks {
+  margin-top: 8px;
+  font-size: 15px;
+}
+
+/* questions at the desk */
+.c4v-qa {
+  display: grid;
+  gap: 18px;
+  margin-top: 48px;
+}
+.c4v-qaHead {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ink);
+}
+.c4v-qaTitle {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(30px, 4vw, 44px);
+  line-height: 1;
+}
+.c4v-qList {
+  display: grid;
+}
+@media (min-width: 900px) {
+  .c4v-qList {
+    grid-template-columns: 1fr 1fr;
+    column-gap: 48px;
+  }
+}
+.c4v-q {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--stone);
+}
+.c4v-q .c4v-thread {
+  width: calc(100% - 14px);
+  margin-bottom: 8px;
+}
+.c4v-qBody {
+  font-family: var(--serif);
+  font-size: 20px;
+  line-height: 1.25;
+}
+.c4v-qMark {
+  margin-right: 10px;
+  color: var(--acc);
+}
+.c4v-ask {
+  display: grid;
+  gap: 4px;
+  max-width: 720px;
+}
+.c4v-askRow {
+  display: flex;
+  gap: 10px;
+  align-items: end;
+}
+
+/* ---------------- coupon in the register ---------------- */
+.c4r-coupon {
+  margin-top: 18px;
+  padding: 14px 14px 12px;
+  background: var(--paper);
+  box-shadow: 0 0 0 1px var(--hair);
+}
+.c4r-coupon > label {
+  font-family: var(--serif);
+  font-size: 17px;
+}
+.c4r-couponRow {
+  display: flex;
+  margin-top: 6px;
+  border-bottom: 1px solid var(--ink);
+}
+.c4r-couponRow input {
+  flex: 1;
+  min-width: 0;
+  height: 42px;
+  font-size: 16px;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  background: transparent;
+  outline: none;
+}
+.c4r-couponRow:focus-within {
+  border-bottom-color: var(--acc);
+}
+.c4r-couponRow button {
+  padding: 0 14px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 0.3s var(--ease);
+}
+.c4r-couponRow button:hover {
+  color: var(--acc);
+}
+.c4r-couponOk {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--acc-deep);
+}
+.c4r-discount dt {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+.c4r-discount dd {
+  color: var(--acc-deep);
+}
+
+/* ---------------- order slips at the membership desk ---------------- */
+.c4m-order[data-status] .c4m-orderNo {
+  color: var(--mute);
+}
+.c4m-order[data-status="cancelled"] .c4m-progress span {
+  background: var(--stone);
+}
+.c4m-order[data-status] .c4m-dot {
+  background: var(--grey);
+}
+.c4m-orderTotal small {
+  display: block;
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--acc-deep);
+}
+.c4m-orderActs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 22px;
+}
+.c4m-actNote {
+  font-size: 13px;
+  color: var(--mute);
+}
+.c4m-slip {
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 14px 16px;
+  font-size: 15px;
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 27px, var(--hair) 27px 28px);
+  box-shadow:
+    inset 3px 0 0 var(--acc),
+    0 0 0 1px var(--hair);
+  transform: rotate(-0.4deg);
+}
+.c4m-slip label {
+  font-size: 14px;
+  color: var(--mute);
+}
+.c4m-slip textarea {
+  width: 100%;
+  padding: 6px 0;
+  font-size: 16px;
+  background: transparent;
+  border-bottom: 1px solid var(--ink);
+  outline: none;
+}
+.c4m-slipActs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+}
+.c4t-nowStage[data-status] .c4t-live {
+  background: var(--grey);
+}
+.c4t-nowStage[data-status] .c4t-live::after {
+  display: none;
+}
+.c4t-line[data-status="cancelled"] .c4t-stop {
+  opacity: 0.5;
+}

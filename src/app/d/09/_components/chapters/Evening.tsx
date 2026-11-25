@@ -1,12 +1,14 @@
 "use client";
 
 import { useId, useState, type FormEvent } from "react";
-import { W } from "@/components/maison/W";
+import { W, WT } from "@/components/maison/W";
 import { PHOTOS } from "@/lib/photos";
+import { CONTENT } from "@/lib/shop/content";
 import type { Wood } from "@/lib/wood";
 import s from "../../styles";
 import { RECORD } from "../data";
 import { Lines } from "../Lines";
+import { Hour } from "../SceneSun";
 import { Cut, Layer, Scene } from "../Scene";
 import { AllPieces } from "./AllPieces";
 
@@ -21,7 +23,7 @@ function Seal({ wood }: { wood: Wood }) {
       <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.7" />
       <circle cx="50" cy="50" r="27" fill="none" stroke="currentColor" strokeWidth="0.8" opacity="0.5" />
       <text fontSize="9.2" letterSpacing="1.4" fill="currentColor" opacity="0.85">
-        <textPath href={`#${id}`}>Santalum Maison, example record,</textPath>
+        <textPath href={`#${id}`}>{wood === "red" ? "Santalum Maison, example batch record," : "Santalum Maison, example lot record,"}</textPath>
       </text>
       <circle cx="50" cy="50" r="15" fill="currentColor" opacity="0.14" />
       <circle cx="50" cy="50" r="9" fill="none" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
@@ -31,28 +33,36 @@ function Seal({ wood }: { wood: Wood }) {
 }
 
 function Slip({ wood }: { wood: Wood }) {
-  const rows = RECORD[wood];
-  const batch = rows.find((r) => r.label === "Batch")?.value ?? "";
+  const r = RECORD[wood];
   return (
     <figure className={`${s.slip} mt-10 max-w-[34rem] px-6 pb-7 pt-7 sm:px-8`}>
       <div className="flex items-start justify-between gap-6">
         <div>
-          <figcaption className="text-[13px] text-[var(--muted)]">Example record</figcaption>
-          <p className={`${s.display} ${s.tab} mt-2 text-[clamp(2.4rem,9vw,3.4rem)] leading-none`}>{batch}</p>
+          <figcaption className="text-[13px] text-[var(--muted)]">{wood === "red" ? "Example batch record" : "Example lot record"}</figcaption>
+          <p className={`${s.num} mt-2 text-[clamp(2rem,8vw,2.9rem)] leading-none tracking-[0.02em]`}>{r.id}</p>
         </div>
         <Seal wood={wood} />
       </div>
       <dl className="mt-6">
-        {rows
-          .filter((r) => r.label !== "Batch")
-          .map((r) => (
-            <div key={r.label} className="grid grid-cols-[6.5rem_1fr] gap-4 border-t border-dotted border-[rgb(42_36_32/0.22)] py-2.5">
-              <dt className="text-[13px] text-[var(--muted)]">{r.label}</dt>
-              <dd className="text-[15px]">{r.value}</dd>
-            </div>
-          ))}
+        {[{ label: "Piece", value: r.piece }, ...r.rows].map((row) => (
+          <div key={row.label} className="grid grid-cols-[6.5rem_1fr] gap-4 border-t border-dotted border-[rgb(42_36_32/0.22)] py-2.5">
+            <dt className="text-[13px] text-[var(--muted)]">{row.label}</dt>
+            <dd className="text-[15px]">{row.value}</dd>
+          </div>
+        ))}
       </dl>
     </figure>
+  );
+}
+
+function Record({ wood }: { wood: Wood }) {
+  const c = CONTENT[wood];
+  return (
+    <>
+      <p className="mt-6 max-w-[33rem] text-[17px] leading-[1.7] text-[var(--muted)]">{c.provenance.text}</p>
+      <Slip wood={wood} />
+      <p className="mt-6 max-w-[34rem] text-[14px] leading-[1.65] text-[var(--muted)]">{c.regulation}</p>
+    </>
   );
 }
 
@@ -66,7 +76,7 @@ function Circle() {
   return (
     <section aria-labelledby={`${id}-h`} className="mt-24 grid gap-10 lg:mt-28 lg:grid-cols-12 lg:gap-8">
       <div className="lg:col-span-6">
-        <p className={`${s.display} ${s.tab} text-[26px] text-[var(--muted)] lg:text-[30px]`}>19:40</p>
+        <Hour min={1180} />
         <Lines
           id={`${id}-h`}
           lines={["Stay in", "the Circle"]}
@@ -75,8 +85,7 @@ function Circle() {
       </div>
       <div className="lg:col-span-5 lg:col-start-8 lg:self-end">
         <p className="max-w-[30rem] text-[17px] leading-[1.7] text-[var(--muted)]">
-          The Santalum Circle is a letter from the workshop: new pieces before they are listed, Vault numbers as they are
-          released, and notes on the two woods. It comes only when there is something to say.
+          <WT red={CONTENT.red.circle.text} white={CONTENT.white.circle.text} /> It comes only when there is something to say.
         </p>
         {done ? (
           <p role="status" className={`${s.display} mt-8 text-[28px] leading-tight`}>
@@ -93,36 +102,38 @@ function Circle() {
             </button>
           </form>
         )}
-        <p className="mt-4 text-[12px] text-[var(--muted)]">Preview: sign-ups are not sent anywhere yet.</p>
+        <p className="mt-4 text-[13px] text-[var(--muted)]">Preview: sign-ups are not sent anywhere yet.</p>
       </div>
     </section>
   );
 }
 
-/** 19:05. Evening, the record: every piece by the hour, an example batch record, the Santalum Circle. */
+/** 19:05 onwards. Evening: the day's pieces by the hour, the record, the Santalum Circle. */
 export function Evening() {
   return (
     <section id="ch-evening" aria-label="Evening: the record" className="relative">
-      <div className="mx-auto max-w-[1600px] px-5 pt-28 sm:px-8 lg:px-10 lg:pt-36">
+      <div className="mx-auto max-w-[1600px] px-5 pt-28 sm:px-8 lg:px-10 lg:pt-10">
         <AllPieces />
 
         <Scene className="mt-28 grid gap-14 lg:mt-32 lg:grid-cols-12 lg:gap-8" label="Know what you hold">
           <div className="relative mx-auto aspect-[4/5] w-full max-w-[30rem] lg:col-span-5 lg:mx-0 lg:aspect-auto lg:h-[min(78svh,760px)] lg:max-w-none">
             <Layer speed={0.25} className="absolute left-0 top-0 aspect-[3/4] h-[86%]">
-              <Cut photo={PHOTOS.gopuram} shape="arch" niche className="size-full" sizes="(min-width: 1024px) 30vw, 80vw" />
+              <W
+                red={<Cut photo={CONTENT.red.origin.photo} shape="arch" niche className="size-full" sizes="(min-width: 1024px) 30vw, 80vw" />}
+                white={<Cut photo={CONTENT.white.origin.photo} shape="arch" niche className="size-full" sizes="(min-width: 1024px) 30vw, 80vw" />}
+              />
             </Layer>
             <Layer speed={0.7} className="absolute bottom-0 right-[2%] aspect-square w-[44%]">
-              <Cut photo={PHOTOS.malaHand} shape="circle" className="size-full" sizes="(min-width: 1024px) 18vw, 44vw" />
+              <W
+                red={<Cut photo={PHOTOS.malaHand} shape="circle" className="size-full" sizes="(min-width: 1024px) 18vw, 44vw" />}
+                white={<Cut photo={PHOTOS.oilVials} shape="circle" className="size-full" sizes="(min-width: 1024px) 18vw, 44vw" />}
+              />
             </Layer>
           </div>
           <Layer speed={0.12} className="lg:col-span-6 lg:col-start-7 lg:self-center">
-            <p className={`${s.display} ${s.tab} text-[26px] text-[var(--muted)] lg:text-[30px]`}>19:20</p>
+            <Hour min={1160} />
             <Lines lines={["Know what", "you hold"]} className={`${s.display} mt-1 text-[clamp(3rem,13vw,4.6rem)] leading-[0.92] lg:text-[min(6vw,6.6rem)]`} />
-            <p className="mt-6 max-w-[33rem] text-[17px] leading-[1.7] text-[var(--muted)]">
-              If there is evidence, we show it. If there isn&rsquo;t, we don&rsquo;t invent it. This is an example of the record that
-              goes with a piece: what it is, which wood, where the wood came from, the batch, who made it and when it was finished.
-            </p>
-            <W red={<Slip wood="red" />} white={<Slip wood="white" />} />
+            <W red={<Record wood="red" />} white={<Record wood="white" />} />
           </Layer>
         </Scene>
 

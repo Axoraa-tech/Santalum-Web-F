@@ -1,29 +1,28 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import Link from "next/link";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Photo } from "@/components/Photo";
-import { bag, bagTotals, useBag, type Line } from "@/lib/cart";
-import { FAMILIES, formatINR, getFamily, getVariant } from "@/lib/catalog";
+import { signOut, useUser, type Address } from "@/lib/shop/account";
+import { bag, bagSummary, DELIVERY, useBag, type BagItem, type DeliveryId } from "@/lib/shop/bag";
+import { applyCoupon, formatDate, PAYMENTS, placeOrder, trackingFor, type Order, type PaymentId } from "@/lib/shop/orders";
+import { formatINR, productsFor } from "@/lib/shop/products";
+import { useHydrated } from "@/lib/shop/store";
 import { useWood } from "@/lib/wood";
 import { s } from "../_components/cls";
-import { cx, STATES, WOOD_SHORT } from "../_components/data";
+import { cx, photoFor, plural, shotsOf, WOOD_SHORT } from "../_components/data";
+import { AddressTile, AuthTiles } from "../_components/forms";
 import { PieceTile } from "../_components/PieceTile";
 import { IconCheck, IconMinus, IconOpen } from "../_components/ui";
 
-type Placed = { ref: string; name: string; email: string; city: string; state: string; pin: string; lines: Line[]; subtotal: number; gift: boolean; note: boolean };
-
-/** A preview order reference; called only from the submit handler. */
-function orderRef() {
-  return `SM-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Math.floor(Math.random() * 90) + 10}`;
-}
-
-function Tile({ title, children, className, n }: { title: string; children: ReactNode; className?: string; n?: number }) {
+function Step({ n, title, done, children, className }: { n: number; title: string; done?: boolean; children: ReactNode; className?: string }) {
   return (
     <section className={cx(s.tile, "p-5 sm:p-7", className)} aria-label={title}>
       <div className="mb-5 flex items-center gap-3">
-        {n && <span className={cx(s.mono, "grid size-8 place-items-center rounded-full bg-[#141414] text-[12px] text-white")}>{n}</span>}
+        <span className={cx(s.mono, "grid size-8 place-items-center rounded-full text-[12px]", done ? "bg-accent text-white" : "bg-[var(--b-ink)] text-white")}>
+          {done ? <IconCheck size={15} /> : n}
+        </span>
         <h2 className="text-[22px] font-medium tracking-[-0.03em]">{title}</h2>
       </div>
       {children}
@@ -31,336 +30,397 @@ function Tile({ title, children, className, n }: { title: string; children: Reac
   );
 }
 
-function Field({ id, label, className, children }: { id: string; label: string; className?: string; children: ReactNode }) {
-  return (
-    <div className={className}>
-      <label htmlFor={id} className={s.label}>
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
-
+/** Checkout as a bento: four steps on the left, a summary that stays in view. Sign-in is required. */
 export function CheckoutBento() {
+  const hydrated = useHydrated();
   const lines = useBag();
-  const { count, subtotal } = bagTotals(lines);
-  const [gift, setGift] = useState(false);
-  const [msg, setMsg] = useState("");
-  const [placed, setPlaced] = useState<Placed | null>(null);
+  const user = useUser();
+  const [addrId, setAddrId] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [delivery, setDelivery] = useState<DeliveryId>("standard");
+  const [payment, setPayment] = useState<PaymentId>("upi");
+  const [gift, setGift] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [placed, setPlaced] = useState<Order | null>(null);
+  const [once, setOnce] = useState<Address | null>(null);
+  const [code, setCode] = useState("");
+  const [coupon, setCoupon] = useState<string | null>(null);
+  const [codeErr, setCodeErr] = useState<string | null>(null);
 
-  const submit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const get = (k: string) => String(fd.get(k) ?? "").trim();
-    setPlaced({
-      ref: orderRef(),
-      name: get("name"),
-      email: get("email"),
-      city: get("city"),
-      state: get("state"),
-      pin: get("pin"),
-      lines: lines.map((l) => ({ ...l })),
-      subtotal,
-      gift,
-      note: gift && msg.trim().length > 0,
-    });
-    bag.clear();
-    window.scrollTo({ top: 0 });
-  };
-
-  if (placed) return <Confirmation p={placed} />;
+  if (!hydrated) return <div className={cx(s.checkout, "min-h-[70svh]")} aria-busy="true" />;
+  if (placed) return <Confirmation o={placed} />;
+  const { items, count, subtotal, shipping, total: gross } = bagSummary(lines, delivery);
   if (count === 0) return <Empty />;
+
+  const promo = coupon ? applyCoupon(coupon, subtotal) : null;
+  const discount = promo?.ok ? promo.discount : 0;
+  const total = gross - discount;
+  const addresses = user?.addresses ?? [];
+  const chosen: Address | undefined =
+    (addrId === "once" ? (once ?? undefined) : undefined) ?? addresses.find((a) => a.id === addrId) ?? addresses.find((a) => a.isDefault) ?? addresses[0];
+  const codBlocked = total >= 10000;
+  const tryCode = (e: React.FormEvent) => {
+    e.preventDefault();
+    const r = applyCoupon(code, subtotal);
+    if (r.ok) {
+      setCoupon(r.code);
+      setCodeErr(null);
+    } else setCodeErr(r.error);
+  };
+  const pay = payment === "cod" && codBlocked ? "upi" : payment;
+  const ready = !!user && !!chosen && !adding;
+
+  const place = () => {
+    if (!chosen) return;
+    const { id: _id, isDefault: _d, ...address } = chosen;
+    void _id;
+    void _d;
+    const r = placeOrder({ lines, address, delivery, payment: pay, giftNote: gift.trim() || undefined, coupon: promo?.ok ? promo.code : undefined });
+    if (r.ok) {
+      setPlaced(r.order);
+      window.scrollTo({ top: 0 });
+    } else setError(r.error);
+  };
 
   return (
     <div className={s.checkout}>
-      <div className={cx(s.tile, "flex min-h-[180px] flex-col justify-end p-6 sm:p-8 lg:col-span-8")}>
+      <div className={cx(s.tile, "flex min-h-[160px] flex-col justify-end p-6 sm:p-8 lg:col-span-12")}>
         <h1 className={cx(s.display, "text-[clamp(48px,10cqw,104px)]")}>Checkout</h1>
         <p className={cx(s.muted, "mt-3 text-[16px]")}>
-          {count} {count === 1 ? "piece" : "pieces"}, {formatINR(subtotal)}. Delivered within India.
+          {count} {count === 1 ? "piece" : "pieces"}, {formatINR(subtotal)}. Free delivery across India.
         </p>
       </div>
-      <div className={cx(s.tile, s.tint, "flex flex-col justify-between gap-4 p-6 lg:col-span-4")} role="note">
-        <p className={cx(s.monoWide, "text-[28px] leading-none")}>Preview</p>
-        <p className="text-[15px] leading-[1.45]">Preview: payments are not connected yet. Placing an order here shows the confirmation step and clears your bag. Nothing is charged.</p>
+
+      <div className="flex flex-col gap-3 lg:col-span-7">
+        <Step n={1} title="Account" done={!!user}>
+          {user ? (
+            <p className="text-[16px]">
+              Signed in as <strong className="font-medium">{user.name}</strong> <span className={s.muted}>·</span> Not you?{" "}
+              <button type="button" onClick={signOut} className="underline decoration-[var(--b-line)] underline-offset-4 hover:decoration-[var(--b-ink)] focus-visible:outline-2 focus-visible:outline-accent">
+                Sign out
+              </button>
+            </p>
+          ) : (
+            <div>
+              <p className={cx(s.muted, "mb-4 text-[15px]")}>Sign in or create an account to place the order. Your bag stays as it is.</p>
+              <AuthTiles compact />
+            </div>
+          )}
+        </Step>
+
+        <Step n={2} title="Address" done={!!chosen && !adding} className={!user ? "opacity-50" : ""}>
+          {!user ? (
+            <p className={cx(s.muted, "text-[15px]")}>After you sign in.</p>
+          ) : adding || (addresses.length === 0 && !once) ? (
+            <AddressTile
+              offerSave
+              submitLabel="Use this address"
+              onDone={(a) => {
+                if (a.id === "once") setOnce(a);
+                setAddrId(a.id);
+                setAdding(false);
+              }}
+              onCancel={addresses.length ? () => setAdding(false) : undefined}
+            />
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Delivery address">
+              {[...(once ? [once] : []), ...addresses].map((a) => {
+                const on = chosen?.id === a.id;
+                return (
+                  <button key={a.id} type="button" role="radio" aria-checked={on} onClick={() => setAddrId(a.id)} className={cx(s.opt, "min-h-[96px] gap-0.5 p-4")}>
+                    <span className="text-[15px] font-medium">{a.label}, {a.name}</span>
+                    <span className="text-[13.5px] opacity-75">
+                      {a.line1}
+                      {a.line2 ? `, ${a.line2}` : ""}, {a.city}, {a.state} {a.pin}
+                    </span>
+                  </button>
+                );
+              })}
+              <button type="button" onClick={() => setAdding(true)} className={cx(s.ghost, "h-auto min-h-[96px] rounded-[16px]")}>
+                Add a new address
+              </button>
+            </div>
+          )}
+        </Step>
+
+        <Step n={3} title="Delivery and payment" className={!ready ? "opacity-50" : ""}>
+          <fieldset disabled={!ready} className="flex flex-col gap-5">
+            <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Delivery">
+              {(Object.keys(DELIVERY) as DeliveryId[]).map((d) => (
+                <button key={d} type="button" role="radio" aria-checked={delivery === d} onClick={() => setDelivery(d)} className={cx(s.opt, "p-4")}>
+                  <span className="text-[15px] font-medium">{DELIVERY[d].label}</span>
+                  <span className={cx(s.mono, "text-[11px] opacity-75")}>{DELIVERY[d].price ? formatINR(DELIVERY[d].price) : "Free"}</span>
+                </button>
+              ))}
+            </div>
+            <div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="Payment">
+                {PAYMENTS.map((p) => {
+                  const off = p.id === "cod" && codBlocked;
+                  return (
+                    <button key={p.id} type="button" role="radio" aria-checked={pay === p.id} disabled={off} onClick={() => setPayment(p.id)} className={cx(s.opt, "p-3", off && "cursor-not-allowed opacity-40")}>
+                      <span className="text-[14.5px] font-medium">{p.label}</span>
+                      <span className="text-[12px] opacity-70">{p.note}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className={cx(s.muted, "mt-2 text-[13.5px]")}>Payments are not connected yet, so no money is taken. Preview: accounts and orders are saved in this browser until our store opens.</p>
+            </div>
+            <div>
+              <label htmlFor="b6-gift" className={s.label}>
+                Gift note (optional)
+              </label>
+              <textarea id="b6-gift" rows={2} maxLength={200} value={gift} onChange={(e) => setGift(e.target.value)} className={s.field} />
+            </div>
+          </fieldset>
+        </Step>
       </div>
 
-      <form id="b6-checkout" onSubmit={submit} className="flex flex-col gap-3 lg:col-span-7">
-        <Tile title="Contact" n={1}>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field id="b6-name" label="Full name" className="sm:col-span-2">
-              <input id="b6-name" name="name" required autoComplete="name" className={s.field} />
-            </Field>
-            <Field id="b6-email" label="Email">
-              <input id="b6-email" name="email" type="email" required autoComplete="email" className={s.field} />
-            </Field>
-            <Field id="b6-phone" label="Mobile number">
-              <input
-                id="b6-phone"
-                name="phone"
-                type="tel"
-                required
-                inputMode="numeric"
-                autoComplete="tel-national"
-                pattern="[6-9][0-9]{9}"
-                maxLength={10}
-                title="A 10-digit Indian mobile number"
-                className={cx(s.field, s.mono)}
-              />
-            </Field>
-          </div>
-        </Tile>
-
-        <Tile title="Delivery" n={2}>
-          <div className="grid gap-3 sm:grid-cols-6">
-            <Field id="b6-a1" label="House, building, street" className="sm:col-span-6">
-              <input id="b6-a1" name="address1" required autoComplete="address-line1" className={s.field} />
-            </Field>
-            <Field id="b6-a2" label="Area, landmark (optional)" className="sm:col-span-6">
-              <input id="b6-a2" name="address2" autoComplete="address-line2" className={s.field} />
-            </Field>
-            <Field id="b6-city" label="City" className="sm:col-span-3">
-              <input id="b6-city" name="city" required autoComplete="address-level2" className={s.field} />
-            </Field>
-            <Field id="b6-pin" label="PIN code" className="sm:col-span-3">
-              <input
-                id="b6-pin"
-                name="pin"
-                required
-                inputMode="numeric"
-                autoComplete="postal-code"
-                pattern="[1-9][0-9]{5}"
-                maxLength={6}
-                title="A 6-digit PIN code"
-                className={cx(s.field, s.mono)}
-              />
-            </Field>
-            <Field id="b6-state" label="State or union territory" className="sm:col-span-6">
-              <select id="b6-state" name="state" required defaultValue="" autoComplete="address-level1" className={s.field}>
-                <option value="" disabled>
-                  Choose one
-                </option>
-                {STATES.map((st) => (
-                  <option key={st} value={st}>
-                    {st}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
-        </Tile>
-
-        <Tile title="Gift" n={3} className={gift ? s.tint : ""}>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={gift}
-            onClick={() => setGift((g) => !g)}
-            className="flex w-full items-center justify-between gap-4 rounded-[18px] bg-[#f6f4f0] p-4 text-left transition-colors hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            <span>
-              <span className="block text-[16px] font-medium">This is a gift</span>
-              <span className={cx(s.muted, "block text-[13.5px]")}>Add a written message and leave prices off the packing slip.</span>
-            </span>
-            <span className={cx("relative h-7 w-12 shrink-0 rounded-full transition-colors duration-300", gift ? "bg-[#141414]" : "bg-[#d9d6cf]")} aria-hidden>
-              <motion.span layout className={cx("absolute top-1 size-5 rounded-full bg-white", gift ? "right-1" : "left-1")} />
-            </span>
-          </button>
-          <AnimatePresence initial={false}>
-            {gift && (
-              <motion.div
-                key="gift"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                className="overflow-hidden"
-              >
-                <div className="pt-4">
-                  <Field id="b6-msg" label="Message for the card">
-                    <textarea
-                      id="b6-msg"
-                      name="message"
-                      rows={3}
-                      maxLength={200}
-                      value={msg}
-                      onChange={(e) => setMsg(e.target.value)}
-                      className={cx(s.field, s.fieldWhite)}
-                    />
-                  </Field>
-                  <p className={cx(s.mono, s.muted, "mt-1 text-right text-[10.5px]")}>{200 - msg.length} characters left</p>
-                  <label className="mt-2 flex cursor-pointer items-center gap-3 text-[14px]">
-                    <input type="checkbox" name="noPrices" defaultChecked className="size-4 accent-[#141414]" />
-                    Leave prices off the packing slip
-                  </label>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </Tile>
-      </form>
-
-      <aside className="lg:sticky lg:top-[72px] lg:col-span-5" aria-label="Order summary">
+      <aside className="lg:sticky lg:top-[72px] lg:col-span-5" aria-label="Review and place">
         <div className={cx(s.tile, "p-5 sm:p-7")}>
-          <h2 className="text-[22px] font-medium tracking-[-0.03em]">Summary</h2>
-          <ul className="mt-4 flex flex-col gap-2">
-            {lines.map((l) => (
-              <SummaryLine key={`${l.slug}-${l.wood}-${l.custom ?? ""}`} l={l} />
+          <div className="mb-4 flex items-center gap-3">
+            <span className={cx(s.mono, "grid size-8 place-items-center rounded-full bg-[var(--b-ink)] text-[12px] text-white")}>4</span>
+            <h2 className="text-[22px] font-medium tracking-[-0.03em]">Review and place</h2>
+          </div>
+          <ul className="flex flex-col gap-2">
+            {items.map((l) => (
+              <Line key={l.key} l={l} />
             ))}
           </ul>
-          <dl className="mt-5 space-y-2 border-t border-black/[0.07] pt-4">
-            <div className="flex justify-between text-[15px]">
+          <dl className="mt-5 space-y-2 border-t border-[var(--b-line)] pt-4 text-[15px]">
+            <div className="flex justify-between">
               <dt>Subtotal</dt>
               <dd className={s.mono}>{formatINR(subtotal)}</dd>
             </div>
-            <div className="flex justify-between gap-4 text-[15px]">
+            {discount > 0 && (
+              <div className="flex justify-between text-accent">
+                <dt>
+                  Code <span className={s.mono}>{coupon}</span>
+                </dt>
+                <dd className={s.mono}>−{formatINR(discount)}</dd>
+              </div>
+            )}
+            <div className="flex justify-between">
               <dt>Delivery</dt>
-              <dd className={cx(s.muted, "text-right text-[13.5px]")}>Confirmed before payment</dd>
+              <dd className={s.mono}>{shipping ? formatINR(shipping) : "Free"}</dd>
             </div>
             <div className="flex items-baseline justify-between pt-2">
               <dt className="text-[17px] font-medium">Total</dt>
-              <dd className={cx(s.monoWide, "text-[26px]")}>{formatINR(subtotal)}</dd>
+              <dd className={cx(s.monoWide, "text-[26px]")}>{formatINR(total)}</dd>
             </div>
           </dl>
-          <button type="submit" form="b6-checkout" className={cx(s.btn, s.btnLg, "mt-5 w-full")}>
-            Place order, {formatINR(subtotal)}
+          <form onSubmit={tryCode} className="mt-4 flex flex-wrap gap-2">
+            <label htmlFor="b6-code" className={s.srOnly}>
+              Coupon code
+            </label>
+            <input
+              id="b6-code"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="Coupon code"
+              autoComplete="off"
+              spellCheck={false}
+              className={cx(s.field, s.mono, "min-w-0 flex-1 uppercase")}
+              aria-describedby="b6-code-note"
+            />
+            <button type="submit" className={cx(s.ghost, "shrink-0")}>
+              Apply
+            </button>
+            {coupon && promo?.ok && (
+              <button type="button" className={cx(s.chip, s.chipSm)} onClick={() => setCoupon(null)} aria-label={`Remove code ${coupon}`}>
+                {coupon}, {promo.label} ×
+              </button>
+            )}
+            <p id="b6-code-note" className={cx("basis-full text-[12.5px]", codeErr ? "text-[#a8322a]" : s.muted)}>
+              {codeErr ?? (coupon && promo && !promo.ok ? promo.error : "Preview codes: WELCOME10, CIRCLE500, HEARTWOOD15.")}
+            </p>
+          </form>
+          {chosen && user && <p className={cx(s.muted, "mt-3 text-[13.5px]")}>To {chosen.name}, {chosen.city} {chosen.pin}</p>}
+          <button type="button" disabled={!ready} onClick={place} className={cx(s.btn, s.btnLg, "mt-5 w-full")}>
+            {!user ? "Sign in to place the order" : !chosen ? "Add an address first" : `Place order, ${formatINR(total)}`}
           </button>
-          <p className={cx(s.muted, "mt-3 text-[13px] leading-[1.45]")}>Preview: payments are not connected yet.</p>
+          {error && (
+            <p role="alert" className="mt-3 text-[14px] text-[#a8322a]">
+              {error}
+            </p>
+          )}
         </div>
       </aside>
     </div>
   );
 }
 
-function SummaryLine({ l }: { l: Line }) {
-  const f = getFamily(l.slug);
-  const v = getVariant(l.slug, l.wood);
-  if (!f || !v) return null;
+function Line({ l }: { l: BagItem }) {
   return (
-    <li className="flex gap-3 rounded-[20px] bg-[#f6f4f0] p-2">
-      <span className="relative size-[68px] shrink-0 overflow-hidden rounded-[14px]">
-        <Photo p={v.shots[0].photo} tone={v.shots[0].tone} sizes="68px" />
+    <li className="flex gap-3 rounded-[20px] bg-[var(--b-tile2)] p-2">
+      <span className="relative size-[64px] shrink-0 overflow-hidden rounded-[14px]">
+        <Photo p={shotsOf(l.product)[0].photo} tone={shotsOf(l.product)[0].tone} sizes="64px" />
       </span>
       <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5 pr-1">
         <div>
-          <p className="truncate text-[15px] font-medium leading-tight">{f.name}</p>
-          <p className={cx(s.mono, s.muted, "text-[10.5px]")}>{WOOD_SHORT[l.wood]}</p>
-          {l.custom && <p className={cx(s.mono, "truncate text-[10.5px]")}>Custom: {l.custom}</p>}
+          <p className="truncate text-[15px] font-medium leading-tight">{l.product.name}</p>
+          <p className={cx(s.mono, s.muted, "truncate text-[10.5px]")}>
+            {WOOD_SHORT[l.product.wood]}
+            {l.optionValue ? `, ${l.optionValue.label}` : ""}
+          </p>
         </div>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1 rounded-full bg-white p-0.5">
-            <button type="button" className={cx(s.icon, s.iconSm, s.onWhite)} onClick={() => bag.setQty(l, l.qty - 1)} aria-label={`One fewer ${f.name}`}>
+          <div className="flex items-center gap-1 rounded-full bg-[var(--b-tile)] p-0.5">
+            <button type="button" className={cx(s.icon, s.iconSm, s.onWhite)} onClick={() => bag.setQty(l.key, l.qty - 1)} aria-label={`One fewer ${l.product.name}`}>
               <IconMinus size={14} />
             </button>
             <span className={cx(s.mono, "w-5 text-center text-[13px]")}>{l.qty}</span>
-            <button
-              type="button"
-              className={cx(s.icon, s.iconSm, s.onWhite)}
-              onClick={() => bag.setQty(l, l.qty + 1)}
-              disabled={l.qty >= 9}
-              aria-label={`One more ${f.name}`}
-            >
+            <button type="button" className={cx(s.icon, s.iconSm, s.onWhite)} onClick={() => bag.setQty(l.key, l.qty + 1)} disabled={l.qty >= 9} aria-label={`One more ${l.product.name}`}>
               <IconOpen size={14} />
             </button>
           </div>
-          <span className={cx(s.mono, "text-[13px]")}>{formatINR(v.price * l.qty)}</span>
+          <span className={cx(s.mono, "text-[13px]")}>{formatINR(l.total)}</span>
         </div>
       </div>
     </li>
   );
 }
 
-function Confirmation({ p }: { p: Placed }) {
-  const first = p.name.split(" ")[0] || "there";
+/* the columns a closing tile needs to finish its row (3 across on tablets, 4 on desktop) */
+const SPAN_SM: Record<number, string> = { 1: "sm:col-span-1", 2: "sm:col-span-2", 3: "sm:col-span-3" };
+const SPAN_LG: Record<number, string> = { 1: "lg:col-span-1", 2: "lg:col-span-2", 3: "lg:col-span-3", 4: "lg:col-span-4" };
+
+function Confirmation({ o }: { o: Order }) {
+  const t = trackingFor(o, o.placedAt);
   return (
     <div className={s.checkout}>
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        className={cx(s.tile, "flex min-h-[320px] flex-col justify-between gap-8 p-6 sm:p-10 lg:col-span-8")}
-        role="status"
-      >
-        <span className="grid size-14 place-items-center rounded-full bg-[#141414] text-white">
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} role="status" className={cx(s.tile, "flex min-h-[300px] flex-col justify-between gap-8 p-6 sm:p-10 lg:col-span-8")}>
+        <span className="grid size-14 place-items-center rounded-full bg-[var(--b-ink)] text-white">
           <IconCheck size={24} />
         </span>
         <div>
-          <h1 className={cx(s.display, "text-[clamp(44px,9cqw,96px)]")}>Thank you, {first}.</h1>
-          <p className={cx(s.muted, "mt-4 max-w-[48ch] text-[17px] leading-[1.5]")}>
-            Your order is noted. In the finished site a confirmation would go to {p.email}. This was a preview: payments are not connected yet and nothing was charged.
+          <h1 className={cx(s.display, "text-[clamp(44px,9cqw,96px)]")}>Thank you, {o.name.split(" ")[0]}.</h1>
+          <p className={cx(s.muted, "mt-4 max-w-[50ch] text-[17px] leading-[1.5]")}>
+            Your order is placed. Estimated delivery {formatDate(t.estimate.from)} to {formatDate(t.estimate.to)}, to {o.address.city} {o.address.pin}. Payments are not connected yet, so nothing was charged.
           </p>
         </div>
       </motion.div>
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0, transition: { delay: 0.08 } }}
-        className={cx(s.tile, s.tint, "flex flex-col justify-between gap-6 p-6 lg:col-span-4")}
-      >
-        <div>
-          <p className={cx(s.mono, "text-[11px] opacity-70")}>Order reference</p>
-          <p className={cx(s.monoWide, "mt-1 text-[30px] leading-none")}>{p.ref}</p>
+      {/* the right column fills the row: the number on top, the first of the six stages beneath */}
+      <div className="flex flex-col gap-3 lg:col-span-4 lg:self-stretch">
+        <div className={cx(s.tile, s.tint, "flex flex-col justify-between gap-6 p-6")}>
+          <div>
+            <p className={cx(s.mono, "text-[11px] opacity-70")}>Order number</p>
+            <p className={cx(s.monoWide, "mt-1 text-[30px] leading-none")}>{o.id}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/d/06/track?o=${o.id}`} className={s.btn}>
+              Track this order
+            </Link>
+            <Link href="/d/06/account" className={cx(s.ghost, s.onWhite)}>
+              Your orders
+            </Link>
+          </div>
         </div>
-        <p className="text-[15px] leading-[1.5]">
-          Delivering to {p.city}, {p.state} {p.pin}.{p.gift ? (p.note ? " Packed as a gift, with your message." : " Packed as a gift.") : ""}
-        </p>
-      </motion.div>
-      <div className={cx(s.tile, "p-5 sm:p-7 lg:col-span-7")}>
-        <h2 className="text-[22px] font-medium tracking-[-0.03em]">What you ordered</h2>
-        <ul className="mt-4 divide-y divide-black/[0.07]">
-          {p.lines.map((l) => {
-            const f = getFamily(l.slug);
-            const v = getVariant(l.slug, l.wood);
-            if (!f || !v) return null;
-            return (
-              <li key={`${l.slug}-${l.wood}-${l.custom ?? ""}`} className="flex items-center justify-between gap-4 py-3">
-                <span className="min-w-0">
-                  <span className="block truncate text-[15px] font-medium">
-                    {f.name} <span className={cx(s.mono, s.muted, "text-[11px]")}>x{l.qty}</span>
-                  </span>
-                  <span className={cx(s.mono, s.muted, "block text-[10.5px]")}>
-                    {WOOD_SHORT[l.wood]}
-                    {l.custom ? `, custom: ${l.custom}` : ""}
-                  </span>
-                </span>
-                <span className={cx(s.mono, "text-[13px]")}>{formatINR(v.price * l.qty)}</span>
-              </li>
-            );
-          })}
-        </ul>
-        <p className="mt-4 flex justify-between border-t border-black/[0.07] pt-4 text-[16px] font-medium">
-          Total <span className={s.monoWide}>{formatINR(p.subtotal)}</span>
-        </p>
+        <div className={cx(s.tile, "flex flex-1 flex-col justify-between gap-4 p-5")}>
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="text-[17px] font-medium tracking-[-0.02em]">{t.stages[0].label}</p>
+            <p className={cx(s.mono, s.muted, "text-[10.5px]")}>1 of {t.stages.length}</p>
+          </div>
+          <div className="flex gap-[3px]" aria-hidden>
+            {t.stages.map((st, i) => (
+              <span key={st.key} className={cx("h-2 flex-1 rounded-full", i === 0 ? "bg-accent" : "bg-[var(--b-dim)]")} />
+            ))}
+          </div>
+          <p className={cx(s.muted, "text-[13.5px] leading-[1.45]")}>{t.stages[1].label} next: {t.stages[1].detail.charAt(0).toLowerCase() + t.stages[1].detail.slice(1)}</p>
+        </div>
       </div>
-      <Link
-        href="/d/06"
-        className={cx(
-          s.tile,
-          s.dark,
-          "group flex min-h-[200px] flex-col justify-between p-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.99] lg:col-span-5",
-        )}
-      >
-        <span className="text-[clamp(28px,7cqw,44px)] font-medium leading-none tracking-[-0.04em]">Back to the house</span>
-        <span className="text-[14px] text-white/60 transition-colors group-hover:text-white">Keep looking around</span>
-      </Link>
+
+      {/* what is in the parcel, as tiles of their own; the parcel slip closes the last row */}
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:col-span-12 lg:grid-cols-4" aria-label="In this order">
+        {o.lines.map((l, i) => {
+          const ph = photoFor(l.slug, l.photoId, l.name);
+          return (
+            // on a phone an odd piece out takes the full width, so the slip below never sits beside a hole
+            <li key={`${l.slug}-${l.option ?? ""}`} className={cx(s.tile, s.t2, "min-h-[220px]", i === 0 && o.lines.length % 2 === 1 && "max-sm:col-span-2")}>
+              <Photo p={ph.photo} tone={ph.tone} sizes="(min-width:1024px) 25vw, 50vw" />
+              <span className={cx(s.mono, "absolute left-3 top-3 rounded-full bg-[var(--b-tile)] px-2.5 py-1 text-[10.5px]")}>×{l.qty}</span>
+              <span className="absolute inset-x-2 bottom-2 rounded-[18px] bg-[var(--b-tile)] px-3.5 py-2.5">
+                <span className="block truncate text-[15px] font-medium leading-tight">{l.name}</span>
+                <span className={cx(s.mono, s.muted, "mt-0.5 flex justify-between gap-2 text-[11px]")}>
+                  <span className="truncate">{l.optionLabel ?? WOOD_SHORT[l.wood]}</span>
+                  <span className="shrink-0 text-[var(--b-ink)]">{formatINR(l.unitPrice * l.qty)}</span>
+                </span>
+              </span>
+            </li>
+          );
+        })}
+        {/* the slip takes every column the pieces leave free; wide, it also says where the parcel goes */}
+        <li className={cx(s.tile, s.dark, "col-span-2 min-h-[220px]", SPAN_SM[3 - (o.lines.length % 3)], SPAN_LG[4 - (o.lines.length % 4)])}>
+          <div className="grid h-full gap-6 p-6 @min-[480px]:grid-cols-2 @min-[480px]:gap-10">
+            <div className="hidden flex-col justify-between gap-4 @min-[480px]:flex">
+              <p className={cx(s.mono, "text-[11px] text-white/55")}>Going to</p>
+              <p className="text-[15px] leading-[1.5] text-white/85">
+                {o.address.name}
+                <br />
+                {o.address.line1}
+                {o.address.line2 ? `, ${o.address.line2}` : ""}
+                <br />
+                {o.address.city}, {o.address.state} {o.address.pin}
+              </p>
+              <p className={cx(s.mono, "text-[10.5px] leading-[1.6] text-white/55")}>
+                {DELIVERY[o.delivery].label}, {PAYMENTS.find((x) => x.id === o.payment)?.label ?? o.payment}
+                {o.giftNote ? (
+                  <>
+                    <br />
+                    Gift note: &ldquo;{o.giftNote}&rdquo;
+                  </>
+                ) : null}
+              </p>
+            </div>
+            <div className="flex flex-col justify-between gap-4">
+              <p className={cx(s.mono, "text-[11px] text-white/55")}>{plural(o.lines.reduce((n, l) => n + l.qty, 0), "piece")}</p>
+              <dl className="space-y-1.5 text-[14.5px]">
+                <div className="flex justify-between gap-3 text-white/70">
+                  <dt>Subtotal</dt>
+                  <dd className={s.mono}>{formatINR(o.subtotal)}</dd>
+                </div>
+                {o.coupon && (
+                  <div className="flex justify-between gap-3 text-white/70">
+                    <dt>
+                      Code <span className={s.mono}>{o.coupon}</span>
+                    </dt>
+                    <dd className={s.mono}>−{formatINR(o.discount ?? 0)}</dd>
+                  </div>
+                )}
+                <div className="flex justify-between gap-3 text-white/70">
+                  <dt>Delivery</dt>
+                  <dd className={s.mono}>{o.shipping ? formatINR(o.shipping) : "Free"}</dd>
+                </div>
+                <div className="flex items-baseline justify-between gap-3 border-t border-white/15 pt-3">
+                  <dt className="text-[16px] font-medium">Total</dt>
+                  <dd className={cx(s.monoWide, "text-[24px]")}>{formatINR(o.total)}</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+        </li>
+      </ul>
     </div>
   );
 }
 
 function Empty() {
   const wood = useWood();
-  const picks = FAMILIES.filter((f) => f.level === "Discovery" && f.variants[wood]).slice(0, 2);
+  const picks = [...productsFor(wood)].sort((a, b) => a.price - b.price).slice(0, 2);
   return (
     <div className={s.checkout}>
       <div className={cx(s.tile, "flex min-h-[300px] flex-col justify-between gap-6 p-6 sm:p-10 lg:col-span-6")}>
         <h1 className={cx(s.display, "text-[clamp(40px,9cqw,88px)]")}>Your bag is empty</h1>
         <div>
           <p className={cx(s.muted, "max-w-[40ch] text-[16px] leading-[1.5]")}>Checkout opens when there is something in the bag. Most people begin with something small.</p>
-          <Link href="/d/06#collection" className={cx(s.btn, "mt-5")}>
-            See the collection
+          <Link href="/d/06/shop" className={cx(s.btn, "mt-5")}>
+            Go to the shop
           </Link>
         </div>
       </div>
-      {picks.map((f) => (
-        <PieceTile key={f.slug} family={f} wood={wood} id={`co-${f.slug}`} className="min-h-[300px] lg:col-span-3" />
+      {picks.map((p) => (
+        <PieceTile key={p.slug} product={p} id={`co-${p.slug}`} className="min-h-[300px] lg:col-span-3" />
       ))}
     </div>
   );

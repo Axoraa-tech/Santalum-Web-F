@@ -3,88 +3,161 @@
 import { useInView } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { Photo } from "@/components/Photo";
-import { PHOTOS } from "@/lib/photos";
-import { useWood, type Wood } from "@/lib/wood";
+import { W } from "@/components/maison/W";
+import { CONTENT } from "@/lib/shop/content";
+import { PHOTOS, type PhotoRef } from "@/lib/photos";
+import type { Wood } from "@/lib/wood";
 import k from "../k";
-import { fitSize, fv, isReduced, onFonts } from "./lib";
+import { fitSize, fv, isReduced, measure, onFonts, wdthFor } from "./lib";
 
-type Rec = { batch: string; lines: [string, string][] };
+type Rec = { batch: string; label: string; lines: [string, string][] };
 
-const RECORDS: Record<Wood, Rec> = {
+/** The example records, built from the shared content plus the lines this design prints. */
+function record(w: Wood): Rec {
+  const c = CONTENT[w];
+  const r = c.provenance.record;
+  const batch = r[0].value;
+  return w === "red"
+    ? {
+        batch,
+        label: "Batch number",
+        lines: [
+          ["Record", "Example, for illustration"],
+          ["Piece", "Japa Mala, 108 beads"],
+          ...r.map((x): [string, string] => [x.label, x.value]),
+          ["Inspected", "S. N."],
+          ["Trade", "CITES Appendix II, papers on file"],
+        ],
+      }
+    : {
+        batch,
+        label: "Lot number",
+        lines: [
+          ["Record", "Example, for illustration"],
+          ["Piece", "Heartwood Oil, 10 ml"],
+          ...r.map((x): [string, string] => [x.label, x.value]),
+          ["Bottled", "Amber glass, lot on label"],
+        ],
+      };
+}
+
+const COPY: Record<Wood, { big: [string, string, string]; evidence: string; a: string; b: string; photo: PhotoRef; caption: string }> = {
   red: {
-    batch: "R-26-0412",
-    lines: [
-      ["Record", "Example, for illustration"],
-      ["Piece", "Japa Mala, 108 beads"],
-      ["Wood", "Red sandalwood"],
-      ["Species", "Pterocarpus santalinus"],
-      ["Origin", "Eastern Ghats, Andhra Pradesh"],
-      ["Batch", "R-26-0412"],
-      ["Artisan", "K. R."],
-      ["Inspected", "S. N."],
-      ["Finished", "18 November 2026"],
-      ["Trade", "CITES Appendix II"],
-    ],
+    big: ["Know", "what you", "hold"],
+    evidence: "If there is evidence, we show it. If there isn't, we don't invent it.",
+    a: CONTENT.red.provenance.text.split(". If")[0] + ".",
+    b: `${CONTENT.red.regulation} The cuffs of the 2011 Vault are entered in our registry by number.`,
+    photo: PHOTOS.malaHand,
+    caption: "The record goes where the piece goes.",
   },
   white: {
-    batch: "W-26-0187",
-    lines: [
-      ["Record", "Example, for illustration"],
-      ["Piece", "Bead Bracelet, 21 beads"],
-      ["Wood", "White sandalwood"],
-      ["Species", "Santalum album"],
-      ["Origin", "Southern India"],
-      ["Batch", "W-26-0187"],
-      ["Artisan", "M. S."],
-      ["Inspected", "A. P."],
-      ["Finished", "12 November 2026"],
-      ["Note", "Fragrant; the oil is in the heartwood"],
-    ],
+    big: ["Know", "what is in", "the bottle"],
+    evidence: "If there is a test report, it travels with the lot. If there isn't, we say so.",
+    a: CONTENT.white.provenance.text.split(". If")[0] + ".",
+    b: `${CONTENT.white.regulation} The fifty vials of the 2011 Reserve are numbered by hand.`,
+    photo: PHOTOS.apothecary,
+    caption: "The lot goes on the label.",
   },
 };
 
-const PAD = 11;
+const PAD = 13;
 
-/** Provenance: the example record prints itself, line by line, when it comes into view. */
-export function Provenance() {
-  const wood = useWood();
+/** [wdth, wght] of the three headline lines: wide, hairline-condensed, wide. */
+const AXES: [number, number][] = [
+  [150, 900],
+  [50, 260],
+  [150, 900],
+];
+
+/**
+ * The three-line headline. A wide line that would run out of its column gives up width on the wdth axis
+ * (and only then size), so "the bottle" condenses to fit where "hold" stays fully stretched.
+ */
+function BigLines({ lines }: { lines: [string, string, string] }) {
+  const ref = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => {
+      const avail = el.clientWidth * 0.995;
+      if (!avail) return;
+      const size = parseFloat(getComputedStyle(el).fontSize);
+      el.querySelectorAll<HTMLElement>("[data-line]").forEach((line, i) => {
+        const [wd, wg] = AXES[i];
+        const text = line.textContent ?? "";
+        const w = Math.min(wd, wdthFor(text, avail, size, wg));
+        const at = measure(text, w, wg, size);
+        line.style.fontVariationSettings = fv(w, wg);
+        line.style.fontSize = at > avail ? `${((size * avail) / at).toFixed(2)}px` : "";
+        // Check what the browser actually set, not the probe: shrink again if the line still runs past its column.
+        const r = document.createRange();
+        r.selectNodeContents(line);
+        const real = r.getBoundingClientRect().width;
+        if (real > avail) {
+          const now = parseFloat(getComputedStyle(line).fontSize);
+          line.style.fontSize = `${((now * avail) / real).toFixed(2)}px`;
+        }
+      });
+    };
+    const off = onFonts(fit);
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => {
+      off();
+      ro.disconnect();
+    };
+  }, [lines]);
   return (
-    <section id="provenance" aria-labelledby="k10-provenance" className="relative scroll-mt-12 border-t border-[var(--k-line)] pb-[7vw] pt-10 md:pt-14">
-      <div className={`${k.gut} grid grid-cols-1 gap-12 md:grid-cols-12 md:gap-8`}>
-        <div className="md:col-span-6">
-          <h2 id="k10-provenance" className={`${k.mono} text-[var(--k-grey)]`}>
-            Provenance
-          </h2>
-          <p aria-label="Know what you hold" className={`${k.disp} mt-4 text-[19vw] leading-[0.8] md:text-[length:clamp(72px,9.6vw,176px)]`}>
-            <span aria-hidden className="block [font-variation-settings:'wdth'_150,'wght'_900]">Know</span>
-            <span aria-hidden className="block text-[var(--k-grey)] [font-variation-settings:'wdth'_50,'wght'_260]">what you</span>
-            <span aria-hidden className="block [font-variation-settings:'wdth'_150,'wght'_900]">hold</span>
-          </p>
-          <p className={`${k.disp} mt-10 max-w-[22ch] whitespace-normal text-[length:clamp(28px,2.8vw,44px)] leading-[0.98] [font-variation-settings:'wdth'_80,'wght'_620]`}>
-            If there is evidence, we show it. If there isn&apos;t, we don&apos;t invent it.
-          </p>
-          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <p className={k.monoL}>
-              Every piece leaves with a record: the wood, where it grew, the batch, the initials of the hands that made and checked it,
-              and the day it was finished.
-            </p>
-            <p className={`${k.monoL} text-[var(--k-grey)]`}>
-              The cuffs of the 2011 Vault are also entered in our provenance registry, by number. Where a lab report exists for an oil,
-              it travels with the batch.
-            </p>
-          </div>
-        </div>
-        <div className="md:col-span-6 md:pl-6 lg:pl-12">
-          <Printer key={wood} rec={RECORDS[wood]} />
-          <figure className="mt-8 grid grid-cols-[1fr_auto] items-end gap-5">
-            <div className="relative aspect-[16/7] overflow-hidden rounded-full bg-[var(--k-stone)]">
-              <Photo p={PHOTOS.malaHand} sizes="(min-width: 768px) 40vw, 80vw" />
-            </div>
-            <figcaption className={`${k.mono} max-w-[16ch] pb-2 text-[var(--k-grey)]`}>The record goes where the piece goes.</figcaption>
-          </figure>
+    <p ref={ref} aria-label={lines.join(" ")} className={`${k.disp} mt-4 text-[17vw] leading-[0.8] md:text-[length:clamp(64px,8.6vw,164px)]`}>
+      {lines.map((t, i) => (
+        <span
+          key={t}
+          data-line
+          aria-hidden
+          className={`block ${i === 1 ? "text-[var(--k10-grey)]" : ""}`}
+          style={{ fontVariationSettings: fv(AXES[i][0], AXES[i][1]) }}
+        >
+          {t}
+        </span>
+      ))}
+    </p>
+  );
+}
+
+/** Provenance: the example record of the current wood prints itself, line by line, when it comes into view. */
+export function Provenance() {
+  return (
+    <section id="provenance" className="relative scroll-mt-12 border-t border-[var(--k10-line)] pb-[7vw] pt-10 md:pt-14">
+      <W red={<Body w="red" />} white={<Body w="white" />} />
+    </section>
+  );
+}
+
+function Body({ w }: { w: Wood }) {
+  const c = COPY[w];
+  return (
+    <div className={`${k.gut} grid grid-cols-1 gap-12 md:grid-cols-12 md:gap-8`}>
+      <div className="min-w-0 md:col-span-6">
+        <h2 className={`${k.mono} text-[var(--k10-grey)]`}>{w === "red" ? "Provenance, by batch" : "Provenance, by lot"}</h2>
+        <BigLines lines={c.big} />
+        <p className={`${k.disp} mt-10 max-w-[22ch] whitespace-normal text-[length:clamp(28px,2.8vw,44px)] leading-[0.98] [font-variation-settings:'wdth'_80,'wght'_620]`}>
+          {c.evidence}
+        </p>
+        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <p className={k.monoL}>{c.a}</p>
+          <p className={`${k.monoL} text-[var(--k10-grey)]`}>{c.b}</p>
         </div>
       </div>
-    </section>
+      <div className="md:col-span-6 md:pl-6 lg:pl-12">
+        <Printer rec={record(w)} />
+        <figure className="mt-8 grid grid-cols-[1fr_auto] items-end gap-5">
+          <div className="relative aspect-[16/7] overflow-hidden rounded-full bg-[var(--k10-stone)]">
+            <Photo p={c.photo} sizes="(min-width: 768px) 40vw, 80vw" />
+          </div>
+          <figcaption className={`${k.mono} max-w-[16ch] pb-2 text-[var(--k10-grey)]`}>{c.caption}</figcaption>
+        </figure>
+      </div>
+    </div>
   );
 }
 
@@ -116,7 +189,7 @@ function Printer({ rec }: { rec: Rec }) {
     const num = numRef.current;
     if (!box || !num) return;
     const fit = () => {
-      num.style.fontSize = `${fitSize(rec.batch, box.clientWidth, 150, 860)}px`;
+      if (box.clientWidth) num.style.fontSize = `${fitSize(rec.batch, box.clientWidth * 0.99, 150, 860, 0, true)}px`;
     };
     const off = onFonts(fit);
     const ro = new ResizeObserver(fit);
@@ -149,17 +222,15 @@ function Printer({ rec }: { rec: Rec }) {
           {rec.batch}
         </p>
       </div>
-      <p className={`${k.mono} mt-3 flex justify-between text-[var(--k-grey)]`}>
-        <span>Batch number</span>
-        <span className="tabular-nums">
-          {Math.round(prog * 100)} / 100 printed
-        </span>
+      <p className={`${k.mono} mt-3 flex justify-between text-[var(--k10-grey)]`}>
+        <span>{rec.label}</span>
+        <span className="tabular-nums">{Math.round(prog * 100)} / 100 printed</span>
       </p>
 
       <div className={`${k.slip} mt-6 rounded-[22px] px-5 pb-6 pt-5 md:px-8 md:pb-8 md:pt-6`}>
-        <div className="flex items-center justify-between border-b border-dashed border-[var(--k-line)] pb-4">
+        <div className="flex items-center justify-between border-b border-dashed border-[var(--k10-line)] pb-4">
           <p className={`${k.disp} text-[22px] [font-variation-settings:'wdth'_130,'wght'_820]`}>Santalum</p>
-          <p className={`${k.mono} rounded-full bg-[var(--m-accent)] px-3 py-1 text-[var(--k-bg)]`}>Example record</p>
+          <p className={`${k.mono} rounded-full bg-[var(--k10-accent)] px-3 py-1 text-[var(--k10-bg)]`}>Example record</p>
         </div>
         <dl className="sr-only">
           {rec.lines.map(([a, b]) => (
@@ -172,7 +243,7 @@ function Printer({ rec }: { rec: Rec }) {
         <div aria-hidden className={`${k.monoL} mt-4 space-y-0 leading-[32px] md:text-[15px]`}>
           {rows.map(({ key, line, shown, printing }) => (
             <div key={key} className="whitespace-pre-wrap">
-              <span className="text-[var(--k-grey)]">{line.slice(0, Math.min(shown, PAD))}</span>
+              <span className="text-[var(--k10-grey)]">{line.slice(0, Math.min(shown, PAD))}</span>
               <span>{shown > PAD ? line.slice(PAD, shown) : ""}</span>
               {printing && <span className={k.cursor} />}
               <span className="opacity-0">{line.slice(shown)}</span>
@@ -180,7 +251,7 @@ function Printer({ rec }: { rec: Rec }) {
           ))}
           {n >= total && (
             <div>
-              <span className="text-[var(--k-grey)]">{"".padEnd(PAD, " ")}</span>
+              <span className="text-[var(--k10-grey)]">{"".padEnd(PAD, " ")}</span>
               <span className={k.cursor} />
             </div>
           )}

@@ -59,7 +59,7 @@
 }
 .c4-plaque {
   padding: 12px 14px;
-  background: #fff;
+  background: var(--paper);
   box-shadow: 0 0 0 1px var(--hair);
 }
 .c4-deva {
@@ -124,8 +124,8 @@
   cursor: pointer;
 }
 .c4-link:hover {
-  text-decoration-color: var(--m-accent);
-  color: var(--m-accent);
+  text-decoration-color: var(--acc);
+  color: var(--acc);
 }
 .c4-link:active {
   opacity: 0.7;
@@ -145,7 +145,7 @@
     transform 0.2s var(--ease);
 }
 .c4-btn:hover {
-  background: var(--m-accent);
+  background: var(--acc);
 }
 .c4-btn:active {
   transform: scale(0.98);
@@ -179,7 +179,7 @@
   width: var(--vw, 100%);
   aspect-ratio: var(--ar, 0.8);
   padding: 10px;
-  background: #fff;
+  background: var(--paper);
   box-shadow:
     0 0 0 1px rgb(29 27 24 / 0.62),
     0 22px 30px -20px rgb(29 27 24 / 0.42);
@@ -375,10 +375,10 @@
   font-family: var(--serif);
   font-weight: 500;
   min-width: 1.2em;
-  color: var(--m-accent);
+  color: var(--acc);
 }
 .c4-index button:hover {
-  color: var(--m-accent);
+  color: var(--acc);
   padding-left: 4px;
 }
 .c4-index button:active {
@@ -419,7 +419,7 @@
   font-variant-numeric: tabular-nums;
 }
 .c4-sheet a:hover {
-  color: var(--m-accent);
+  color: var(--acc);
 }
 .c4-sheet a:active {
   opacity: 0.7;
@@ -438,7 +438,7 @@
   z-index: -1;
   inset: -22% -28% -8%;
   pointer-events: none;
-  background: radial-gradient(ellipse 50% 60% at 50% 18%, var(--m-accent-soft), transparent 72%);
+  background: radial-gradient(ellipse 50% 60% at 50% 18%, var(--acc-soft), transparent 72%);
   opacity: 0.5;
   transition: opacity 0.9s var(--ease);
 }
@@ -501,7 +501,7 @@ html:not([data-wood="white"]) .c4-woodRed .c4-pool {
   display: none;
   margin-top: 10px;
   font-size: 13px;
-  color: var(--m-accent);
+  color: var(--acc);
 }
 html:not([data-wood="white"]) .c4-woodRed .c4-lit,
 html[data-wood="white"] .c4-woodWhite .c4-lit {
@@ -610,7 +610,7 @@ html[data-wood="white"] .c4-woodWhite .c4-litOn {
 @media (hover: hover) {
   .c4-exhibit:hover .c4-note,
   .c4-exhibit:focus-within .c4-note {
-    color: var(--m-accent);
+    color: var(--acc);
     transform: translateX(3px);
   }
   .c4-exhibit:hover .c4-alt,
@@ -663,7 +663,7 @@ html[data-wood="white"] .c4-woodWhite .c4-litOn {
   font-variation-settings: "opsz" 96;
   font-size: 54px;
   line-height: 0.9;
-  color: var(--m-accent);
+  color: var(--acc);
 }
 .c4-stepName {
   font-family: var(--serif);
@@ -677,12 +677,40 @@ html[data-wood="white"] .c4-woodWhite .c4-litOn {
   font-size: 15px;
   color: var(--mute);
 }
+/* the joining rule in a display-size order number (the hyphen stays in the text, for copying and reading aloud) */
+.c4-dash {
+  position: relative;
+  display: inline-block;
+  width: 0.36em;
+  margin: 0 0.08em;
+  -webkit-text-fill-color: transparent;
+  user-select: text;
+}
+.c4-dash::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 54%;
+  height: max(2px, 0.06em);
+  background: currentColor;
+}
+
+/* a piece cited in running text: its name set as a title, italic in roman text and roman in italic text */
+.c4-title {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--ink);
+}
+.c4-inscription .c4-title {
+  font-style: normal;
+}
 
 /* ---------------- room 6: provenance ---------------- */
 .c4-cabinet {
   position: relative;
   padding: 12px 12px 0;
-  background: linear-gradient(#e7e3db, #ddd8cf);
+  background: linear-gradient(var(--stone-2), var(--stone));
   box-shadow:
     0 0 0 1px rgb(29 27 24 / 0.28),
     0 28px 40px -28px rgb(29 27 24 / 0.5);
@@ -693,7 +721,7 @@ html[data-wood="white"] .c4-woodWhite .c4-litOn {
   right: -10px;
   top: -10px;
   height: 10px;
-  background: #d4cfc5;
+  background: color-mix(in srgb, var(--stone), var(--ink) 8%);
   box-shadow: 0 0 0 1px rgb(29 27 24 / 0.26);
 }
 .c4-drawers {
@@ -709,7 +737,7 @@ html[data-wood="white"] .c4-woodWhite .c4-litOn {
   align-items: center;
   min-height: 92px;
   padding: 10px 6px 12px;
-  background: linear-gradient(#f4f2ed, #e9e5de);
+  background: linear-gradient(var(--paper), var(--stone-2));
   box-shadow:
     inset 0 0 0 1px rgb(255 255 255 / 0.7),
     0 0 0 1px rgb(29 27 24 / 0.22),
@@ -727,7 +755,7 @@ html[data-wood="white"] .c4-woodWhite .c4-litOn {
   right: 4%;
   top: 0;
   height: 0;
-  background: linear-gradient(#cdc7bc, #ddd8cf);
+  background: linear-gradient(color-mix(in srgb, var(--stone), var(--ink) 12%), var(--stone));
   transform: translateY(0);
   transition:
     height 0.55s var(--ease),
@@ -763,8 +791,8 @@ html[data-wood="white"] .c4-woodWhite .c4-litOn {
   gap: 1px;
   min-width: 70%;
   padding: 5px 8px 6px;
-  background: #fff;
-  border: 1px solid var(--m-accent);
+  background: var(--paper);
+  border: 1px solid var(--acc);
   text-align: center;
   box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 3px rgb(29 27 24 / 0.08);
 }
@@ -792,7 +820,7 @@ html[data-wood="white"] .c4-woodWhite .c4-litOn {
   margin: 12px -12px 0;
   height: 18px;
   padding: 0 18px;
-  background: #d4cfc5;
+  background: color-mix(in srgb, var(--stone), var(--ink) 8%);
   box-shadow: 0 0 0 1px rgb(29 27 24 / 0.26);
 }
 .c4-cabinetBase::before,
@@ -801,12 +829,12 @@ html[data-wood="white"] .c4-woodWhite .c4-litOn {
   width: 18px;
   height: 18px;
   margin-top: 18px;
-  background: #bdb7ac;
+  background: color-mix(in srgb, var(--stone), var(--ink) 18%);
 }
 .c4-card {
   position: relative;
   padding: 22px 20px 20px 34px;
-  background-color: #fff;
+  background-color: var(--paper);
   background-image: repeating-linear-gradient(to bottom, transparent 0 29px, rgb(29 27 24 / 0.07) 29px 30px);
   background-position: 0 86px;
   box-shadow:
@@ -821,7 +849,7 @@ html[data-wood="white"] .c4-woodWhite .c4-litOn {
   top: 0;
   bottom: 0;
   width: 1px;
-  background: var(--m-accent);
+  background: var(--acc);
   opacity: 0.6;
 }
 @keyframes d04-cardIn {
@@ -836,8 +864,8 @@ html[data-wood="white"] .c4-woodWhite .c4-litOn {
   right: 18px;
   padding: 3px 8px;
   font-size: 11px;
-  color: var(--m-accent);
-  border: 1px solid var(--m-accent);
+  color: var(--acc);
+  border: 1px solid var(--acc);
   transform: rotate(4deg);
 }
 .c4-cardCode {
@@ -869,7 +897,7 @@ html[data-wood="white"] .c4-woodWhite .c4-litOn {
 
 /* ---------------- room 7: vault ---------------- */
 .c4-vaultRoom {
-  background: linear-gradient(#efebe4, #efebe4);
+  background: var(--stone-2);
 }
 .c4-vitrine {
   position: relative;
@@ -904,7 +932,7 @@ html[data-wood="white"] .c4-woodWhite .c4-litOn {
 .c4-vPlinth {
   width: 86%;
   padding: 14px 12px 16px;
-  background: linear-gradient(#f8f6f1, #e4e0d8);
+  background: linear-gradient(var(--paper), var(--stone));
   box-shadow: 0 0 0 1px rgb(29 27 24 / 0.18);
   text-align: center;
   font-size: 12px;
@@ -957,11 +985,12 @@ html[data-wood="white"] .c4-woodWhite .c4-litOn {
   height: 46px;
   display: grid;
   place-items: center;
+  align-content: center;
   font-family: var(--serif);
   font-size: 15px;
   color: var(--mute);
-  background: linear-gradient(#fbfaf7, #e3dfd7);
-  border-top: 3px solid #fff;
+  background: linear-gradient(var(--paper), var(--stone));
+  border-top: 3px solid var(--paper);
   box-shadow:
     0 0 0 1px rgb(29 27 24 / 0.16),
     0 10px 12px -10px rgb(29 27 24 / 0.4);
@@ -990,6 +1019,105 @@ html[data-wood="white"] .c4-woodWhite .c4-litOn {
 }
 .c4-plinth:hover .c4-plinthTip {
   opacity: 1;
+}
+
+/* the cuffs still held stand on their plinths in the lamp light; a placed one leaves a red dot, the way a
+   gallery marks a sold work */
+.c4-cuff {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: 46px;
+  width: 30px;
+  height: 24px;
+  translate: -50% 0;
+  filter: drop-shadow(0 3px 2px rgb(40 10 4 / 0.35));
+  transition: transform 0.4s var(--ease);
+}
+.c4-cuff::before {
+  /* the band: turned heartwood, lit from the front */
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 22%;
+  bottom: 0;
+  border-radius: 0 0 50% 50% / 0 0 28% 28%;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 3px, rgb(40 8 2 / 0.13) 3px 4px),
+    linear-gradient(90deg, #3e0f07, #8a3119 22%, #c4673f 41%, #9b3a20 60%, #5c1a0c 82%, #360c05);
+}
+.c4-cuff::after {
+  /* the opening, seen from just above */
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 44%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse 50% 50% at 50% 50%, #2a0a04 0 50%, #9e4426 56%, #d4805a 72%, #8a3119 100%);
+}
+.c4-plinth:hover .c4-cuff {
+  transform: translateY(-3px);
+}
+.c4-dot {
+  display: block;
+  width: 7px;
+  height: 7px;
+  margin: 4px auto 0;
+  border-radius: 50%;
+  background: var(--acc);
+  box-shadow: 0 0 0 1.5px var(--paper);
+}
+.c4-plinth[data-placed] .c4-beam {
+  /* multiplies with the opacity the walk sets: the lamps over placed plinths burn lower */
+  filter: opacity(0.45);
+}
+.c4-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 26px;
+  margin-bottom: 18px;
+  font-size: 13px;
+  color: var(--mute);
+}
+.c4-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.c4-legendCuff {
+  position: relative;
+  flex: none;
+  width: 20px;
+  height: 16px;
+}
+.c4-legendCuff::before,
+.c4-legendCuff::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+.c4-legendCuff::before {
+  top: 22%;
+  bottom: 0;
+  border-radius: 0 0 50% 50% / 0 0 28% 28%;
+  background: linear-gradient(90deg, #3e0f07, #8a3119 22%, #c4673f 41%, #9b3a20 60%, #5c1a0c 82%, #360c05);
+}
+.c4-legendCuff::after {
+  top: 0;
+  height: 44%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse 50% 50% at 50% 50%, #2a0a04 0 50%, #9e4426 56%, #d4805a 72%, #8a3119 100%);
+}
+.c4-legendDot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--acc);
 }
 
 /* ---------------- room 8: gifting ---------------- */
@@ -1026,7 +1154,7 @@ html[data-wood="white"] .c4-woodWhite .c4-litOn {
     padding 0.4s var(--ease);
 }
 .c4-tier li a:hover {
-  color: var(--m-accent);
+  color: var(--acc);
   padding-left: 6px;
 }
 .c4-tier li a:active {
@@ -1057,8 +1185,8 @@ html[data-wood="white"] .c4-woodWhite .c4-litOn {
   color: var(--grey);
 }
 .c4-circleForm:focus-within {
-  border-bottom-color: var(--m-accent);
-  box-shadow: 0 1px 0 var(--m-accent);
+  border-bottom-color: var(--acc);
+  box-shadow: 0 1px 0 var(--acc);
 }
 .c4-foot {
   display: grid;
@@ -1085,7 +1213,7 @@ html[data-wood="white"] .c4-woodWhite .c4-litOn {
 }
 .c4-foot a:hover,
 .c4-foot button:hover {
-  text-decoration-color: var(--m-accent);
+  text-decoration-color: var(--acc);
 }
 .c4-exitSign {
   align-self: flex-start;
@@ -1619,7 +1747,7 @@ html[data-wood="white"] .c4-woodOpt[data-tone="white"]:not(:disabled) {
 
   /* room 7 */
   .c4-vaultRoom {
-    background: linear-gradient(to bottom, #ece8e0 0 88%, transparent 88%);
+    background: linear-gradient(to bottom, var(--stone-2) 0 88%, transparent 88%);
   }
   .c4-glass {
     aspect-ratio: auto;
@@ -1643,10 +1771,33 @@ html[data-wood="white"] .c4-woodOpt[data-tone="white"]:not(:disabled) {
     height: 100%;
   }
   .c4-beam {
-    bottom: 17vh;
+    bottom: var(--ph, 17vh);
     width: 15vh;
-    height: 46vh;
+    height: calc(100% - var(--ph, 17vh));
     opacity: 0;
+  }
+  .c4-cuff {
+    bottom: var(--ph, 17vh);
+    width: 4.2vh;
+    height: 3.4vh;
+  }
+  .c4-dot {
+    width: 1vh;
+    height: 1vh;
+    margin-top: 1.2vh;
+  }
+  .c4-legend {
+    margin: 0;
+    font-size: clamp(12px, 1.5vh, 15px);
+    gap: 0.8vh 3.4vh;
+  }
+  .c4-legendCuff {
+    width: 2.6vh;
+    height: 2.1vh;
+  }
+  .c4-legendDot {
+    width: 1.1vh;
+    height: 1.1vh;
   }
   .c4-lampHead {
     top: 0;
@@ -1655,10 +1806,12 @@ html[data-wood="white"] .c4-woodOpt[data-tone="white"]:not(:disabled) {
   }
   .c4-block {
     max-width: none;
-    height: 17vh;
+    /* pedestals of a run are not one height: the tall ones lift the cuffs into the light */
+    height: var(--ph, 17vh);
     font-size: 2.2vh;
     border-top-width: 0.5vh;
     align-items: start;
+    align-content: start;
     padding-top: 2vh;
   }
 
@@ -1733,6 +1886,582 @@ html[data-wood="white"] .c4-woodOpt[data-tone="white"]:not(:disabled) {
   .c4-miniCard .c4-record div {
     min-height: 3.4vh;
     grid-template-columns: 9vh 1fr;
+  }
+}
+
+
+/* ================= round 2: two woods, curated gallery, the doorway into the shop ================= */
+.c4-giant {
+  color: var(--acc-deep);
+}
+.c4-compareHead {
+  margin-bottom: 8px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--mute);
+}
+.c4-compare tbody tr[data-lit] th,
+.c4-compare tbody tr[data-lit] td {
+  color: var(--ink);
+}
+.c4-compare tbody tr:not([data-lit]) th,
+.c4-compare tbody tr:not([data-lit]) td {
+  color: var(--mute);
+}
+.c4-compare tbody tr[data-lit] th {
+  box-shadow: inset 3px 0 0 var(--acc);
+  padding-left: 10px;
+}
+.c4-edLine {
+  margin-top: 3px;
+  color: var(--acc-deep);
+  font-variant-numeric: lining-nums;
+}
+.c4-cardText {
+  margin: -6px 0 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+.c4-edCount {
+  margin-top: 18px;
+  font-size: 14px;
+  color: var(--mute);
+}
+.c4-edCount b {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 30px;
+  line-height: 1;
+  color: var(--acc-deep);
+  margin-right: 6px;
+}
+
+/* the doorway at the end of the gallery: through to the shop */
+.c4-shopDoor {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 18px;
+}
+.c4-doorFrame {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  padding: 30px 22px 26px;
+  background: linear-gradient(var(--acc-soft), var(--stone-2));
+  border: 12px solid var(--stone);
+  border-bottom-width: 0;
+  box-shadow:
+    inset 0 0 0 1px rgb(29 27 24 / 0.3),
+    0 0 0 1px rgb(29 27 24 / 0.22);
+}
+.c4-doorSign {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  background: var(--ink);
+  color: var(--wall);
+  font-size: 13px;
+}
+.c4-doorBig {
+  font-family: var(--serif);
+  font-size: clamp(30px, 8vw, 44px);
+  line-height: 1.02;
+  text-wrap: balance;
+}
+.c4-doorInvite {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  padding: 16px 18px;
+  border-left: 1px solid var(--ink);
+}
+
+/* the 2011 Reserve: a rack of fifty vials */
+.c4-rackWrap {
+  position: relative;
+  display: grid;
+  gap: 10px;
+}
+.c4-rackLamps {
+  display: none;
+}
+.c4-rack {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 14px 6px;
+}
+.c4-vial {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+}
+.c4-vialCap {
+  width: 46%;
+  height: 7px;
+  background: linear-gradient(#4d3b22, #2f2414);
+  border-radius: 1px 1px 0 0;
+}
+.c4-vialGlass {
+  width: 62%;
+  aspect-ratio: 1 / 2.3;
+  border-radius: 2px 2px 6px 6px;
+  background:
+    linear-gradient(90deg, rgb(255 255 255 / 0.4) 0 18%, transparent 22% 70%, rgb(0 0 0 / 0.12)),
+    linear-gradient(transparent 0 28%, #b0782c 28% 100%);
+  box-shadow:
+    inset 0 0 0 1px rgb(80 52 18 / 0.45),
+    0 6px 8px -6px rgb(29 27 24 / 0.5);
+  transition: transform 0.4s var(--ease);
+}
+.c4-vial:hover .c4-vialGlass {
+  transform: translateY(-3px);
+}
+.c4-vialNo {
+  font-family: var(--serif);
+  font-size: 12px;
+  color: var(--mute);
+}
+.c4-rackShelf {
+  display: none;
+}
+
+/* the gift shelf */
+.c4-shelf {
+  border-top: 1px solid var(--ink);
+  padding-top: 10px;
+  display: grid;
+  justify-items: start;
+}
+.c4-shelf ul {
+  display: grid;
+  width: 100%;
+}
+.c4-shelf li a {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0;
+  font-size: 14px;
+  border-bottom: 1px solid var(--hair);
+  transition:
+    color 0.3s var(--ease),
+    padding 0.4s var(--ease);
+}
+.c4-shelf li a span:last-child {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--mute);
+}
+.c4-shelf li a:hover {
+  color: var(--acc);
+  padding-left: 6px;
+}
+.c4-shelf li a:active {
+  opacity: 0.7;
+}
+
+/* exit notes and the doorway to the shop */
+.c4-footNotes dl {
+  display: grid;
+  gap: 2px;
+}
+.c4-footNotes dt {
+  font-family: var(--serif);
+  font-size: 15px;
+  margin-top: 6px;
+}
+.c4-footNotes dt:first-child {
+  margin-top: 0;
+}
+.c4-footNotes dd {
+  color: var(--mute);
+}
+.c4-doorwayLabel {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  translate: -50% 0;
+  z-index: 2;
+  padding: 8px 14px;
+  background: var(--wall);
+  color: var(--ink);
+  font-size: 13px;
+  white-space: nowrap;
+  box-shadow: 0 0 0 1px var(--hair);
+  transition:
+    background-color 0.3s var(--ease),
+    color 0.3s var(--ease);
+}
+a.c4-doorway:hover .c4-doorwayLabel {
+  background: var(--ink);
+  color: var(--wall);
+}
+a.c4-doorway:active .c4-doorwayLabel {
+  transform: scale(0.98);
+}
+.c4-doorway {
+  display: block;
+}
+
+@media (min-width: 900px) and (min-height: 560px) and (min-aspect-ratio: 5/4) and (prefers-reduced-motion: no-preference) {
+  .c4-compareHead {
+    font-size: clamp(13px, 1.7vh, 17px);
+    margin-bottom: 0.8vh;
+  }
+  .c4-edCount {
+    margin-top: 2.4vh;
+    font-size: clamp(12px, 1.5vh, 15px);
+  }
+  .c4-edCount b {
+    font-size: 4.2vh;
+  }
+  .c4-cardText {
+    font-size: clamp(12px, 1.5vh, 15px);
+    margin: -1vh 0 1.6vh;
+  }
+
+  /* gallery end: a doorway cut into the wall, then a note about the other room */
+  .c4-shopDoor {
+    flex: none;
+    display: flex;
+    align-items: flex-end;
+    gap: 5vh;
+    height: 88%;
+    margin-left: 4vh;
+  }
+  .c4-doorFrame {
+    width: 40vh;
+    height: 74vh;
+    padding: 6vh 4vh 5vh;
+    border-width: 1.6vh 1.6vh 0;
+    align-content: end;
+    gap: 2vh;
+  }
+  .c4-doorBig {
+    font-size: 5.4vh;
+  }
+  .c4-doorSign {
+    position: absolute;
+    top: 3vh;
+    left: 4vh;
+    font-size: clamp(12px, 1.5vh, 14px);
+  }
+  .c4-doorInvite {
+    width: 30vh;
+    margin-bottom: 8vh;
+    padding: 2vh 2.4vh;
+  }
+
+  /* the Reserve rack */
+  .c4-vaultRoom {
+    --w: 286;
+  }
+  html[data-wood="white"] .c4-vaultRoom {
+    --w: 240;
+  }
+  /* the rack stands on the floor line: five rows of ten sized to the wall, shelf last */
+  .c4-rackWrap {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 0;
+  }
+  .c4-rackLamps {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    pointer-events: none;
+  }
+  .c4-rackBeam {
+    justify-self: center;
+    width: 16vh;
+    height: 100%;
+    opacity: 0;
+    background: radial-gradient(ellipse 34% 90% at 50% 0%, rgb(255 251 238 / 0.95), rgb(255 251 238 / 0) 75%);
+    will-change: opacity;
+  }
+  .c4-rack {
+    position: relative;
+    gap: 2.2vh 2.4vh;
+  }
+  .c4-vial {
+    gap: 0.3vh;
+  }
+  .c4-vialCap {
+    height: 0.9vh;
+  }
+  .c4-vialGlass {
+    width: 2.6vh;
+  }
+  .c4-vialNo {
+    font-size: clamp(10px, 1.3vh, 13px);
+    line-height: 1.2;
+  }
+  .c4-rackShelf {
+    display: block;
+    flex: none;
+    height: 1.4vh;
+    margin-top: 1.2vh;
+    background: linear-gradient(var(--paper), var(--stone));
+    box-shadow: 0 0 0 1px rgb(29 27 24 / 0.16);
+  }
+
+  .c4-shelf li a {
+    font-size: clamp(12px, 1.55vh, 15px);
+    padding: 0.8vh 0;
+  }
+  .c4-footNotes dt {
+    font-size: clamp(13px, 1.7vh, 16px);
+  }
+  .c4-doorwayLabel {
+    bottom: 3vh;
+    font-size: clamp(12px, 1.5vh, 14px);
+  }
+}
+
+
+/* ---------------- product wall, round 2: plates, options, quantity, keep ---------------- */
+.c4-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.c4-thumbBtn {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  overflow: hidden;
+  background: var(--stone-2);
+  outline: 1px solid var(--hair);
+  outline-offset: 3px;
+  cursor: pointer;
+  opacity: 0.62;
+  transition:
+    opacity 0.3s var(--ease),
+    outline-color 0.3s var(--ease),
+    transform 0.2s var(--ease);
+}
+.c4-thumbBtn:hover {
+  opacity: 1;
+}
+.c4-thumbBtn[aria-pressed="true"] {
+  opacity: 1;
+  outline: 1px solid var(--ink);
+}
+.c4-thumbBtn:active {
+  transform: scale(0.96);
+}
+.c4-thumbsNote {
+  font-size: 12px;
+  color: var(--mute);
+  margin-left: 4px;
+}
+.c4-buy {
+  display: grid;
+  align-content: start;
+}
+.c4-badge {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 1px 7px;
+  font-size: 11px;
+  color: var(--acc-deep);
+  border: 1px solid currentColor;
+  transform: rotate(-2deg);
+}
+.c4-bigPrice {
+  margin-top: 14px;
+  font-family: var(--serif);
+  font-size: 30px;
+  line-height: 1.1;
+  font-variant-numeric: lining-nums;
+}
+.c4-bigPrice span {
+  display: block;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--mute);
+}
+.c4-opts {
+  margin: 14px 0 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.c4-opts legend {
+  padding: 0;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: var(--mute);
+}
+.c4-opts > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.c4-opt {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-height: 42px;
+  padding: 9px 12px;
+  border: 1px solid var(--stone);
+  font-size: 14px;
+  cursor: pointer;
+  transition:
+    border-color 0.3s var(--ease),
+    background-color 0.3s var(--ease);
+}
+.c4-opt input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.c4-opt em {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--mute);
+  font-variant-numeric: tabular-nums;
+}
+.c4-opt:hover {
+  border-color: var(--ink);
+}
+.c4-opt:has(input:checked) {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+  background: var(--paper);
+}
+.c4-opt:has(input:focus-visible) {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+.c4-opt:active {
+  background: var(--stone-2);
+}
+.c4-buyRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+.c4-stepper {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--ink);
+  flex: none;
+}
+.c4-stepper button {
+  width: 40px;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background-color 0.2s var(--ease);
+}
+.c4-stepper button:hover:not(:disabled) {
+  background: var(--stone-2);
+}
+.c4-stepper button:active:not(:disabled) {
+  background: var(--stone);
+}
+.c4-stepper button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.c4-stepper > span {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  font-variant-numeric: tabular-nums;
+}
+.c4-addBtn {
+  flex: 1;
+  min-height: 48px;
+}
+.c4-buyMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 10px;
+}
+
+/* "on loan from the other room": the counterpart */
+.c4-loan {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 14px;
+  margin-top: 22px;
+  padding: 12px;
+  background: var(--paper);
+  box-shadow: 0 0 0 1px var(--hair);
+  transition:
+    box-shadow 0.4s var(--ease),
+    transform 0.4s var(--ease);
+}
+.c4-loan:hover {
+  box-shadow:
+    0 0 0 1px var(--ink),
+    0 18px 26px -20px rgb(29 27 24 / 0.5);
+  transform: translateY(-2px);
+}
+.c4-loan:active {
+  transform: none;
+}
+.c4-loanPhoto {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: var(--stone-2);
+}
+.c4-loanText {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+}
+.c4-loanName {
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+@media (min-width: 900px) and (min-height: 560px) and (min-aspect-ratio: 5/4) and (prefers-reduced-motion: no-preference) {
+  .c4-longLabel {
+    grid-template-columns: 1.08fr 1fr 1fr;
+  }
+  .c4-thumbBtn {
+    width: 7.4vh;
+    height: 7.4vh;
+  }
+  .c4-bigPrice {
+    margin-top: 1.6vh;
+    font-size: 3.6vh;
+  }
+  .c4-opts {
+    margin-top: 1.4vh;
+  }
+  .c4-opt {
+    min-height: 0;
+    padding: 0.9vh 1.3vh;
+    font-size: clamp(12px, 1.55vh, 15px);
+  }
+  .c4-buyRow {
+    margin-top: 1.6vh;
+  }
+  .c4-addBtn {
+    min-height: 5.4vh;
+  }
+  .c4-loan {
+    margin-top: 3vh;
+    grid-template-columns: 11vh 1fr;
+  }
+  .c4-loanName {
+    font-size: 2.2vh;
   }
 }
 

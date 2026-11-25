@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 export default function StackLayout({ children }: { children: ReactNode }) {
   return (
     <div className={`${brico.variable} s7 min-h-svh`}>
-      <BodyBackground color="#F8F6F2" />
+      <BodyBackground color="var(--s7-page)" />
       <Smooth />
       {children}
       <Dock />

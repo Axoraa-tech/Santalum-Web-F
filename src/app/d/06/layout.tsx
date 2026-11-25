@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Martian_Mono, Onest } from "next/font/google";
 import type { ReactNode } from "react";
-import { BodyBackground } from "@/components/BodyBackground";
 import "./bento.css";
 import { s } from "./_components/cls";
 import { FooterBento } from "./_components/FooterBento";
@@ -19,7 +18,6 @@ export const metadata: Metadata = {
 export default function BentoLayout({ children }: { children: ReactNode }) {
   return (
     <div className={`${onest.variable} ${martian.variable} ${s.root}`}>
-      <BodyBackground color="#EEEDE9" />
       <Shell>
         <main>{children}</main>
         <FooterBento />

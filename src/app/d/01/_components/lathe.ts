@@ -157,6 +157,50 @@ const RAW: Record<ProfileKey, () => P2[]> = {
       .q(0.65, 0.29, 0.65, 0.24)
       .l(0.65, -0.24)
       .q(0.65, -0.29, 0.7, -0.29).pts,
+  // Attar bottle: a round body, a narrow neck and a tall teardrop stopper.
+  vial: () =>
+    trace(0, -0.95)
+      .l(0.4, -0.95)
+      .q(0.48, -0.95, 0.48, -0.88)
+      .l(0.45, -0.83)
+      .c(0.74, -0.72, 0.76, -0.1, 0.44, 0.05)
+      .q(0.2, 0.14, 0.15, 0.22)
+      .l(0.15, 0.3)
+      .q(0.24, 0.3, 0.24, 0.36)
+      .q(0.24, 0.41, 0.14, 0.42)
+      .l(0.09, 0.45)
+      .c(0.32, 0.55, 0.28, 0.84, 0.11, 0.99)
+      .q(0.04, 1.06, 0, 1.07).pts,
+  // Round box with a domed lid and a turned finial, as Mysuru boxes are made.
+  casket: () =>
+    trace(0, -0.62)
+      .l(0.78, -0.62)
+      .q(0.86, -0.62, 0.86, -0.54)
+      .l(0.86, 0.05)
+      .l(0.82, 0.07)
+      .l(0.82, 0.09)
+      .l(0.88, 0.1)
+      .q(0.91, 0.1, 0.91, 0.16)
+      .c(0.91, 0.42, 0.6, 0.6, 0.22, 0.64)
+      .q(0.13, 0.66, 0.13, 0.72)
+      .q(0.25, 0.75, 0.21, 0.86)
+      .q(0.15, 0.95, 0, 0.95).pts,
+  // A slim numbered vial with a turned cap.
+  ampoule: () =>
+    trace(0, -1.18)
+      .l(0.22, -1.18)
+      .q(0.28, -1.18, 0.28, -1.12)
+      .l(0.28, 0.46)
+      .q(0.28, 0.54, 0.21, 0.56)
+      .l(0.19, 0.6)
+      .l(0.26, 0.62)
+      .q(0.3, 0.62, 0.3, 0.67)
+      .l(0.3, 0.8)
+      .l(0.27, 0.83)
+      .l(0.3, 0.86)
+      .l(0.3, 1.08)
+      .q(0.3, 1.17, 0.2, 1.19)
+      .l(0, 1.2).pts,
 };
 
 const cache = new Map<ProfileKey, Float32Array>();
@@ -179,6 +223,9 @@ export const DISPLAY: Record<ProfileKey, { scale: number; yaw: number; pitch: nu
   coaster: { scale: 1.04, yaw: -1.05, pitch: 0.26, tail: 0 },
   bowl: { scale: 0.98, yaw: -0.98, pitch: 0.24, tail: 0 },
   cuff: { scale: 1.3, yaw: -0.86, pitch: 0.22, tail: 0 },
+  vial: { scale: 1.02, yaw: -0.6, pitch: 0.2, tail: 0 },
+  casket: { scale: 1.0, yaw: -0.9, pitch: 0.24, tail: 0 },
+  ampoule: { scale: 1.0, yaw: -0.48, pitch: 0.18, tail: 0 },
 };
 
 export function lerpProfile(a: Float32Array, b: Float32Array, t: number, out: Float32Array) {

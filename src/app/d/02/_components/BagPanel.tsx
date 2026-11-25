@@ -4,23 +4,21 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { Photo } from "@/components/Photo";
-import { bag, bagTotals, useBag, type Line } from "@/lib/cart";
-import { FAMILIES, formatINR, getFamily, getVariant } from "@/lib/catalog";
+import { bag, bagSummary, useBag, type BagItem } from "@/lib/shop/bag";
+import { featured, formatINR, priceLabel, type Product } from "@/lib/shop/products";
 import { useWood } from "@/lib/wood";
-import { WOOD_LABEL, productHref, splitName } from "./copy";
+import { CHECKOUT, DELIVERY_LINE, SHOP, WOOD_LABEL, productHref, splitName } from "./copy";
 import { bagUI, lockScroll, unlockScroll, useBagUI } from "./store";
-import { AddButton, ArrowIcon, CloseIcon } from "./ui";
+import { ArrowIcon, CloseIcon, QuickAdd } from "./ui";
 import { s } from "./cls";
 
-function LineRow({ line }: { line: Line }) {
-  const f = getFamily(line.slug);
-  const v = getVariant(line.slug, line.wood);
-  if (!f || !v) return null;
-  const [name, sub] = splitName(f.name);
-  const shot = v.shots[0];
+function LineRow({ item }: { item: BagItem }) {
+  const p = item.product;
+  const [name, sub] = splitName(p.name);
+  const shot = p.shots[0];
   return (
     <li className="flex gap-4 py-4">
-      <Link href={productHref(f.slug)} onClick={() => bagUI.close()} className="relative size-[72px] shrink-0 overflow-hidden rounded-full bg-[var(--o-floor)] transition-transform hover:scale-105">
+      <Link href={productHref(p.slug)} onClick={() => bagUI.close()} className="relative size-[72px] shrink-0 overflow-hidden rounded-full bg-[var(--o-floor)] transition-transform hover:scale-105">
         <Photo p={shot.photo} tone={shot.tone} sizes="72px" />
       </Link>
       <div className="min-w-0 flex-1">
@@ -30,33 +28,36 @@ function LineRow({ line }: { line: Line }) {
               {name}
               {sub && <span className="font-semibold text-[var(--o-muted)]">, {sub}</span>}
             </p>
-            <p className="mt-0.5 text-[13px] text-[var(--o-muted)]">{WOOD_LABEL[line.wood]}</p>
-            {line.custom && <p className="mt-1 text-[13px] text-[var(--o-ink-2)]">{line.custom}</p>}
+            <p className="mt-0.5 text-[13px] text-[var(--o-muted)]">
+              {WOOD_LABEL[p.wood]}
+              {item.optionValue && `, ${item.optionValue.label}`}
+            </p>
+            {item.note && <p className="mt-1 text-[13px] text-[var(--o-ink-2)]">{item.note}</p>}
           </div>
-          <p className="shrink-0 text-[15px] font-semibold tabular-nums">{formatINR(v.price * line.qty)}</p>
+          <p className="shrink-0 text-[15px] font-semibold tabular-nums">{formatINR(item.total)}</p>
         </div>
         <div className="mt-2 flex items-center gap-1">
           <button
             type="button"
-            aria-label={`One fewer ${f.name}`}
-            onClick={() => bag.setQty(line, line.qty - 1)}
+            aria-label={`One fewer ${p.name}`}
+            onClick={() => bag.setQty(item.key, item.qty - 1)}
             className="grid size-8 place-items-center rounded-full border border-[var(--o-line)] text-[16px] transition-colors hover:border-[var(--o-ink)] active:scale-90"
           >
             −
           </button>
-          <span className="w-7 text-center text-[14px] tabular-nums" aria-label={`Quantity ${line.qty}`}>
-            {line.qty}
+          <span className="w-7 text-center text-[14px] tabular-nums" aria-label={`Quantity ${item.qty}`}>
+            {item.qty}
           </span>
           <button
             type="button"
-            aria-label={`One more ${f.name}`}
-            onClick={() => bag.setQty(line, line.qty + 1)}
-            disabled={line.qty >= 9}
+            aria-label={`One more ${p.name}`}
+            onClick={() => bag.setQty(item.key, item.qty + 1)}
+            disabled={item.qty >= 9}
             className="grid size-8 place-items-center rounded-full border border-[var(--o-line)] text-[16px] transition-colors hover:border-[var(--o-ink)] active:scale-90 disabled:opacity-40"
           >
             +
           </button>
-          <button type="button" onClick={() => bag.setQty(line, 0)} className="ml-auto text-[13px] text-[var(--o-muted)] underline-offset-4 hover:text-[var(--o-ink)] hover:underline">
+          <button type="button" onClick={() => bag.remove(item.key)} className="ml-auto text-[13px] text-[var(--o-muted)] underline-offset-4 hover:text-[var(--o-ink)] hover:underline">
             Remove
           </button>
         </div>
@@ -65,28 +66,34 @@ function LineRow({ line }: { line: Line }) {
   );
 }
 
+function PickRow({ p, small = false }: { p: Product; small?: boolean }) {
+  return (
+    <li className={`flex items-center gap-3 rounded-full p-1.5 pr-2 ${small ? "bg-[var(--o-stone)]" : "border border-[var(--o-line)]"}`}>
+      <Link href={productHref(p.slug)} onClick={() => bagUI.close()} className={`relative shrink-0 overflow-hidden rounded-full bg-[var(--o-floor)] ${small ? "size-11" : "size-14"}`}>
+        <Photo p={p.shots[0].photo} tone={p.shots[0].tone} sizes="56px" />
+      </Link>
+      <span className="min-w-0 flex-1">
+        <span className={`${s.syne} block truncate font-bold ${small ? "text-[14px]" : "text-[15px]"}`}>{splitName(p.name)[0]}</span>
+        <span className="block text-[13px] tabular-nums text-[var(--o-muted)]">{priceLabel(p)}</span>
+      </span>
+      <QuickAdd product={p} />
+    </li>
+  );
+}
+
 function Empty() {
   const wood = useWood();
-  const picks = FAMILIES.filter((f) => f.level === "Discovery" || f.slug === "heartwood-powder").filter((f) => f.variants[wood]).slice(0, 3);
   return (
     <div className="flex flex-1 flex-col">
-      <p className="mt-2 text-[16px] text-[var(--o-ink-2)]">Nothing in your bag yet. Most people begin with one of these.</p>
+      <p className="mt-2 text-[16px] text-[var(--o-ink-2)]">
+        Nothing in your bag yet. {wood === "red" ? "Three red pieces from the ring, to begin with:" : "Three white pieces from the ring, to begin with:"}
+      </p>
       <ul className="mt-6 space-y-3">
-        {picks.map((f) => {
-          const v = f.variants[wood]!;
-          return (
-            <li key={f.slug} className="flex items-center gap-4 rounded-full border border-[var(--o-line)] p-2 pr-3">
-              <span className="relative size-14 shrink-0 overflow-hidden rounded-full bg-[var(--o-floor)]">
-                <Photo p={v.shots[0].photo} tone={v.shots[0].tone} sizes="56px" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className={`${s.syne} block truncate text-[15px] font-bold`}>{splitName(f.name)[0]}</span>
-                <span className="block text-[13px] tabular-nums text-[var(--o-muted)]">{formatINR(v.price)}</span>
-              </span>
-              <AddButton family={f} label="Add" className="!h-11 !px-4 !text-[13px]" />
-            </li>
-          );
-        })}
+        {featured(wood)
+          .slice(0, 3)
+          .map((p) => (
+            <PickRow key={p.slug} p={p} />
+          ))}
       </ul>
     </div>
   );
@@ -95,27 +102,17 @@ function Empty() {
 /** A short "goes with" row under a small bag, so the panel never sits half empty. */
 function Pairs({ have }: { have: string[] }) {
   const wood = useWood();
-  const picks = FAMILIES.filter((f) => !have.includes(f.slug) && f.variants[wood] && (f.level === "Discovery" || f.level === "Ritual")).slice(0, 2);
+  const picks = featured(wood)
+    .filter((p) => !have.includes(p.slug))
+    .slice(0, 2);
   if (!picks.length) return null;
   return (
     <div className="mt-auto pb-4 pt-8">
-      <p className="text-[13px] font-semibold text-[var(--o-muted)]">Small pieces to add</p>
+      <p className="text-[13px] font-semibold text-[var(--o-muted)]">From the ring</p>
       <ul className="mt-3 space-y-2">
-        {picks.map((f) => {
-          const v = f.variants[wood]!;
-          return (
-            <li key={f.slug} className="flex items-center gap-3 rounded-full bg-[var(--o-stone)] p-1.5 pr-2">
-              <span className="relative size-11 shrink-0 overflow-hidden rounded-full bg-[var(--o-floor)]">
-                <Photo p={v.shots[0].photo} tone={v.shots[0].tone} sizes="44px" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className={`${s.syne} block truncate text-[14px] font-bold`}>{splitName(f.name)[0]}</span>
-                <span className="block text-[12px] tabular-nums text-[var(--o-muted)]">{formatINR(v.price)}</span>
-              </span>
-              <AddButton family={f} label="Add" className="!h-10 !px-3.5 !text-[12px]" />
-            </li>
-          );
-        })}
+        {picks.map((p) => (
+          <PickRow key={p.slug} p={p} small />
+        ))}
       </ul>
     </div>
   );
@@ -127,7 +124,7 @@ export function BagPanel() {
   const lines = useBag();
   const reduced = !!useReducedMotion();
   const closeRef = useRef<HTMLButtonElement>(null);
-  const { count, subtotal } = bagTotals(lines);
+  const { items, count, subtotal } = bagSummary(lines);
 
   useEffect(() => {
     if (!open) return;
@@ -179,9 +176,7 @@ export function BagPanel() {
                 <h2 id="o2-bag-title" className={`${s.display} text-[40px]`}>
                   Your bag
                 </h2>
-                <p className="mt-2 text-[14px] text-[var(--o-muted)]">
-                  {count === 0 ? "Empty" : `${count} ${count === 1 ? "piece" : "pieces"}`}
-                </p>
+                <p className="mt-2 text-[14px] text-[var(--o-muted)]">{count === 0 ? "Empty" : `${count} ${count === 1 ? "piece" : "pieces"}`}</p>
                 {/* sits exactly where the bag button was, so the button becomes the close button */}
                 <button
                   ref={closeRef}
@@ -195,16 +190,16 @@ export function BagPanel() {
               </div>
 
               <div data-lenis-prevent className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-6 md:px-8">
-                {lines.length === 0 ? (
+                {items.length === 0 ? (
                   <Empty />
                 ) : (
                   <>
                     <ul className="divide-y divide-[var(--o-line)]">
-                      {lines.map((l) => (
-                        <LineRow key={`${l.slug}-${l.wood}-${l.custom ?? ""}`} line={l} />
+                      {items.map((it) => (
+                        <LineRow key={it.key} item={it} />
                       ))}
                     </ul>
-                    {lines.length < 3 && <Pairs have={lines.map((l) => l.slug)} />}
+                    {items.length < 3 && <Pairs have={items.map((l) => l.slug)} />}
                   </>
                 )}
               </div>
@@ -214,10 +209,10 @@ export function BagPanel() {
                   <p className="text-[15px]">Subtotal</p>
                   <p className={`${s.syne} text-[26px] font-bold tabular-nums tracking-[-0.03em]`}>{formatINR(subtotal)}</p>
                 </div>
-                <p className="mt-1 text-[13px] text-[var(--o-muted)]">Delivery and taxes are confirmed before payment.</p>
+                <p className="mt-1 text-[13px] text-[var(--o-muted)]">{DELIVERY_LINE}</p>
                 {count > 0 ? (
                   <Link
-                    href="/d/02/checkout"
+                    href={CHECKOUT}
                     onClick={() => bagUI.close()}
                     className="group mt-5 flex h-14 items-center justify-between rounded-full bg-[var(--o-ink)] pl-7 pr-2 text-[15px] font-semibold text-white transition-colors hover:bg-black active:scale-[0.99]"
                   >
@@ -227,13 +222,13 @@ export function BagPanel() {
                     </span>
                   </Link>
                 ) : (
-                  <button
-                    type="button"
+                  <Link
+                    href={SHOP}
                     onClick={() => bagUI.close()}
-                    className="mt-5 h-14 w-full rounded-full border border-[var(--o-ink)] text-[15px] font-semibold transition-colors hover:bg-[var(--o-ink)] hover:text-white"
+                    className="mt-5 flex h-14 w-full items-center justify-center rounded-full border border-[var(--o-ink)] text-[15px] font-semibold transition-colors hover:bg-[var(--o-ink)] hover:text-white"
                   >
-                    Keep looking
-                  </button>
+                    Go to the shop
+                  </Link>
                 )}
               </div>
             </div>

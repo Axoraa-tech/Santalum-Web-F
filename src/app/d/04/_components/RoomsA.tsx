@@ -2,43 +2,92 @@
 
 import Link from "next/link";
 import { Fragment } from "react";
-import { W, WT } from "@/components/maison/W";
-import { CATEGORIES, formatINR, WOOD_NAMES, type Family } from "@/lib/catalog";
-import { PHOTOS } from "@/lib/photos";
+import { W } from "@/components/maison/W";
+import { CONTENT } from "@/lib/shop/content";
+import { CATEGORIES, featured, productsFor, priceLabel, type Product } from "@/lib/shop/products";
+import { PHOTOS, type PhotoRef } from "@/lib/photos";
 import { switchWood, type Wood } from "@/lib/wood";
 import { s } from "./cls";
-import { accession, familiesIn, goToRoom, ROOMS } from "./store";
+import { platesOf } from "./plates";
+import { accession, countIn, goToRoom, other, ROOMS, shopHref } from "./store";
+import { Rating } from "./Reviews";
 import { at, capital, cx, Frame, RoomShell, vars, words } from "./ui";
 
 /* ======================= Room 1: Entrance ======================= */
-export function Entrance() {
+const ENTRANCE: Record<
+  Wood,
+  {
+    title: string;
+    paras: string[];
+    walk: [string, string];
+    big: { p: PhotoRef; name: string; text: string };
+    vinyl: string;
+    small: { p: PhotoRef; name: string; text: string };
+  }
+> = {
+  red: {
+    title: "Raktachandan, the red heartwood",
+    paras: [
+      CONTENT.red.hero.sub,
+      "This is the red room of Santalum Maison: colour, weight and the lathe, from the dry hills of the Eastern Ghats to the 2011 Vault.",
+    ],
+    walk: ["Scroll down to walk through nine red rooms.", "Nine red rooms. Scroll, swipe or use the arrow keys to walk."],
+    big: {
+      p: CONTENT.red.hero.photo,
+      name: "End grain, red heartwood",
+      text: "The close grain of Pterocarpus santalinus. The red deepens toward black at the core, and the slower the tree grew, the deeper it goes.",
+    },
+    vinyl: CONTENT.red.hero.title,
+    small: {
+      p: PHOTOS.malaHand,
+      name: "A mala in the hand",
+      text: "An old hand on a string of red beads. In this house we photograph hands and the work, not faces.",
+    },
+  },
+  white: {
+    title: "Srigandha, the fragrant heartwood",
+    paras: [
+      CONTENT.white.hero.sub,
+      "This is the white room of Santalum Maison: oil, attar, chandan and Mysuru carving, from the temple towns of Karnataka to the 2011 Reserve.",
+    ],
+    walk: ["Scroll down to walk through nine white rooms.", "Nine white rooms. Scroll, swipe or use the arrow keys to walk."],
+    big: {
+      p: CONTENT.white.hero.photo,
+      name: "A cut log, heartwood and sapwood",
+      text: "Only the darker heartwood carries the oil. The pale ring of sapwood has no scent, and we set it aside.",
+    },
+    vinyl: CONTENT.white.hero.title,
+    small: {
+      p: PHOTOS.diyaHands,
+      name: "A lamp for the puja",
+      text: "Held in two hands at the start of a puja, where fresh chandan paste is laid beside the flame.",
+    },
+  },
+};
+
+function EntranceWood({ wood }: { wood: Wood }) {
+  const e = ENTRANCE[wood];
   return (
-    <RoomShell id="entrance" n="1" name="Entrance" w={300} className={s.entrance}>
-      <div className={s.at} style={at(7, 21, { wd: 32 })}>
-        <h2 className={s.h3}>A house for sandalwood</h2>
+    <>
+      <div className={s.at} style={at(7, 19, { wd: 33 })}>
+        <h2 className={s.h3}>{e.title}</h2>
         <div className={cx(s.body, "mt-3")}>
-          <p>
-            Santalum Maison is a contemporary Indian house for objects, jewellery and gifts in red and white sandalwood.
-          </p>
-          <p>Each piece is made by hand from one batch of heartwood, numbered, and sent with its record.</p>
+          {e.paras.map((p) => (
+            <p key={p}>{p}</p>
+          ))}
         </div>
+        <Link href="/d/04/shop" className={cx(s.btn, "mt-5")}>
+          {CONTENT[wood].hero.cta}
+        </Link>
         <p className={s.walk}>
           <span className={s.walkLine} aria-hidden="true" />
-          <span className={s.hideH}>Scroll down to walk through nine rooms.</span>
-          <span className={s.onlyH}>Nine rooms. Scroll, swipe or use the arrow keys to walk.</span>
+          <span className={s.hideH}>{e.walk[0]}</span>
+          <span className={s.onlyH}>{e.walk[1]}</span>
         </p>
       </div>
 
-      <h1 className={s.giant} style={vars({ x: 44 })} data-drift="0.2" aria-label="Santalum">
-        {"Santalum".split("").map((ch, i) => (
-          <span key={i} style={vars({ i })} aria-hidden="true">
-            {ch}
-          </span>
-        ))}
-      </h1>
-
       <Frame
-        p={PHOTOS.temple}
+        p={e.big.p}
         ar={0.72}
         className={cx(s.at, s.right)}
         style={at(150, 13, { ht: 58, vw: "78%" })}
@@ -46,63 +95,93 @@ export function Entrance() {
         sizes="(min-width: 900px) 44vh, 80vw"
       />
       <div className={cx(s.label, s.plaque, s.at)} style={at(196, 50, { wd: 25 })}>
-        <h3 className={s.h3}>Temple corridor</h3>
-        <p>Carved stone pillars along a Hoysala temple corridor in Karnataka, where white sandalwood has long been worked.</p>
-        <p className={s.acc}>Photograph</p>
+        <h3 className={s.h3}>{e.big.name}</h3>
+        <p>{e.big.text}</p>
+        <p className={s.acc}>Photograph, plate 1</p>
       </div>
 
       <p className={cx(s.vinyl, s.at)} style={at(196, 12, { wd: 52 })}>
-        Four thousand years found its way to you.
+        {e.vinyl}
       </p>
 
-      <Frame
-        p={PHOTOS.diyaHands}
-        ar={0.8}
-        className={s.at}
-        style={at(256, 28, { ht: 38, vw: "64%" })}
-        sizes="(min-width: 900px) 32vh, 64vw"
-      />
+      <Frame p={e.small.p} ar={0.8} className={s.at} style={at(256, 28, { ht: 38, vw: "64%" })} sizes="(min-width: 900px) 32vh, 64vw" />
       <div className={cx(s.label, s.plaque, s.at)} style={at(256, 70, { wd: 34 })}>
-        <h3 className={s.h3}>Clay diya</h3>
-        <p>Held in two hands at the start of a ritual. In this house we photograph hands and the work, not faces.</p>
+        <h3 className={s.h3}>{e.small.name}</h3>
+        <p>{e.small.text}</p>
       </div>
+    </>
+  );
+}
+
+export function Entrance() {
+  return (
+    <RoomShell room={ROOMS[0]} w={300} className={s.entrance}>
+      <W red={<EntranceWood wood="red" />} white={<EntranceWood wood="white" />} />
+      <h1 className={s.giant} style={vars({ x: 44 })} data-drift="0.2" aria-label="Santalum">
+        {"Santalum".split("").map((ch, i) => (
+          <span key={i} style={vars({ i })} aria-hidden="true">
+            {ch}
+          </span>
+        ))}
+      </h1>
     </RoomShell>
   );
 }
 
 /* ======================= Room 2: Wall text ======================= */
-export function WallText() {
+const WALL: Record<
+  Wood,
+  { title: string; names: { text: string; lang: string; note: string }[]; frame: { p: PhotoRef; tone?: "red"; name: string; text: string } }
+> = {
+  red: {
+    title: "A dense red wood",
+    names: [
+      { text: CONTENT.red.sanskrit, lang: "sa", note: "Raktachandana, red sandal: the Sanskrit name for Pterocarpus santalinus." },
+      { text: CONTENT.red.kannada, lang: "kn", note: "The same name in Kannada. At home it is simply raktachandan." },
+    ],
+    frame: {
+      p: PHOTOS.turned,
+      tone: "red",
+      name: "Turned, not carved",
+      text: "Beads, bowls and bangles go on the lathe. The wood is dense enough to take a fine edge and keep it for years.",
+    },
+  },
+  white: {
+    title: "A fragrant wood",
+    names: [
+      { text: CONTENT.white.sanskrit, lang: "sa", note: "Shvetachandana, white sandal: the Sanskrit name for Santalum album." },
+      { text: CONTENT.white.kannada, lang: "kn", note: "Srigandha, the Kannada name. Most homes in the south simply say chandan." },
+    ],
+    frame: {
+      p: PHOTOS.carving,
+      name: "Carved in Mysuru",
+      text: "A carver follows the grain of a white heartwood block. Fans, figures and boxes are still carved this way in Mysuru.",
+    },
+  },
+};
+
+function WallWood({ wood }: { wood: Wood }) {
+  const w = WALL[wood];
+  const ct = CONTENT[wood];
   return (
-    <RoomShell id="wall-text" n="2" name="Wall text" w={214}>
+    <>
       <article className={cx(s.intro, s.at)} style={at(8, 10, { wd: 112 })}>
-        <h2 className={s.h2}>Two woods, one house</h2>
+        <h2 className={s.h2}>{w.title}</h2>
         <div className={cx(s.essay, s.body)}>
-          <p>
-            Sandalwood, in India, means two different trees. Red sandalwood, Pterocarpus santalinus, grows in the Eastern
-            Ghats, mostly in Andhra Pradesh. It is deep red, dense and fine-grained, and it has almost no scent. It is
-            regulated internationally under CITES Appendix II, so every piece needs a clear record of where its wood came
-            from.
-          </p>
-          <p>
-            White sandalwood, Santalum album, grows in the dry forests of southern India. It is pale gold and fragrant,
-            and its oil sits in the heartwood, the dark centre of the tree. Mysuru, in Karnataka, is its traditional
-            craft centre.
-          </p>
-          <p>
-            We work with both and keep them apart. Each object is made in one wood, from one batch, and carries that
-            batch number with it. The lighting switch at the top of every room changes the wood: walk the same museum in
-            red, or in white.
-          </p>
+          {ct.intro.map((p) => (
+            <p key={p}>{p}</p>
+          ))}
+          <p>{ct.regulation}</p>
         </div>
-        <nav className={s.index} aria-label="Rooms of this museum">
-          <p className={s.indexTitle}>In these rooms</p>
+        <nav className={s.index} aria-label={`Rooms of the ${wood} museum`}>
+          <p className={s.indexTitle}>{wood === "red" ? "In the red rooms" : "In the white rooms"}</p>
           {[ROOMS.slice(2, 4), ROOMS.slice(4, 6), ROOMS.slice(6, 8)].map((group) => (
             <ul key={group[0].id}>
               {group.map((r) => (
                 <li key={r.id}>
                   <button type="button" onClick={() => goToRoom(r.id)}>
                     <b>{r.n}</b>
-                    {r.name}
+                    {r[wood]}
                   </button>
                 </li>
               ))}
@@ -112,72 +191,110 @@ export function WallText() {
       </article>
 
       <div className={cx(s.names, s.at)} style={at(176, 12, { wd: 30 })}>
-        <p>
-          <span className={s.deva} lang="sa">
-            रक्तचन्दन
-          </span>
-        </p>
-        <p className={s.small}>
-          <i>Raktachandana</i>, red sandal. The name used in Sanskrit texts for Pterocarpus santalinus.
-        </p>
-        <p className={s.deva} lang="sa">
-          श्वेतचन्दन
-        </p>
-        <p className={s.small}>
-          <i>Shvetachandana</i>, white sandal. Santalum album, the fragrant one.
-        </p>
+        {w.names.map((n) => (
+          <Fragment key={n.text}>
+            <p className={s.deva} lang={n.lang}>
+              {n.text}
+            </p>
+            <p className={s.small}>{n.note}</p>
+          </Fragment>
+        ))}
       </div>
 
       <Frame
-        p={PHOTOS.carving}
+        p={w.frame.p}
+        tone={w.frame.tone}
         ar={0.78}
         className={cx(s.at, s.right)}
         style={at(130, 12, { ht: 54, vw: "82%" })}
         sizes="(min-width: 900px) 44vh, 82vw"
       />
       <div className={cx(s.label, s.at)} style={at(176, 50, { wd: 28 })}>
-        <h3 className={s.h3}>Carving by hand</h3>
-        <p>A carver works a block of heartwood with a chisel, following the grain.</p>
+        <h3 className={s.h3}>{w.frame.name}</h3>
+        <p>{w.frame.text}</p>
       </div>
       <p className={cx(s.vinyl, s.at)} style={at(130, 71, { wd: 80 })}>
-        From the heartwood.
+        {ct.oneLine}
       </p>
+    </>
+  );
+}
+
+export function WallText() {
+  return (
+    <RoomShell room={ROOMS[1]} w={214}>
+      <W red={<WallWood wood="red" />} white={<WallWood wood="white" />} />
     </RoomShell>
   );
 }
 
-/* ======================= Room 3: The two woods ======================= */
-function WoodLabel({ wood, code }: { wood: Wood; code: string }) {
-  const n = WOOD_NAMES[wood];
+/* ======================= Room 3: Red beside white ======================= */
+function WoodLabel({ wood }: { wood: Wood }) {
+  const ct = CONTENT[wood];
   return (
     <>
-      <h3 className={s.h3}>{n.common}</h3>
-      <p className={s.latin}>{n.latin}</p>
+      <h3 className={s.h3}>{ct.name}</h3>
+      <p className={s.latin}>{ct.latin}</p>
       <p className={s.deva} lang="sa">
-        {n.sa}
+        {ct.sanskrit}
       </p>
-      <p>Heartwood. {wood === "red" ? "Eastern Ghats, Andhra Pradesh." : "Dry forests of southern India; Mysuru craft tradition."}</p>
-      <p className="mt-1">
-        {wood === "red"
-          ? "Deep red, dense, fine-grained; almost no scent. Regulated internationally under CITES Appendix II."
-          : "Pale gold and fragrant. The oil is in the heartwood, nowhere else."}
-      </p>
-      <p className={cx(s.acc, "mt-2")}>Accession {code}</p>
+      <p>Heartwood. {ct.origin.region}.</p>
+      <p className="mt-1">{ct.oneLine}</p>
+      <p className={cx(s.acc, "mt-2")}>Accession SM.2026.00{wood === "red" ? 1 : 2}</p>
       <button type="button" className={cx(s.link, s.lit)} onClick={() => switchWood(wood)}>
         Light the {wood} room
       </button>
-      <p className={s.litOn}>This room is lit in {n.common.toLowerCase()}.</p>
+      <p className={s.litOn}>This room is lit for {ct.name.toLowerCase()}.</p>
     </>
+  );
+}
+
+const FACT_ROWS = ["Grows in", "Colour", "Scent", "Used for"];
+const fact = (w: Wood, label: string) => CONTENT[w].facts.find((f) => f.label === label)?.value ?? "";
+
+function Compare({ wood }: { wood: Wood }) {
+  const order: Wood[] = [wood, other(wood)];
+  return (
+    <div className={cx(s.compareWrap, s.at)} style={at(8, 72, { wd: 163 })}>
+      <p className={s.compareHead}>
+        {wood === "red"
+          ? "Read from the red side: the wood lit in this room comes first."
+          : "Read from the white side: the wood lit in this room comes first."}
+      </p>
+      <table className={s.compare}>
+        <caption className="sr-only">{wood === "red" ? "Red sandalwood compared with white" : "White sandalwood compared with red"}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Wood</th>
+            {FACT_ROWS.map((l) => (
+              <th key={l} scope="col">
+                {l}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {order.map((w) => (
+            <tr key={w} data-lit={w === wood ? "" : undefined}>
+              <th scope="row">{CONTENT[w].name}</th>
+              {FACT_ROWS.map((l) => (
+                <td key={l}>{fact(w, l)}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
 export function TwoWoods() {
   return (
-    <RoomShell id="two-woods" n="3" name="The two woods" w={184}>
+    <RoomShell room={ROOMS[2]} w={184}>
       <div className={s.woodPair}>
         <div className={cx(s.woodRed, "grid gap-4")}>
           <Frame
-            p={PHOTOS.redChip}
+            p={CONTENT.red.hero.photoAlt}
             ar={0.78}
             className={s.at}
             style={at(8, 12, { ht: 56, vw: "84%" })}
@@ -185,13 +302,13 @@ export function TwoWoods() {
             dim
             sizes="(min-width: 900px) 44vh, 84vw"
           />
-          <div className={cx(s.label, s.objLabel, s.at)} style={at(55, 30, { wd: 30 })}>
-            <WoodLabel wood="red" code="SM.2026.001" />
+          <div className={cx(s.label, s.objLabel, s.at)} style={at(55, 26, { wd: 30 })}>
+            <WoodLabel wood="red" />
           </div>
         </div>
         <div className={cx(s.woodWhite, "grid gap-4")}>
           <Frame
-            p={PHOTOS.whiteLog}
+            p={CONTENT.white.hero.photo}
             ar={0.78}
             className={cx(s.at, s.right)}
             style={at(94, 12, { ht: 56, vw: "84%" })}
@@ -199,70 +316,39 @@ export function TwoWoods() {
             dim
             sizes="(min-width: 900px) 44vh, 84vw"
           />
-          <div className={cx(s.label, s.objLabel, s.at)} style={at(141, 30, { wd: 30 })}>
-            <WoodLabel wood="white" code="SM.2026.002" />
+          <div className={cx(s.label, s.objLabel, s.at)} style={at(141, 26, { wd: 30 })}>
+            <WoodLabel wood="white" />
           </div>
         </div>
       </div>
-
-      <div className={cx(s.compareWrap, s.at)} style={at(8, 73, { wd: 163 })}>
-        <table className={s.compare}>
-          <caption className="sr-only">Red and white sandalwood compared</caption>
-          <thead>
-            <tr>
-              <th scope="col">Wood</th>
-              <th scope="col">Colour</th>
-              <th scope="col">Scent</th>
-              <th scope="col">Oil</th>
-              <th scope="col">Grows in</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th scope="row">Red sandalwood</th>
-              <td>Deep red, nearly black at the core</td>
-              <td>Almost none</td>
-              <td>Does not carry it</td>
-              <td>Eastern Ghats, mainly Andhra Pradesh</td>
-            </tr>
-            <tr>
-              <th scope="row">White sandalwood</th>
-              <td>Pale gold</td>
-              <td>Fragrant</td>
-              <td>In the heartwood</td>
-              <td>Dry forests of southern India</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <W red={<Compare wood="red" />} white={<Compare wood="white" />} />
     </RoomShell>
   );
 }
 
-/* ======================= Room 4: The collection ======================= */
+/* ======================= Room 4: The gallery ======================= */
 type Hang = { top: number; ht: number; ar: number; below?: boolean };
 
 /** Varied hanging: tall portraits with labels beside, smaller pieces with labels below. */
 export const HANG: Hang[] = [
   { top: 12, ht: 46, ar: 0.8 },
   { top: 40, ht: 34, ar: 1 },
-  { top: 14, ht: 40, ar: 1.25, below: true },
+  { top: 9, ht: 36, ar: 1.25, below: true },
   { top: 18, ht: 62, ar: 0.75 },
-  { top: 34, ht: 30, ar: 0.85, below: true },
-  { top: 12, ht: 44, ar: 1, below: true },
+  { top: 18, ht: 28, ar: 0.85, below: true },
+  { top: 9, ht: 36, ar: 1, below: true },
   { top: 30, ht: 44, ar: 1.3 },
   { top: 12, ht: 56, ar: 0.78 },
-  { top: 38, ht: 36, ar: 0.9 },
-  { top: 14, ht: 42, ar: 1.1, below: true },
-  { top: 16, ht: 64, ar: 0.8 },
 ];
 
-export function Exhibit({ f, wood, hang, odd }: { f: Family; wood: Wood; hang: Hang; odd?: boolean }) {
-  const v = f.variants[wood];
-  if (!v) return null;
-  const [a, b] = v.shots;
-  const n = WOOD_NAMES[wood];
-  const href = `/d/04/p/${f.slug}`;
+export function editionLine(p: Product) {
+  return p.edition ? `Edition of ${p.edition.size}. ${capital(words(p.edition.left))} remain.` : null;
+}
+
+export function Exhibit({ p, hang, odd }: { p: Product; hang: Hang; odd?: boolean }) {
+  const [a, b] = platesOf(p);
+  const ct = CONTENT[p.wood];
+  const href = `/d/04/p/${p.slug}`;
   return (
     <article
       className={s.exhibit}
@@ -272,8 +358,10 @@ export function Exhibit({ f, wood, hang, odd }: { f: Family; wood: Wood; hang: H
       <Frame
         p={a.photo}
         tone={a.tone}
+        crop={a.crop}
         alt={b?.photo}
         altTone={b?.tone}
+        altCrop={b?.crop}
         ar={hang.ar}
         style={vars({ ht: hang.ht })}
         light
@@ -282,16 +370,17 @@ export function Exhibit({ f, wood, hang, odd }: { f: Family; wood: Wood; hang: H
         <Link href={href} className={s.exhibitLink} tabIndex={-1} aria-hidden="true" />
       </Frame>
       <div className={s.label}>
-        <h3 className={s.h3}>{f.name}</h3>
+        <h3 className={s.h3}>{p.name}</h3>
         <p>
-          {n.common}, <span className={s.latin}>{n.latin}</span>
+          {ct.name}, <span className={s.latin}>{ct.latin}</span>
         </p>
-        {f.edition && <p>{f.edition}</p>}
-        <p className={s.note}>{v.note}</p>
-        <p className={cx(s.acc, "mt-1")}>Accession {accession(f.slug, wood)}</p>
+        {editionLine(p) && <p className={s.edLine}>{editionLine(p)}</p>}
+        <p className={s.note}>{p.short}</p>
+        <Rating slug={p.slug} />
+        <p className={cx(s.acc, "mt-1")}>Accession {accession(p)}</p>
         <div className={s.priceRow}>
-          <span className={s.price}>{formatINR(v.price)}</span>
-          <Link href={href} className={s.link} aria-label={`View ${f.name} in ${n.common.toLowerCase()}`}>
+          <span className={s.price}>{priceLabel(p)}</span>
+          <Link href={href} className={s.link} aria-label={`View ${p.name}`}>
             View
           </Link>
         </div>
@@ -300,111 +389,110 @@ export function Exhibit({ f, wood, hang, odd }: { f: Family; wood: Wood; hang: H
   );
 }
 
-const ORDER = ["objects", "beads", "powder", "gifting", "jewellery"] as const;
+const GALLERY: Record<Wood, { title: string; body: (n: number, all: number) => string; hint: string; invite: string; inviteText: string }> = {
+  red: {
+    title: "The red gallery",
+    body: (n, all) =>
+      `${capital(words(n))} of the ${all} red sandalwood pieces hang here: beads first, then the desk and the home, the powder, a box and the jewellery. The rest are in the shop.`,
+    hint: "Each frame has its own picture light. Point at a frame, or tab to its label, and the photograph turns to show the piece another way.",
+    invite: "The white room hangs oil, attar and Mysuru carving",
+    inviteText: "Same walls, other wood. Nothing in it is the same piece.",
+  },
+  white: {
+    title: "The fragrant gallery",
+    body: (n, all) =>
+      `${capital(words(n))} of the ${all} white sandalwood pieces hang here: the oils first, then the incense and the chandan stone, the beads and a Mysuru fan. The rest are in the shop.`,
+    hint: "Each frame is lit from above. Point at a frame, or tab to its label, and a second photograph comes up, the way a vitrine is lit from two sides.",
+    invite: "The red room hangs beads, turned objects and the Vault",
+    inviteText: "Same walls, other wood. Nothing in it is the same piece.",
+  },
+};
 
-function Exhibits({ wood }: { wood: Wood }) {
-  const list = familiesIn(wood);
-  const index = new Map(list.map((f, i) => [f.slug, i]));
+function Gallery({ wood }: { wood: Wood }) {
+  const list = featured(wood);
+  const all = productsFor(wood).length;
+  const g = GALLERY[wood];
+  const cats = CATEGORIES[wood].filter((cat) => list.some((p) => p.category === cat.id));
+  const hung = new Map(cats.flatMap((cat) => list.filter((p) => p.category === cat.id)).map((p, i) => [p.slug, i]));
   return (
     <>
-      {ORDER.map((key) => {
-        const cat = CATEGORIES.find((x) => x.key === key)!;
-        const fams = list.filter((f) => f.category === key);
-        if (!fams.length) return null;
+      <div className={s.galleryIntro}>
+        <h2 className={s.h2}>{g.title}</h2>
+        <div className={cx(s.body, "mt-[3vh]")}>
+          <p>{g.body(list.length, all)}</p>
+        </div>
+        <p className={cx(s.small, "mt-4")}>{g.hint}</p>
+        <div className={s.sheet}>
+          <p className={s.sheetTitle}>{wood === "red" ? "The red shop, by department" : "The white shop, by department"}</p>
+          <ol>
+            {CATEGORIES[wood].map((cat) => (
+              <li key={cat.id}>
+                <Link href={shopHref(cat.id)}>
+                  <span>{cat.label}</span>
+                  <span>{countIn(wood, cat.id)}</span>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+
+      {cats.map((cat) => {
+        const ps = list.filter((p) => p.category === cat.id);
+        const n = countIn(wood, cat.id);
         return (
-          <Fragment key={key}>
+          <Fragment key={cat.id}>
             <div className={s.cat}>
               <p className={s.catName}>{cat.label}</p>
               <p className={s.small}>{cat.line}</p>
-              <p className={s.acc}>{fams.length === 1 ? "One piece" : `${capital(words(fams.length))} pieces`}</p>
-              <ul className={s.catList}>
-                {fams.map((f) => (
-                  <li key={f.slug}>{f.name}</li>
-                ))}
-              </ul>
+              <p className={s.acc}>
+                {ps.length === 1 ? "One" : capital(words(ps.length))} on the wall, {n} in the shop
+              </p>
+              <Link href={shopHref(cat.id)} className={cx(s.link, "mt-1")}>
+                All {n} in {cat.label.toLowerCase()}
+              </Link>
             </div>
-            {fams.map((f, j) => (
-              <Exhibit key={f.slug} f={f} wood={wood} hang={HANG[(index.get(f.slug) ?? 0) % HANG.length]} odd={j % 2 === 1} />
+            {ps.map((p, j) => (
+              <Exhibit key={p.slug} p={p} hang={HANG[(hung.get(p.slug) ?? 0) % HANG.length]} odd={j % 2 === 1} />
             ))}
           </Fragment>
         );
       })}
+
+      <div className={s.shopDoor}>
+        <div className={s.doorFrame}>
+          <p className={s.doorSign}>
+            <span className={s.exitDoor} aria-hidden="true" />
+            {wood === "red" ? "The red shop" : "The white shop"}
+          </p>
+          <p className={s.doorBig}>
+            All {all} {wood} sandalwood pieces
+          </p>
+          <p className={s.small}>
+            {CATEGORIES[wood].length} departments, every piece with its price, its options and its record.
+          </p>
+          <Link href="/d/04/shop" className={s.btn}>
+            Go through to the shop
+          </Link>
+        </div>
+        <div className={s.doorInvite}>
+          <p className={s.h3}>{g.invite}</p>
+          <p className={s.small}>{g.inviteText}</p>
+          <button type="button" className={s.link} onClick={() => switchWood(other(wood))}>
+            Light the {other(wood)} room
+          </button>
+        </div>
+      </div>
     </>
   );
 }
 
-export function RoomSheet({ wood }: { wood: Wood }) {
-  return (
-    <ol>
-      {familiesIn(wood).map((f) => (
-        <li key={f.slug}>
-          <Link href={`/d/04/p/${f.slug}`}>
-            <span>{f.name}</span>
-            <span>{formatINR(f.variants[wood]!.price)}</span>
-          </Link>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
 export function Collection() {
-  const red = familiesIn("red").length;
-  const white = familiesIn("white").length;
   return (
-    <RoomShell id="collection" n="4" name="The collection">
+    <RoomShell room={ROOMS[3]}>
       <div className={s.gallery}>
-        <div className={s.galleryIntro}>
-          <h2 className={s.h2}>The collection</h2>
-          <div className={cx(s.body, "mt-[3vh]")}>
-            <p>
-              <WT
-                red={`${capital(words(red))} pieces in red sandalwood`}
-                white={`${capital(words(white))} pieces in white sandalwood`}
-              />
-              , hung in the order of the workshop: everyday objects, beads, powder and oil, gifting, then jewellery.
-            </p>
-          </div>
-          <p className={cx(s.small, "mt-4")}>
-            Each frame has its own picture light. Point at a frame, or tab to its label, and the photograph turns to show
-            the piece another way.
-          </p>
-          <div className={s.sheet}>
-            <p className={s.sheetTitle}>On these walls</p>
-            <W red={<RoomSheet wood="red" />} white={<RoomSheet wood="white" />} />
-          </div>
-        </div>
-
-        <W red={<Exhibits wood="red" />} white={<Exhibits wood="white" />} />
-
-        <div className={s.galleryEnd}>
-          <W
-            red={
-              <>
-                <p className={s.h3}>{capital(words(white))} pieces in the white room</p>
-                <p className={s.small}>
-                  White sandalwood adds heartwood oil, which red sandalwood does not carry. Same walls, other wood.
-                </p>
-                <button type="button" className={s.btnLine} onClick={() => switchWood("white")}>
-                  Light the white room
-                </button>
-              </>
-            }
-            white={
-              <>
-                <p className={s.h3}>{capital(words(red))} pieces in the red room</p>
-                <p className={s.small}>
-                  Red sandalwood is denser, darker and almost without scent. Same walls, other wood.
-                </p>
-                <button type="button" className={s.btnLine} onClick={() => switchWood("red")}>
-                  Light the red room
-                </button>
-              </>
-            }
-          />
-        </div>
+        <W red={<Gallery wood="red" />} white={<Gallery wood="white" />} />
       </div>
     </RoomShell>
   );
 }
-

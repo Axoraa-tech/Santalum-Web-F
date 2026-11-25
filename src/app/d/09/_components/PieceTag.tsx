@@ -1,20 +1,19 @@
 "use client";
 
 import { Photo } from "@/components/Photo";
-import { formatINR, getFamily, WOOD_NAMES } from "@/lib/catalog";
-import { switchWood, type Wood } from "@/lib/wood";
+import { getProduct, priceLabel } from "@/lib/shop/products";
 import s from "../styles";
 import { hhmm, hourOf } from "./data";
 import { openPiece } from "./store";
+import { CardRating } from "./Stars";
 
 /**
  * A piece placed in a scene: its photograph cut into a shape, and a small label on the sky
- * with the hour it belongs to, its name, its price and a way to open it.
- * Rendered once per wood (inside <W>), so the right one shows before hydration.
+ * with the hour it belongs to, its name, its price and a way to open its ritual card.
+ * Each wood has its own pieces, so chapters render one PieceTag per wood inside <W>.
  */
 export function PieceTag({
   slug,
-  wood,
   shape = "circle",
   photoClass = "size-36",
   side = "below",
@@ -26,7 +25,6 @@ export function PieceTag({
   labelClass = "max-w-[15rem]",
 }: {
   slug: string;
-  wood: Wood;
   shape?: "arch" | "circle" | "pebble" | "egg";
   photoClass?: string;
   side?: "below" | "right" | "left";
@@ -37,13 +35,9 @@ export function PieceTag({
   nameClass?: string;
   labelClass?: string;
 }) {
-  const f = getFamily(slug);
-  if (!f) return null;
-  const v = f.variants[wood];
-  const other: Wood = wood === "red" ? "white" : "red";
-  const shown = v ?? f.variants[other];
-  if (!shown) return null;
-  const sh = shown.shots[shot] ?? shown.shots[0];
+  const p = getProduct(slug);
+  if (!p) return null;
+  const sh = p.shots[shot] ?? p.shots[0];
   const dir =
     side === "below" ? "flex-col items-start" : side === "right" ? "flex-row items-end" : "flex-row-reverse items-end text-right";
 
@@ -52,7 +46,7 @@ export function PieceTag({
       <button
         type="button"
         onClick={() => openPiece(slug)}
-        aria-label={`Open ${f.name}`}
+        aria-label={`Open ${p.name}`}
         className={`${s.press} ${s.mask} ${s[shape]} shrink-0 ${photoClass}`}
       >
         <span className={`${s.zoom} absolute inset-0`}>
@@ -61,23 +55,16 @@ export function PieceTag({
       </button>
       <div className={`min-w-0 pb-1 ${labelClass}`}>
         <p className={`${s.tab} text-[12px] text-[var(--muted)]`}>{hhmm(hourOf(slug).min)}</p>
-        <p className={`${s.display} mt-1 leading-[1.02] ${nameClass}`}>{f.name}</p>
-        {v ? (
-          <p className={`${s.tab} mt-1.5 text-[14px]`}>{formatINR(v.price)}</p>
-        ) : (
-          <p className="mt-1.5 text-[13px] leading-snug text-[var(--muted)]">
-            Made only in {WOOD_NAMES[other].common.toLowerCase()}, {formatINR(shown.price)}
-          </p>
-        )}
+        <p className={`${s.display} mt-1 leading-[1.02] ${nameClass}`}>{p.name}</p>
+        <p className={`${s.tab} mt-1.5 text-[14px]`}>
+          {priceLabel(p)}
+          {p.edition && <span className="text-[var(--muted)]">, {p.edition.left} of {p.edition.size} left</span>}
+        </p>
+        <CardRating slug={slug} className="mt-1" />
         <div className={`mt-2 flex flex-wrap gap-x-4 gap-y-1 ${side === "left" ? "justify-end" : ""}`}>
           <button type="button" onClick={() => openPiece(slug)} className={s.link}>
             Open
           </button>
-          {!v && (
-            <button type="button" onClick={() => switchWood(other)} className={s.link}>
-              See it in {other}
-            </button>
-          )}
         </div>
       </div>
     </div>

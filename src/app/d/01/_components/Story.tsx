@@ -5,20 +5,23 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Photo } from "@/components/Photo";
-import { formatINR, getFamily, WOOD_NAMES } from "@/lib/catalog";
+import { W, WT } from "@/components/maison/W";
+import { CONTENT } from "@/lib/shop/content";
+import { getProduct, priceLabel, productsFor } from "@/lib/shop/products";
 import { switchWood, useWood, type Wood } from "@/lib/wood";
 import { s } from "./cx";
-import { CHAPTERS, EASE, readout, workSide, type Chapter } from "./data";
-import { chapterStore, filterStore, scrollToId, story, useMedia } from "./store";
+import { CHAPTERS, EASE, N_CHAPTERS, readout, shotsOf, workSide, type Chapter } from "./data";
+import { RatingLine } from "./Stars";
+import { chapterStore, scrollToId, story, useMedia } from "./store";
 
 const LatheScene = dynamic(() => import("./LatheScene"), { ssr: false });
 
-const N = CHAPTERS.length;
+const N = N_CHAPTERS;
 
 /**
  * The home page's first part: a 650svh scroll in which one billet of heartwood is turned,
- * chapter by chapter, into the pieces we make. The canvas is pinned behind the text and
- * unpins when the story ends.
+ * chapter by chapter, into the pieces we make. Each wood turns its own pieces and tells its own
+ * story; both are rendered and CSS shows the current one, so a reload in white never flashes red.
  */
 export function Story() {
   const section = useRef<HTMLElement>(null);
@@ -28,7 +31,6 @@ export function Story() {
   const [ready, setReady] = useState(false);
   const lite = useMedia("(max-width: 767px)");
   const reduced = useMedia("(prefers-reduced-motion: reduce)");
-  const wood = useWood();
 
   useMotionValueEvent(scrollYProgress, "change", (v) => {
     story.p = v;
@@ -61,7 +63,7 @@ export function Story() {
     <section
       ref={section}
       id="lathe"
-      aria-label="The lathe: from the heartwood to the 2011 Vault"
+      aria-label="The lathe"
       className="relative h-[650svh]"
       onPointerMove={(e) => {
         story.px = (e.clientX / window.innerWidth) * 2 - 1;
@@ -69,7 +71,7 @@ export function Story() {
       }}
     >
       {/* Anchors: each chapter's hold point, after its cut is finished. */}
-      {CHAPTERS.map((c) => (
+      {CHAPTERS.red.map((c) => (
         <div
           key={c.id}
           id={`ch-${c.id}`}
@@ -94,11 +96,11 @@ export function Story() {
         {/* Phones: soften the canvas under the text. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-[64%] bg-[linear-gradient(to_top,var(--paper)_0%,var(--paper)_62%,rgb(243_243_241/0.85)_78%,transparent)] md:hidden"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-[64%] bg-[linear-gradient(to_top,var(--paper)_0%,var(--paper)_62%,color-mix(in_srgb,var(--paper)_85%,transparent)_78%,transparent)] md:hidden"
         />
 
-        {CHAPTERS.map((c) => (
-          <ChapterBlock key={c.id} ch={c} progress={scrollYProgress} active={chapter === c.id} reduced={reduced} wood={wood} />
+        {CHAPTERS.red.map((c) => (
+          <ChapterBlock key={c.id} i={c.id} progress={scrollYProgress} active={chapter === c.id} reduced={reduced} />
         ))}
 
         <Bed progress={scrollYProgress} chapter={chapter} />
@@ -134,27 +136,16 @@ function Blueprint({ hidden }: { hidden: boolean }) {
         <path pathLength={1} className={s.late} d="M372 62 V158 M366 62 H378 M366 158 H378" strokeWidth="0.75" />
       </svg>
       <div className={`${s.mono} mt-1 flex justify-between text-[11px] text-(--steel)`}>
-        <span>Billet, heartwood</span>
+        <span>
+          <WT red="Billet, red heartwood" white="Billet, white heartwood" />
+        </span>
         <span>300 × Ø 100 mm</span>
       </div>
     </div>
   );
 }
 
-function ChapterBlock({
-  ch,
-  progress,
-  active,
-  reduced,
-  wood,
-}: {
-  ch: Chapter;
-  progress: MotionValue<number>;
-  active: boolean;
-  reduced: boolean;
-  wood: Wood;
-}) {
-  const i = ch.id;
+function ChapterBlock({ i, progress, active, reduced }: { i: number; progress: MotionValue<number>; active: boolean; reduced: boolean }) {
   const a = (i + 0.12) / N;
   const b = (i + 0.24) / N;
   const c = (i + 0.84) / N;
@@ -166,15 +157,6 @@ function ChapterBlock({
   const y = useTransform(progress, input, dy);
   const textLeft = workSide(i) === 1;
 
-  const shop = () => {
-    if (ch.shop.to === "next") scrollToId("ch-1");
-    else if (ch.shop.to === "vault") scrollToId("vault");
-    else {
-      if (ch.shop.cat) filterStore.set(ch.shop.cat);
-      scrollToId("parts");
-    }
-  };
-
   return (
     <motion.div
       style={{ opacity, y }}
@@ -185,41 +167,71 @@ function ChapterBlock({
       }`}
     >
       <div className="w-full md:w-[min(35rem,40vw)]">
-        {i === 0 ? (
-          <Hero ch={ch} wood={wood} reduced={reduced} onShop={shop} />
-        ) : (
-          <>
-            <p className={`${s.mono} flex items-center gap-3 text-[12px] text-(--steel)`}>
-              <span className="tabular-nums text-(--ink)">Chapter {i + 1} of {N}</span>
-              <span className="h-px w-8 bg-(--hair-2)" />
-              <span>{ch.short}</span>
-            </p>
-            <h2 className={`${s.x125} mt-3 text-[clamp(1.9rem,3.6vw,3.6rem)] font-[560] leading-[0.95] tracking-[-0.02em] md:mt-5`}>
-              <span className="block">{ch.title[0]}</span>
-              <span className="block">{ch.title[1]}</span>
-            </h2>
-            <p className="mt-3 line-clamp-3 max-w-[32rem] text-[14px] leading-[1.5] text-(--ink-2) md:mt-5 md:line-clamp-none md:text-[16px] md:leading-[1.55]">
-              {ch.body}
-            </p>
-            <ul className="mt-4 md:mt-7">
-              {ch.products.map((slug) => (
-                <ProductRow key={slug} slug={slug} wood={wood} />
-              ))}
-            </ul>
-            <div className="mt-4 flex items-center gap-5 md:mt-6">
-              <button type="button" onClick={shop} className={s.btn}>
-                {ch.shop.label}
-              </button>
-            </div>
-          </>
-        )}
+        <W
+          red={i === 0 ? <Hero ch={CHAPTERS.red[0]} wood="red" reduced={reduced} /> : <ChapterText ch={CHAPTERS.red[i]} wood="red" />}
+          white={i === 0 ? <Hero ch={CHAPTERS.white[0]} wood="white" reduced={reduced} /> : <ChapterText ch={CHAPTERS.white[i]} wood="white" />}
+        />
       </div>
     </motion.div>
   );
 }
 
-function Hero({ ch, wood, reduced, onShop }: { ch: Chapter; wood: Wood; reduced: boolean; onShop: () => void }) {
+function ShopAction({ ch, wood, primary = true }: { ch: Chapter; wood: Wood; primary?: boolean }) {
+  const cls = primary ? s.btn : s.btnLine;
+  if (ch.shop.to === "shop") {
+    return (
+      <Link href={`/d/01/shop?c=${ch.shop.cat}`} className={cls}>
+        {ch.shop.label}
+      </Link>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => scrollToId(ch.shop.to === "next" ? "ch-1" : "vault")}
+      className={cls}
+      aria-label={ch.shop.to === "edition" ? `${ch.shop.label}, ${CONTENT[wood].edition.name}` : undefined}
+    >
+      {ch.shop.label}
+    </button>
+  );
+}
+
+function ChapterText({ ch, wood }: { ch: Chapter; wood: Wood }) {
+  return (
+    <>
+      <p className={`${s.mono} flex items-center gap-3 text-[12px] text-(--steel)`}>
+        <span className="tabular-nums text-(--ink)">
+          Chapter {ch.id + 1} of {N}
+        </span>
+        <span className="h-px w-8 bg-(--hair-2)" />
+        <span>{ch.short}</span>
+      </p>
+      <h2 className={`${s.x125} mt-3 text-[clamp(1.9rem,3.6vw,3.6rem)] font-[560] leading-[0.95] tracking-[-0.02em] md:mt-5`}>
+        <span className="block">{ch.title[0]}</span>
+        <span className="block">{ch.title[1]}</span>
+      </h2>
+      <p className="mt-3 line-clamp-3 max-w-[32rem] text-[14px] leading-[1.5] text-(--ink-2) md:mt-5 md:line-clamp-none md:text-[16px] md:leading-[1.55]">
+        {ch.body}
+      </p>
+      <ul className="mt-4 md:mt-7">
+        {ch.picks.map((slug, k) => (
+          <ProductRow key={slug} slug={slug} extra={k > 1} />
+        ))}
+      </ul>
+      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3 md:mt-6">
+        <ShopAction ch={ch} wood={wood} />
+        <Link href="/d/01/shop" className={`${s.link} hidden md:inline`}>
+          All {productsFor(wood).length} {CONTENT[wood].name.toLowerCase()} pieces
+        </Link>
+      </div>
+    </>
+  );
+}
+
+function Hero({ ch, wood, reduced }: { ch: Chapter; wood: Wood; reduced: boolean }) {
   const other: Wood = wood === "red" ? "white" : "red";
+  const c = CONTENT[wood];
   const rise = (k: number) =>
     reduced
       ? {}
@@ -242,64 +254,46 @@ function Hero({ ch, wood, reduced, onShop }: { ch: Chapter; wood: Wood; reduced:
           </motion.span>
         </span>
       </h1>
-      <motion.div
-        initial={reduced ? false : { opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1, delay: 0.6, ease: EASE }}
-      >
+      <motion.div initial={reduced ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 0.6, ease: EASE }}>
         <p className="mt-3 line-clamp-3 max-w-[30rem] text-[14px] leading-[1.5] text-(--ink-2) md:mt-7 md:line-clamp-none md:text-[17px] md:leading-[1.55]">
           {ch.body}
         </p>
         <div className="mt-4 flex max-w-[30rem] items-start gap-4 border-t border-(--hair) pt-3 md:mt-8 md:pt-5">
-          <span
-            aria-hidden
-            className={`mt-1 size-9 shrink-0 rounded-full ${wood === "red" ? "ring-red" : "ring-white"} shadow-[inset_0_0_0_1px_rgb(0_0_0/0.12)]`}
-          />
+          <span aria-hidden className={`mt-1 size-9 shrink-0 rounded-full ${wood === "red" ? "ring-red" : "ring-white"} shadow-[inset_0_0_0_1px_rgb(0_0_0/0.12)]`} />
           <p className="text-[14px] leading-[1.5] text-(--ink-2)">
-            This billet is {WOOD_NAMES[wood].common.toLowerCase()},{" "}
-            <em className="not-italic text-(--ink)">{WOOD_NAMES[wood].latin}</em>.{" "}
-            <span className="hidden md:inline">Every piece below is made in both woods unless it says otherwise. </span>
-            <button
-              type="button"
-              onClick={() => switchWood(other)}
-              className={`${s.link} whitespace-nowrap text-(--ink)`}
-            >
-              Turn it in {WOOD_NAMES[other].common.toLowerCase()}
+            This billet is {c.name.toLowerCase()}, <em className="not-italic text-(--ink)">{c.latin}</em>.{" "}
+            <span className="hidden md:inline">{c.oneLine} </span>
+            <button type="button" onClick={() => switchWood(other)} className={`${s.link} whitespace-nowrap text-(--ink)`}>
+              Turn it in {CONTENT[other].name.toLowerCase()}
             </button>
           </p>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 md:mt-8">
-          <button type="button" onClick={onShop} className={s.btn}>
-            {ch.shop.label}
-          </button>
-          <span className={`${s.mono} hidden text-[12px] text-(--steel) md:inline`}>Objects time cannot repeat.</span>
+          <ShopAction ch={ch} wood={wood} />
+          <Link href="/d/01/shop" className={s.btnLine}>
+            {c.hero.cta}
+          </Link>
         </div>
       </motion.div>
     </>
   );
 }
 
-function ProductRow({ slug, wood }: { slug: string; wood: Wood }) {
-  const f = getFamily(slug);
-  if (!f) return null;
-  const v = f.variants[wood];
-  const shown = (v ?? f.variants.white ?? f.variants.red)!;
-  const shot = shown.shots[0];
+function ProductRow({ slug, extra }: { slug: string; extra: boolean }) {
+  const p = getProduct(slug);
+  if (!p) return null;
+  const shot = shotsOf(p)[0];
   return (
-    <li className="group flex items-center gap-3 border-t border-(--hair) py-2.5 last:border-b md:gap-4 md:py-3">
+    <li className={`group items-center gap-3 border-t border-(--hair) py-2.5 last:border-b md:gap-4 md:py-3 ${extra ? "hidden md:flex" : "flex"}`}>
       <span className="relative size-11 shrink-0 overflow-hidden rounded-full bg-(--paper-2) md:size-14">
         <Photo p={shot.photo} tone={shot.tone} sizes="56px" className="transition-transform duration-500 group-hover:scale-110" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[14.5px] font-[520] md:text-[15.5px]">{f.name}</span>
-        <span className="hidden truncate text-[13px] text-(--steel) md:block">
-          {v ? v.note : `Made in white sandalwood only`}
-        </span>
+        <span className="block truncate text-[14.5px] font-[520] md:text-[15.5px]">{p.name}</span>
+        <RatingLine slug={p.slug} className="hidden md:flex" />
       </span>
-      <span className={`${s.mono} shrink-0 text-[12.5px] tabular-nums md:text-[13px]`}>
-        {v ? formatINR(v.price) : <span className="text-(--steel)">Santalum only</span>}
-      </span>
-      <Link href={`/d/01/p/${slug}`} className={`${s.link} shrink-0`} aria-label={`View ${f.name}`}>
+      <span className={`${s.mono} shrink-0 text-[12.5px] tabular-nums md:text-[13px]`}>{priceLabel(p)}</span>
+      <Link href={`/d/01/p/${p.slug}`} className={`${s.link} shrink-0`} aria-label={`View ${p.name}`}>
         View
       </Link>
     </li>
@@ -308,10 +302,11 @@ function ProductRow({ slug, wood }: { slug: string; wood: Wood }) {
 
 /** The lathe bed: a vertical ruler at the right edge with a carriage that tracks the story, plus readouts. */
 function Bed({ progress, chapter }: { progress: MotionValue<number>; chapter: number }) {
+  const wood = useWood();
   const y = useTransform(progress, (v) => `${v * 100}%`);
-  const dia = useTransform(progress, (v) => `Ø ${Math.round(readout(v).dia)} mm`);
-  const rpm = useTransform(progress, (v) => `${(Math.round(readout(v).rpm / 10) * 10).toLocaleString("en-IN")} rpm`);
-  const ch = CHAPTERS[chapter];
+  const dia = useTransform(progress, (v) => `Ø ${Math.round(readout(v, wood).dia)} mm`);
+  const rpm = useTransform(progress, (v) => `${(Math.round(readout(v, wood).rpm / 10) * 10).toLocaleString("en-IN")} rpm`);
+  const short = <WT red={CHAPTERS.red[chapter].short} white={CHAPTERS.white[chapter].short} />;
   const ticks = Array.from({ length: 66 }, (_, k) => k);
   return (
     <>
@@ -333,11 +328,7 @@ function Bed({ progress, chapter }: { progress: MotionValue<number>; chapter: nu
           ))}
         </svg>
         {[0, 100, 200, 300, 400, 500, 600].map((mm) => (
-          <span
-            key={mm}
-            className={`${s.mono} absolute right-[14px] -translate-y-1/2 text-[9.5px] tabular-nums text-(--steel)`}
-            style={{ top: `${(mm / 650) * 100}%` }}
-          >
+          <span key={mm} className={`${s.mono} absolute right-[14px] -translate-y-1/2 text-[9.5px] tabular-nums text-(--steel)`} style={{ top: `${(mm / 650) * 100}%` }}>
             {mm}
           </span>
         ))}
@@ -347,13 +338,15 @@ function Bed({ progress, chapter }: { progress: MotionValue<number>; chapter: nu
               <p className={`${s.mono} flex items-center justify-between text-[11px] leading-[1.5] tabular-nums`}>
                 <motion.span>{dia}</motion.span>
               </p>
-              <p className={`${s.mono} text-[11px] leading-[1.5] tabular-nums text-white/70`}>
+              <p className={`${s.mono} text-[11px] leading-[1.5] tabular-nums opacity-70`}>
                 <motion.span>{rpm}</motion.span>
               </p>
               <p className={`${s.mono} mt-1 flex items-center gap-1.5 border-t border-white/15 pt-1 text-[11px] leading-[1.5]`}>
-                <span className="size-1.5 rounded-full bg-(--m-accent)" />
-                <span className="tabular-nums">{chapter + 1}/{N}</span>
-                <span className="text-white/70">{ch.short}</span>
+                <span className="size-1.5 rounded-full bg-(--accent)" />
+                <span className="tabular-nums">
+                  {chapter + 1}/{N}
+                </span>
+                <span className="opacity-70">{short}</span>
               </p>
             </div>
             <svg width="16" height="16" viewBox="0 0 16 16" className="text-(--ink)">
@@ -367,12 +360,12 @@ function Bed({ progress, chapter }: { progress: MotionValue<number>; chapter: nu
       {/* Phones: the same readouts in one line under the nav. */}
       <div
         aria-hidden
-        className={`${s.mono} pointer-events-none absolute inset-x-4 top-[64px] flex items-center justify-between text-[11px] tabular-nums text-(--ink-2) md:hidden`}
+        className={`${s.mono} pointer-events-none absolute inset-x-4 top-[62px] z-10 flex items-center justify-between rounded-[3px] border border-(--hair) bg-(--glass) px-2.5 py-1.5 text-[11px] tabular-nums text-(--ink) backdrop-blur-sm md:hidden`}
       >
         <motion.span>{dia}</motion.span>
         <motion.span>{rpm}</motion.span>
         <span>
-          {chapter + 1}/{N} {ch.short}
+          {chapter + 1}/{N} {short}
         </span>
       </div>
     </>

@@ -2,6 +2,8 @@
 
 import { AnimatePresence, motion, useScroll, useTransform } from "motion/react";
 import { useRef, useState, type FormEvent } from "react";
+import { WT } from "@/components/maison/W";
+import { CONTENT } from "@/lib/shop/content";
 import { useWood, type Wood } from "@/lib/wood";
 import { useMedia } from "./bits";
 
@@ -52,7 +54,9 @@ export function Circle() {
                 <br />
                 Circle
               </h2>
-              <p className="mx-auto mt-4 max-w-[15rem] text-[14px] text-(--muted)">Twenty-seven beads, a quarter mala. Letters, not offers.</p>
+              <p className="mx-auto mt-4 max-w-[15rem] text-[14px] text-(--muted)">
+                <WT red="Twenty-seven red beads, a quarter mala. Letters, not offers." white="Twenty-seven pale beads, a quarter mala. Letters, not offers." />
+              </p>
             </div>
           </div>
         </div>
@@ -60,9 +64,14 @@ export function Circle() {
         <div className="md:col-span-5 md:col-start-8">
           <div className="bg-(--linen)">
             <p className="s3-serif text-[clamp(1.6rem,2.6vw,2.4rem)] leading-[1.15]">
-              A letter from the workshop a few times a year: new pieces, the next batches, and when the Vault opens.
+              <WT red={CONTENT.red.circle.text} white={CONTENT.white.circle.text} />
             </p>
-            <p className="mt-4 text-[16px] leading-[1.7] text-(--ink)/75">No discounts and no daily emails. Leave whenever you like.</p>
+            <p className="mt-4 text-[16px] leading-[1.7] text-(--ink)/75">
+              <WT
+                red="A few letters a year from the lathe and the bench. No discounts and no daily emails. Leave whenever you like."
+                white="A few letters a year from the still and the carver. No discounts and no daily emails. Leave whenever you like."
+              />
+            </p>
           </div>
           <AnimatePresence mode="wait" initial={false}>
             {done ? (

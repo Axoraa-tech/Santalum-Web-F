@@ -3,39 +3,88 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Photo } from "@/components/Photo";
-import { formatINR, WOOD_NAMES, type Family } from "@/lib/catalog";
-import { bag } from "@/lib/cart";
-import { switchWood, type Wood } from "@/lib/wood";
-import { careFor } from "./content";
+import { toggleWishlist, useWishlist } from "@/lib/shop/account";
+import { bag } from "@/lib/shop/bag";
+import { CONTENT } from "@/lib/shop/content";
+import { categoryOf, formatINR, getProduct, priceLabel, priceOf, type Product } from "@/lib/shop/products";
+import { careLines, catNo } from "./content";
 import { slipFlag } from "./store";
 
-const WOODS: Wood[] = ["red", "white"];
-
-/** Wood choice set as text: the two woods with their prices; the one being read is marked. */
-export function WoodChoice({ family, wood }: { family: Family; wood: Wood }) {
+/** Size, weight or volume, set as a row of text choices with their prices. */
+export function OptionPicker({ product, value, onChange, idBase }: { product: Product; value?: string; onChange: (id: string) => void; idBase: string }) {
+  const o = product.options;
+  if (!o) return null;
+  const current = value ?? o.values[0].id;
   return (
-    <div className="x5-woodChoice" role="group" aria-label="Choose the wood">
-      <span className="x5-wcLabel">Wood</span>
-      {WOODS.map((w) => {
-        const v = family.variants[w];
-        const on = w === wood;
-        return v ? (
-          <button key={w} type="button" aria-pressed={on} className="x5-wcBtn" onClick={() => !on && switchWood(w)}>
-            <span>{WOOD_NAMES[w].common}</span>
-            <span className="x5-wcPrice">{formatINR(v.price)}</span>
+    <div className="x5-opts" role="radiogroup" aria-labelledby={`${idBase}-opt`}>
+      <span id={`${idBase}-opt`} className="x5-optsLabel">
+        {o.name}
+      </span>
+      {o.values.map((v) => {
+        const on = v.id === current;
+        return (
+          <button
+            key={v.id}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            tabIndex={on ? 0 : -1}
+            className="x5-opt"
+            onClick={() => onChange(v.id)}
+            onKeyDown={(e) => {
+              if (e.key !== "ArrowRight" && e.key !== "ArrowLeft" && e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+              e.preventDefault();
+              const i = o.values.findIndex((x) => x.id === current);
+              const step = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1;
+              const next = o.values[(i + step + o.values.length) % o.values.length];
+              onChange(next.id);
+              const group = e.currentTarget.parentElement;
+              requestAnimationFrame(() => group?.querySelector<HTMLButtonElement>('[aria-checked="true"]')?.focus());
+            }}
+          >
+            <span>{v.label}</span>
+            <span className="x5-optPrice">{formatINR(v.price)}</span>
           </button>
-        ) : (
-          <span key={w} className="x5-wcNone">
-            Not made in {w} sandalwood
-          </span>
         );
       })}
     </div>
   );
 }
 
+/** Quantity, one to nine. */
+export function Qty({ value, onChange, label }: { value: number; onChange: (n: number) => void; label: string }) {
+  return (
+    <div className="x5-qty" role="group" aria-label={`Quantity of ${label}`}>
+      <span className="x5-optsLabel">Quantity</span>
+      <button type="button" className="x5-qtyBtn" aria-label="One fewer" disabled={value <= 1} onClick={() => onChange(value - 1)}>
+        −
+      </button>
+      <span className="x5-qtyN" aria-live="polite">
+        {value}
+      </span>
+      <button type="button" className="x5-qtyBtn" aria-label="One more" disabled={value >= 9} onClick={() => onChange(value + 1)}>
+        +
+      </button>
+    </div>
+  );
+}
+
 /** Add to bag; opens the order slip so the new line is seen being printed. */
-export function AddLine({ family, wood, custom, label = "Add to bag" }: { family: Family; wood: Wood; custom?: string; label?: string }) {
+export function AddLine({
+  product,
+  option,
+  qty = 1,
+  note,
+  label = "Add to bag",
+  compact = false,
+}: {
+  product: Product;
+  option?: string;
+  qty?: number;
+  note?: string;
+  label?: string;
+  compact?: boolean;
+}) {
   const [added, setAdded] = useState(false);
 
   useEffect(() => {
@@ -44,48 +93,63 @@ export function AddLine({ family, wood, custom, label = "Add to bag" }: { family
     return () => window.clearTimeout(t);
   }, [added]);
 
-  const v = family.variants[wood];
-  if (!v) {
-    const other: Wood = wood === "red" ? "white" : "red";
-    return (
-      <div className="x5-addNone">
-        <p>
-          {family.name} is made only in {other} sandalwood.
-        </p>
-        <button type="button" className="x5-addBtn" onClick={() => switchWood(other)}>
-          <span>Read it in {other} sandalwood</span>
-          <span>{formatINR(family.variants[other]!.price)}</span>
-        </button>
-      </div>
-    );
-  }
-
   return (
     <button
       type="button"
-      className="x5-addBtn"
+      className={compact ? "x5-addSmall" : "x5-addBtn"}
       data-added={added || undefined}
       onClick={() => {
-        bag.add(family.slug, wood, 1, custom);
+        bag.add(product.slug, { option, qty, note });
         setAdded(true);
         slipFlag.set(true);
       }}
     >
       <span aria-live="polite">{added ? "Added to the slip" : label}</span>
-      <span>{formatINR(v.price)}</span>
+      {!compact && <span>{formatINR(priceOf(product, option) * qty)}</span>}
+    </button>
+  );
+}
+
+/** Quick add when the piece has no options; otherwise a link to choose one on the entry page. */
+export function QuickAdd({ product }: { product: Product }) {
+  if (product.options)
+    return (
+      <Link href={`/d/05/p/${product.slug}`} className="x5-addSmall x5-addChoose">
+        Choose {product.options.name.toLowerCase()}
+      </Link>
+    );
+  return <AddLine product={product} compact label="Add" />;
+}
+
+/** The wishlist, set as marking an entry in the margin. Works signed out too. */
+export function MarkButton({ slug, name, withLabel = true }: { slug: string; name: string; withLabel?: boolean }) {
+  const list = useWishlist();
+  const on = list.includes(slug);
+  return (
+    <button
+      type="button"
+      className="x5-mark"
+      aria-pressed={on}
+      aria-label={on ? `Remove ${name} from your wishlist` : `Add ${name} to your wishlist`}
+      title={on ? "In your wishlist" : "Add to your wishlist"}
+      onClick={() => toggleWishlist(slug)}
+    >
+      <span className="x5-markBox" aria-hidden />
+      {withLabel && <span>{on ? "Marked" : "Mark"}</span>}
     </button>
   );
 }
 
 /** The detail spread a catalogue row opens into. */
-export function Entry({ family, wood, no, onClose }: { family: Family; wood: Wood; no: number; onClose: () => void }) {
-  const v = family.variants[wood]!;
-  const care = careFor(family);
+export function Entry({ product, onClose }: { product: Product; onClose: () => void }) {
+  const [option, setOption] = useState<string | undefined>(product.options?.values[0].id);
+  const no = catNo(product);
+  const counterpart = product.counterpart ? getProduct(product.counterpart) : undefined;
   return (
     <div className="x5-entry">
       <div className="x5-entryPhotos">
-        {v.shots.slice(0, 3).map((shot, i) => (
-          <figure key={i} className={`x5-ep ${i === 0 ? "x5-ep0" : i === 1 ? "x5-ep1" : "x5-ep2"}`}>
+        {product.shots.slice(0, 3).map((shot, i) => (
+          <figure key={i} className={`x5-ep x5-ep${i}`} data-n={product.shots.length}>
             <div className="x5-epFrame">
               <Photo p={shot.photo} tone={shot.tone} sizes={i === 0 ? "(min-width: 768px) 28vw, 80vw" : "(min-width: 768px) 18vw, 50vw"} />
             </div>
@@ -101,12 +165,11 @@ export function Entry({ family, wood, no, onClose }: { family: Family; wood: Woo
       </div>
 
       <div className="x5-entryText">
-        <p className="x5-entrySummary">{family.summary}</p>
+        <p className="x5-entrySummary">{product.short}</p>
         <div className="x5-entryStory">
-          {family.story.map((p) => (
+          {product.story.map((p) => (
             <p key={p}>{p}</p>
           ))}
-          <p className="x5-entryNote">{v.note}</p>
         </div>
 
         <div className="x5-entryCols">
@@ -114,16 +177,18 @@ export function Entry({ family, wood, no, onClose }: { family: Family; wood: Woo
             <h4 className="x5-entryH">Details</h4>
             <dl className="x5-entryDl">
               <div>
-                <dt>Range</dt>
-                <dd>{family.level}</dd>
+                <dt>Category</dt>
+                <dd>{categoryOf(product).label}</dd>
               </div>
-              {family.edition && !family.details.some((d) => d.label === "Edition") && (
+              {product.edition && (
                 <div>
                   <dt>Edition</dt>
-                  <dd>{family.edition}</dd>
+                  <dd>
+                    {product.edition.left} of {product.edition.size} remain
+                  </dd>
                 </div>
               )}
-              {family.details.map((d) => (
+              {product.details.map((d) => (
                 <div key={d.label}>
                   <dt>{d.label}</dt>
                   <dd>{d.value}</dd>
@@ -133,24 +198,33 @@ export function Entry({ family, wood, no, onClose }: { family: Family; wood: Woo
           </div>
           <div>
             <h4 className="x5-entryH">Care</h4>
-            {care.map((c) => (
-              <p key={c} className="x5-entryCare">
-                {c}
+            {careLines(product).map((line) => (
+              <p key={line} className="x5-entryCare">
+                {line}
               </p>
             ))}
           </div>
         </div>
 
-        <WoodChoice family={family} wood={wood} />
+        <OptionPicker product={product} value={option} onChange={setOption} idBase={`entry-${product.slug}`} />
         <div className="x5-entryActions">
-          <AddLine family={family} wood={wood} />
-          <Link href={`/d/05/p/${family.slug}`} className="x5-textLink">
+          <AddLine product={product} option={option} />
+          <MarkButton slug={product.slug} name={product.name} />
+          <Link href={`/d/05/p/${product.slug}`} className="x5-textLink">
             Read the full entry
           </Link>
           <button type="button" className="x5-textLink" onClick={onClose}>
             Close
           </button>
         </div>
+        {counterpart && (
+          <p className="x5-entryAlso">
+            Also in {CONTENT[counterpart.wood].name.toLowerCase()}:{" "}
+            <Link href={`/d/05/p/${counterpart.slug}`} className="x5-inlineLink">
+              {counterpart.name}, {priceLabel(counterpart).replace("From ", "from ")}
+            </Link>
+          </p>
+        )}
       </div>
     </div>
   );

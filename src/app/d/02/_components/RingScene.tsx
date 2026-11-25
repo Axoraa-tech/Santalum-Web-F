@@ -4,8 +4,9 @@ import { ContactShadows, Environment, Lightformer } from "@react-three/drei";
 import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
 import { useMemo, useRef, type RefObject } from "react";
 import * as THREE from "three";
-import type { Tone } from "@/lib/catalog";
+import type { Tone } from "@/lib/shop/products";
 import type { Wood } from "@/lib/wood-boot";
+import { PAGE_BG } from "./BodyTint";
 import { endGrainTexture, photoTexture, rimTexture, shadowTexture } from "./textures";
 
 /** Shared, mutable state of the ring. The DOM (drag, scroll, keys) writes it; the scene reads it every frame. */
@@ -286,7 +287,7 @@ export default function RingScene({ items, wood, ringRef, onActive, onOpen, redu
       style={{ position: "absolute", inset: 0 }}
       aria-hidden
     >
-      <fog attach="fog" args={["#f7f6f3", 13, 26]} />
+      <fog attach="fog" args={[PAGE_BG[wood], 13, 26]} />
       <hemisphereLight args={["#fffaf3", "#d8d0c4", 1.25]} />
       <directionalLight position={[2.5, 7, 6]} intensity={2.1} color="#fff4e6" />
       <directionalLight position={[-6, 3, -4]} intensity={0.8} color="#ffe0bf" />

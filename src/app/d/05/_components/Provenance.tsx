@@ -3,12 +3,14 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { WT } from "@/components/maison/W";
-import { PHOTOS } from "@/lib/photos";
-import { RECORD, RECORD_FIELDS, sectionNo } from "./content";
+import { RECORD, sectionNo } from "./content";
 import { Head } from "./Head";
 import { WPhoto } from "./WPhoto";
 
-/** The example batch record as a facsimile; footnote markers reveal their notes on hover, focus or tap. */
+const R = RECORD.red;
+const Wh = RECORD.white;
+
+/** The example record of the current wood as a facsimile; footnote markers reveal their notes on hover, focus or tap. */
 export function Provenance() {
   const [active, setActive] = useState<number | null>(null);
 
@@ -17,11 +19,28 @@ export function Provenance() {
       <Head
         id="provenance-title"
         n={sectionNo("provenance")}
-        title="Provenance"
+        title={
+          <WT
+            red={
+              <>
+                Batch
+                <br />
+                record
+              </>
+            }
+            white={
+              <>
+                Lot
+                <br />
+                record
+              </>
+            }
+          />
+        }
         meta="Figure 13"
         dek={
           <p>
-            Know what you hold. If there is evidence, we show it. If there isn&apos;t, we don&apos;t invent it.
+            <WT red={R.dek} white={Wh.dek} />
           </p>
         }
       />
@@ -30,35 +49,39 @@ export function Provenance() {
         <div className="x5-docWrap">
           <figure className="x5-docPhoto">
             <div className="x5-docPhotoFrame">
-              <WPhoto red={{ p: PHOTOS.beadStrandsDark }} white={{ p: PHOTOS.whiteBeads }} sizes="180px" />
+              <WPhoto red={R.photo} white={Wh.photo} sizes="180px" />
             </div>
             <figcaption className="x5-caption">
-              <b>Fig. 13</b>The piece on the record.
+              <b>Fig. 13</b>
+              <WT red="The mala on the record." white="The oil on the record." />
             </figcaption>
           </figure>
 
-          <article className="x5-doc" aria-label="Example batch record">
+          <article className="x5-doc" aria-label="Example record">
             <header className="x5-docHead">
               <p className="x5-docBrand">Santalum Maison</p>
-              <p className="x5-docKind">Batch record</p>
+              <p className="x5-docKind">
+                <WT red={R.kind} white={Wh.kind} />
+              </p>
               <p className="x5-docRef">
-                <WT red={RECORD.red.batch} white={RECORD.white.batch} />
+                <WT red={R.ref} white={Wh.ref} />
               </p>
             </header>
             <span className="x5-stamp" aria-label="This is an example record">
               Example
             </span>
             <dl className="x5-docFields">
-              {RECORD_FIELDS.map((f, i) => {
+              {R.fields.map((f, i) => {
                 const n = i + 1;
+                const wf = Wh.fields[i];
                 return (
-                  <div key={f.key} className="x5-docRow" data-on={active === n || undefined}>
+                  <div key={n} className="x5-docRow" data-on={active === n || undefined}>
                     <dt>
-                      {f.label}
+                      <WT red={f.label} white={wf.label} />
                       <button
                         type="button"
                         className="x5-fn"
-                        aria-label={`Note ${n} on ${f.label.toLowerCase()}`}
+                        aria-label={`Note ${n}`}
                         aria-describedby={`prov-note-${n}`}
                         aria-pressed={active === n}
                         onPointerEnter={() => setActive(n)}
@@ -71,7 +94,7 @@ export function Provenance() {
                       </button>
                     </dt>
                     <dd>
-                      <WT red={RECORD.red[f.key]} white={RECORD.white[f.key]} />
+                      <WT red={f.value} white={wf.value} />
                       <AnimatePresence>
                         {active === n && (
                           <motion.span
@@ -82,7 +105,7 @@ export function Provenance() {
                             exit={{ opacity: 0, y: -4 }}
                             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
                           >
-                            <b>{n}</b> {f.note}
+                            <b>{n}</b> <WT red={f.note} white={wf.note} />
                           </motion.span>
                         )}
                       </AnimatePresence>
@@ -92,20 +115,25 @@ export function Provenance() {
               })}
             </dl>
             <footer className="x5-docFoot">
-              <p>Entered by the workshop when the piece left it.</p>
-              <p>An example, to show the format. Real records travel with each piece.</p>
+              <p>
+                <WT red={R.foot} white={Wh.foot} />
+              </p>
+              <p>An example, to show the format. The real record travels with each piece.</p>
             </footer>
           </article>
         </div>
 
         <div className="x5-notes">
-          <p className="x5-notesHead">Notes to the record</p>
+          <p className="x5-notesHead">
+            <WT red="Notes to the batch record" white="Notes to the lot record" />
+          </p>
           <ol className="x5-notesList">
-            {RECORD_FIELDS.map((f, i) => {
+            {R.fields.map((f, i) => {
               const n = i + 1;
+              const wf = Wh.fields[i];
               return (
                 <li
-                  key={f.key}
+                  key={n}
                   id={`prov-note-${n}`}
                   className="x5-noteItem"
                   data-on={active === n || undefined}
@@ -115,7 +143,10 @@ export function Provenance() {
                 >
                   <span className="x5-noteN">{n}</span>
                   <span className="x5-noteBody">
-                    <b>{f.label}.</b> {f.note}
+                    <b>
+                      <WT red={f.label} white={wf.label} />.
+                    </b>{" "}
+                    <WT red={f.note} white={wf.note} />
                   </span>
                   {active === n && <motion.span layoutId="idx-note-bar" className="x5-noteBar" transition={{ type: "spring", stiffness: 500, damping: 40 }} />}
                 </li>
@@ -123,8 +154,7 @@ export function Provenance() {
             })}
           </ol>
           <p className="x5-notesFoot">
-            Every jar of powder carries its batch number. Every Vault cuff is entered in the registry with its number, origin, the
-            artisan&apos;s name and the date it left our hands.
+            <WT red={R.notesFoot} white={Wh.notesFoot} />
           </p>
         </div>
       </div>

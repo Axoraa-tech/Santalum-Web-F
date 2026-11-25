@@ -4,14 +4,15 @@ import { AnimatePresence, motion } from "motion/react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Photo } from "@/components/Photo";
-import { CATEGORIES, FAMILIES, formatINR, type Shot } from "@/lib/catalog";
+import { signOut, useUser } from "@/lib/shop/account";
+import { categoryOf, CATEGORIES, priceLabel, productsFor, type Shot } from "@/lib/shop/products";
 import { switchWood, useWood } from "@/lib/wood";
 import { s } from "./cls";
-import { cx, other, SECTIONS, STORIES, variantFor, WOOD_SHORT, type StoryId } from "./data";
+import { cx, other, sectionsFor, shopHref, shotsOf, STORIES, WOOD_SHORT, type StoryId } from "./data";
 import { bagUI, palette, usePalette, views } from "./store";
-import { IconArrow, IconBag, IconSearch, Kbd, Mark, Swatch } from "./ui";
+import { IconArrow, IconBag, IconGrid, IconOut, IconSearch, IconTrack, IconUser, Kbd, Mark, Swatch } from "./ui";
 
-type Group = "Pieces" | "Sections" | "Stories" | "Actions";
+type Group = "Actions" | "Pieces" | "Categories" | "Sections" | "Stories";
 type Item = {
   id: string;
   group: Group;
@@ -61,6 +62,7 @@ function PalettePanel() {
     return () => window.clearTimeout(t);
   }, []);
 
+  const user = useUser();
   const jump = (id: string) => {
     if (home) {
       const el = document.getElementById(id);
@@ -69,24 +71,55 @@ function PalettePanel() {
     } else router.push(`/d/06#${id}`);
   };
 
+  const go2 = (href: string) => router.push(href);
+  const actions: Item[] = [
+    { id: "a-shop", group: "Actions", label: `Shop ${WOOD_SHORT[wood].toLowerCase()}`, hint: "Shop", words: "shop all pieces store buy browse", glyph: <IconGrid size={16} />, run: () => go2("/d/06/shop") },
+    { id: "a-track", group: "Actions", label: "Track an order", hint: "Track", words: "track order delivery courier awb status where", glyph: <IconTrack size={16} />, run: () => go2("/d/06/track") },
+    user
+      ? { id: "a-account", group: "Actions", label: `Your account, ${user.name.split(" ")[0]}`, hint: "Account", words: "account orders wishlist addresses profile", glyph: <IconUser size={16} />, run: () => go2("/d/06/account") }
+      : { id: "a-signin", group: "Actions", label: "Sign in or create an account", hint: "Account", words: "sign in login log in account register sign up create", glyph: <IconUser size={16} />, run: () => go2("/d/06/account") },
+    ...(user
+      ? [{ id: "a-signout", group: "Actions" as const, label: "Sign out", hint: user.email, words: "sign out log out logout", glyph: <IconOut size={16} />, run: () => signOut() }]
+      : []),
+    { id: "a-bag", group: "Actions", label: "Open the bag", hint: "Bag", words: "cart basket bag", glyph: <IconBag size={16} />, run: () => bagUI.open("bag-top") },
+    { id: "a-checkout", group: "Actions", label: "Go to checkout", hint: "Checkout", words: "pay order buy checkout", glyph: <IconArrow size={16} />, run: () => go2("/d/06/checkout") },
+    {
+      id: "a-wood",
+      group: "Actions",
+      label: `Switch to ${WOOD_SHORT[other(wood)].toLowerCase()}`,
+      hint: "Wood",
+      words: "wood toggle change red white",
+      glyph: <Swatch wood={other(wood)} />,
+      run: () => switchWood(other(wood)),
+    },
+  ];
+
   const items: Item[] = [
-    ...FAMILIES.map((f): Item => {
-      const { variant, made, wood: w } = variantFor(f, wood);
-      const cat = CATEGORIES.find((c) => c.key === f.category)?.label ?? "";
-      return {
-        id: `p-${f.slug}`,
+    ...actions,
+    ...productsFor(wood).map(
+      (p): Item => ({
+        id: `p-${p.slug}`,
         group: "Pieces",
-        label: f.name,
-        hint: made ? formatINR(variant.price) : `${w === "white" ? "White" : "Red"} only`,
-        words: `${cat} ${f.level} ${f.summary} ${Object.keys(f.variants).join(" ")} sandalwood`,
-        thumb: variant.shots[0],
+        label: p.name,
+        hint: priceLabel(p),
+        words: `${categoryOf(p).label} ${p.short} ${p.badge ?? ""} ${p.edition ? "edition limited" : ""}`,
+        thumb: shotsOf(p)[0],
         run: () =>
-          pathname.startsWith("/d/06/p/")
-            ? router.push(`/d/06/p/${f.slug}`)
-            : views.open({ kind: "product", slug: f.slug, from: `solo-${f.slug}`, img: false }),
-      };
-    }),
-    ...SECTIONS.map(
+          pathname.startsWith("/d/06/p/") ? router.push(`/d/06/p/${p.slug}`) : views.open({ kind: "product", slug: p.slug, from: `solo-${p.slug}`, img: false }),
+      }),
+    ),
+    ...CATEGORIES[wood].map(
+      (c): Item => ({
+        id: `c-${c.id}`,
+        group: "Categories",
+        label: c.label,
+        hint: `${productsFor(wood).filter((p) => p.category === c.id).length} in the shop`,
+        words: `${c.line} category shop`,
+        glyph: <IconGrid size={16} />,
+        run: () => go2(shopHref(c.id)),
+      }),
+    ),
+    ...sectionsFor(wood).map(
       (x): Item => ({
         id: `s-${x.id}`,
         group: "Sections",
@@ -97,13 +130,13 @@ function PalettePanel() {
         run: () => jump(x.id),
       }),
     ),
-    ...(Object.keys(STORIES) as StoryId[]).map(
+    ...(Object.keys(STORIES[wood]) as StoryId[]).map(
       (id): Item => ({
         id: `t-${id}`,
         group: "Stories",
-        label: STORIES[id].title,
+        label: STORIES[wood][id].title,
         hint: "Read",
-        words: `${STORIES[id].lede} story`,
+        words: `${STORIES[wood][id].lede} story`,
         glyph: (
           <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
             <path d="M3 4h10M3 8h10M3 12h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -112,25 +145,6 @@ function PalettePanel() {
         run: () => views.open({ kind: "story", id, from: `solo-story-${id}`, img: false }),
       }),
     ),
-    {
-      id: "a-wood",
-      group: "Actions",
-      label: `Switch to ${WOOD_SHORT[other(wood)].toLowerCase()}`,
-      hint: "Wood",
-      words: "wood toggle change red white",
-      glyph: <Swatch wood={other(wood)} />,
-      run: () => switchWood(other(wood)),
-    },
-    { id: "a-bag", group: "Actions", label: "Open the bag", hint: "Bag", words: "cart basket", glyph: <IconBag size={16} />, run: () => bagUI.open() },
-    {
-      id: "a-checkout",
-      group: "Actions",
-      label: "Go to checkout",
-      hint: "Checkout",
-      words: "pay order buy",
-      glyph: <IconArrow size={16} />,
-      run: () => router.push("/d/06/checkout"),
-    },
   ];
 
   const results = q.trim()
@@ -139,7 +153,7 @@ function PalettePanel() {
         .filter((x) => x.sc >= 0)
         .sort((a, b) => b.sc - a.sc)
         .map((x) => x.it)
-        .slice(0, 12)
+        .slice(0, 14)
     : items;
 
   const sel = Math.min(active, Math.max(0, results.length - 1));
@@ -179,7 +193,7 @@ function PalettePanel() {
   return (
     <>
       <motion.div
-        className="fixed inset-0 z-[175] bg-[#eeede9]/75"
+        className="fixed inset-0 z-[175] bg-[var(--b-canvas)]/75"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -191,9 +205,9 @@ function PalettePanel() {
           layoutId="cmd"
           role="dialog"
           aria-modal="true"
-          aria-label="Search pieces, woods, stories"
+          aria-label={`Search ${WOOD_SHORT[wood].toLowerCase()}`}
           style={{ borderRadius: 24 }}
-          className="pointer-events-auto w-full max-w-[640px] overflow-hidden bg-white shadow-[0_40px_90px_-30px_rgba(20,20,20,0.45)]"
+          className="pointer-events-auto w-full max-w-[640px] overflow-hidden bg-[var(--b-tile)] shadow-[0_40px_90px_-30px_rgba(40,20,10,0.45)]"
           onKeyDown={onKey}
         >
           <motion.div
@@ -201,8 +215,8 @@ function PalettePanel() {
             animate={{ opacity: 1, transition: { delay: 0.08, duration: 0.25 } }}
             exit={{ opacity: 0, transition: { duration: 0.1 } }}
           >
-            <div className="flex h-14 items-center gap-3 border-b border-black/[0.06] px-4">
-              <IconSearch className="shrink-0 text-[#6b6b66]" />
+            <div className="flex h-14 items-center gap-3 border-b border-[var(--b-line)] px-4">
+              <IconSearch className="shrink-0 text-[var(--b-muted)]" />
               <input
                 ref={input}
                 value={q}
@@ -215,9 +229,9 @@ function PalettePanel() {
                 aria-controls="b6-pal-list"
                 aria-autocomplete="list"
                 aria-activedescendant={activeId}
-                aria-label="Search pieces, woods, stories"
-                placeholder="Search pieces, woods, stories"
-                className="h-full min-w-0 flex-1 bg-transparent text-[17px] outline-none placeholder:text-[#6b6b66]"
+                aria-label={`Search ${WOOD_SHORT[wood].toLowerCase()}`}
+                placeholder={wood === "red" ? "Search red sandalwood: mala, pen, cuff" : "Search white sandalwood: oil, attar, incense"}
+                className="h-full min-w-0 flex-1 bg-transparent text-[17px] outline-none placeholder:text-[var(--b-muted)]"
               />
               <button type="button" onClick={() => palette.close()} className="shrink-0 rounded-lg focus-visible:outline-2 focus-visible:outline-accent" aria-label="Close search">
                 <Kbd>Esc</Kbd>
@@ -227,7 +241,8 @@ function PalettePanel() {
             <ul id="b6-pal-list" role="listbox" aria-label="Results" className={cx(s.scroller, "max-h-[min(58svh,520px)] overflow-y-auto p-2")}>
               {results.length === 0 && (
                 <li className={cx(s.muted, "px-3 py-8 text-center text-[15px]")} role="presentation">
-                  Nothing matches &ldquo;{q}&rdquo;. Try a wood, a piece or a word like gift.
+                  Nothing in {WOOD_SHORT[wood].toLowerCase()} matches &ldquo;{q}&rdquo;.{" "}
+                  {wood === "red" ? "Try mala, box or pendant, or switch to white." : "Try oil, attar or incense, or switch to red."}
                 </li>
               )}
               {results.map((it, i) => {
@@ -243,25 +258,25 @@ function PalettePanel() {
                       onClick={() => go(it)}
                       className={cx(
                         "flex h-12 cursor-pointer items-center gap-3 rounded-[16px] px-2.5 transition-colors",
-                        i === sel ? "bg-[#f6f4f0]" : "",
+                        i === sel ? "bg-[var(--b-tile2)]" : "",
                       )}
                     >
                       {it.thumb ? (
-                        <span className="relative size-8 shrink-0 overflow-hidden rounded-[10px] bg-[#f6f4f0]">
+                        <span className="relative size-8 shrink-0 overflow-hidden rounded-[10px] bg-[var(--b-tile2)]">
                           <Photo p={it.thumb.photo} tone={it.thumb.tone} sizes="32px" />
                         </span>
                       ) : (
-                        <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[#f6f4f0] text-[#141414]">{it.glyph}</span>
+                        <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--b-tile2)] text-[var(--b-ink)]">{it.glyph}</span>
                       )}
                       <span className="min-w-0 flex-1 truncate text-[15px]">{it.label}</span>
-                      <span className={cx(s.mono, s.muted, "shrink-0 text-[10.5px]")}>{q.trim() ? `${it.group === "Pieces" ? it.hint : it.group}` : it.hint}</span>
+                      <span className={cx(s.mono, s.muted, "max-w-[40%] shrink-0 truncate text-[10.5px]")}>{q.trim() ? `${it.group === "Pieces" ? it.hint : it.group}` : it.hint}</span>
                     </div>
                   </li>
                 );
               })}
             </ul>
 
-            <div className={cx(s.mono, s.muted, "flex gap-4 border-t border-black/[0.06] px-4 py-2.5 text-[10.5px]")}>
+            <div className={cx(s.mono, s.muted, "flex gap-4 border-t border-[var(--b-line)] px-4 py-2.5 text-[10.5px]")}>
               <span>↑ ↓ to move</span>
               <span>Enter to open</span>
               <span className="ml-auto hidden sm:inline">Ctrl K or / to search</span>

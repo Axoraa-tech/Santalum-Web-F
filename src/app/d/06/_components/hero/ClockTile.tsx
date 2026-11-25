@@ -1,10 +1,11 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { WT } from "@/components/maison/W";
 import { s } from "../cls";
 import { cx } from "../data";
 
-/** Mysuru time (IST, UTC+5:30, no daylight saving), ticking once a second on the client. */
+/** Local time where the wood comes from (IST, UTC+5:30, no daylight saving), ticking once a second. */
 
 function subscribe(cb: () => void) {
   const id = window.setInterval(cb, 1000);
@@ -44,12 +45,17 @@ export function ClockTile() {
 
   return (
     <div className="flex h-full flex-col p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[22px] font-medium leading-none tracking-[-0.03em]">Mysuru</p>
-          <p className={cx(s.mono, s.muted, "mt-1.5 text-[10.5px]")}>12.30° N, 76.64° E</p>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[clamp(17px,12cqw,22px)] font-medium leading-none tracking-[-0.03em]">
+            <WT red="Seshachalam" white="Mysuru" />
+          </p>
+          <p className={cx(s.mono, s.muted, "mt-1.5 text-[10.5px]")}>
+            <WT red="13.68° N, 79.35° E, the hills" white="12.30° N, 76.64° E, the workshops" />
+          </p>
         </div>
-        <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden className="shrink-0 -rotate-90">
+        {/* the seconds ring; on a narrow tile the seconds in the time say the same, so it steps out */}
+        <svg viewBox="0 0 34 34" aria-hidden className="hidden size-[34px] shrink-0 -rotate-90 @min-[230px]:block">
           <circle cx="17" cy="17" r="14" fill="none" stroke="var(--b-tile2)" strokeWidth="3" />
           <circle
             cx="17"
@@ -78,14 +84,16 @@ export function ClockTile() {
             key={i}
             className="h-2 flex-1 rounded-full transition-colors duration-500"
             style={{
-              background: ready && i === h ? "var(--m-accent)" : i >= 6 && i < 18 ? "#e4e1da" : "#c9c6be",
+              background: ready && i === h ? "var(--m-accent)" : i >= 6 && i < 18 ? "var(--b-track)" : "var(--b-dim)",
             }}
           />
         ))}
       </div>
       <p className={cx(s.mono, s.muted, "mt-2 flex justify-between text-[10.5px]")}>
         <span>{ready ? `${day} ${d} ${MONTHS[mon - 1]}, IST` : "IST, UTC+5:30"}</span>
-        <span className="hidden @min-[220px]:inline">{ready ? (daylight ? "Daylight" : "After dark") : ""}</span>
+        <span className="hidden @min-[220px]:inline">
+          {ready ? daylight ? <WT red="Daylight in the hills" white="Daylight in Mysuru" /> : <WT red="After dark in the hills" white="After dark in Mysuru" /> : ""}
+        </span>
       </p>
     </div>
   );

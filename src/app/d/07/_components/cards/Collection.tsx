@@ -3,23 +3,40 @@
 import { animate, motion, useMotionValue, useReducedMotion, useSpring, useTransform } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef, useState, type PointerEvent, type RefObject, type WheelEvent } from "react";
-import { Photo } from "@/components/Photo";
-import { CATEGORIES, formatINR, WOOD_NAMES, type CategoryKey, type Family } from "@/lib/catalog";
-import { useWood, type Wood } from "@/lib/wood";
+import { W } from "@/components/maison/W";
+import { CONTENT } from "@/lib/shop/content";
+import { CATEGORIES, categoryOf, featured, formatINR, priceLabel, productsFor, type Product } from "@/lib/shop/products";
+import type { Wood } from "@/lib/wood";
 import { IconArrow } from "../Icons";
-import { catLabel, HOME, inWood } from "../store";
+import { shotOf, ShotPhoto } from "../shots";
+import { RatingLine } from "../Stars";
+import { productHref, shopHref, SHOP } from "../store";
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
-/** Card 3: every piece in the current wood on a draggable, snapping row of tall tilting cards. */
+const COPY: Record<Wood, { title: string; text: (rest: number) => string }> = {
+  red: {
+    title: "Heavy in the hand",
+    text: (rest) =>
+      `The pieces the workshop turns most often, from a ${formatINR(1200)} key fob to the Vault cuff. The other ${rest} are in the shop, sorted by what they are for.`,
+  },
+  white: {
+    title: "Scent you can hold",
+    text: (rest) =>
+      `The pieces for the altar, the dressing table and the wrist, from hand-rolled incense to the 2011 Reserve. The other ${rest} are in the shop, sorted by what they are for.`,
+  },
+};
+
+/** Card 3: the featured pieces of the current wood on a draggable, snapping row, ending in the whole shop. */
 export function Collection() {
-  const wood = useWood();
+  return <W red={<Pieces wood="red" />} white={<Pieces wood="white" />} />;
+}
+
+function Pieces({ wood }: { wood: Wood }) {
   const reduce = useReducedMotion();
-  const [cat, setCat] = useState<CategoryKey | "all">("all");
-  const all = inWood(wood);
-  const cats = CATEGORIES.filter((c) => all.some((f) => f.category === c.key));
-  const active = cat !== "all" && cats.some((c) => c.key === cat) ? cat : "all";
-  const list = active === "all" ? all : all.filter((f) => f.category === active);
+  const list = featured(wood);
+  const all = productsFor(wood);
+  const cats = CATEGORIES[wood];
 
   const x = useMotionValue(0);
   const minX = useMotionValue(0);
@@ -58,11 +75,6 @@ export function Collection() {
   };
   const by = (dir: 1 | -1) => go(Math.round(x.get() / bounds.step) * bounds.step - dir * bounds.step);
 
-  const choose = (c: CategoryKey | "all") => {
-    setCat(c);
-    go(0);
-  };
-
   const onWheel = (e: WheelEvent<HTMLDivElement>) => {
     if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
     x.set(clamp(x.get() - e.deltaX, bounds.min, 0));
@@ -77,43 +89,39 @@ export function Collection() {
     else if (right > v.clientWidth - 16) go(x.get() - (right - v.clientWidth) - 40);
   };
 
-  const pill = (on: boolean) =>
-    `h-10 shrink-0 whitespace-nowrap rounded-full px-4 text-[14px] font-medium transition active:scale-95 ${
-      on ? "bg-[#1B1712] text-white" : "bg-white/60 text-[#1B1712] ring-1 ring-[#1B1712]/10 hover:bg-white hover:ring-[#1B1712]/30"
-    }`;
-
   return (
     <div className="flex min-h-[inherit] flex-col pb-[150px] pt-5 md:pt-7 lg:pb-[84px] lg:pt-8">
       <div className="flex flex-col gap-5 px-5 md:px-8 lg:flex-row lg:items-end lg:justify-between lg:px-10">
         <div>
-          <h2 className="d1 text-[clamp(3.4rem,min(6.6vw,11vh),7rem)]">The pieces</h2>
-          <p className="mt-3 max-w-[46ch] text-[15px] leading-relaxed text-[#77706A]">
-            {active === "all"
-              ? `All ${all.length} families made in ${WOOD_NAMES[wood].common.toLowerCase()}.`
-              : `${list.length} of ${all.length} in ${WOOD_NAMES[wood].common.toLowerCase()}: ${CATEGORIES.find((c) => c.key === active)?.line.toLowerCase()}`}{" "}
-            Drag the row or use the arrows.
+          <h2 className="d1 text-[clamp(3.4rem,min(6.6vw,11vh),7rem)]">{COPY[wood].title}</h2>
+          <p className="mt-3 max-w-[50ch] text-[16px] leading-relaxed text-(--s7-muted)">
+            {COPY[wood].text(all.length - list.length)} Drag the row or use the arrows.
           </p>
         </div>
         <div className="flex flex-col gap-4 lg:items-end">
-          <div role="group" aria-label="Filter by category" className="-mx-5 flex gap-1.5 overflow-x-auto px-5 pb-1 [scrollbar-width:none] md:-mx-1 md:flex-wrap md:overflow-visible md:px-1 md:pb-0">
-            <button type="button" aria-pressed={active === "all"} onClick={() => choose("all")} className={pill(active === "all")}>
-              All
-            </button>
+          <nav aria-label={`Shop ${CONTENT[wood].name.toLowerCase()} by category`} className="s7-noscroll -mx-5 flex gap-1.5 overflow-x-auto px-5 pb-1 md:-mx-1 md:flex-wrap md:overflow-visible md:px-1 md:pb-0 lg:max-w-[620px] lg:justify-end">
             {cats.map((c) => (
-              <button key={c.key} type="button" aria-pressed={active === c.key} onClick={() => choose(c.key)} className={pill(active === c.key)}>
+              <Link
+                key={c.id}
+                href={shopHref(c.id)}
+                className="inline-flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-(--s7-surface)/60 pl-4 pr-1.5 text-[14px] font-medium ring-1 ring-(--s7-ink)/10 transition hover:bg-(--s7-ink) hover:text-(--s7-page) active:scale-95"
+              >
                 {c.label}
-              </button>
+                <span className="num grid h-7 min-w-7 place-items-center rounded-full bg-(--s7-ink)/[0.07] px-1.5 text-[12px]">
+                  {all.filter((p) => p.category === c.id).length}
+                </span>
+              </Link>
             ))}
-          </div>
+          </nav>
           <div className="flex items-center gap-3">
-            <div className="relative h-[3px] w-40 overflow-hidden rounded-full bg-[#1B1712]/12" aria-hidden>
-              <motion.span className="absolute inset-y-0 left-0 rounded-full bg-[var(--m-accent)]" style={{ width: knob }} />
+            <div className="relative h-[3px] w-40 overflow-hidden rounded-full bg-(--s7-ink)/12" aria-hidden>
+              <motion.span className="absolute inset-y-0 left-0 rounded-full bg-(--s7-accent)" style={{ width: knob }} />
             </div>
             <button
               type="button"
               aria-label="Previous pieces"
               onClick={() => by(-1)}
-              className="grid size-11 place-items-center rounded-full bg-white ring-1 ring-[#1B1712]/10 transition hover:bg-[#1B1712] hover:text-white active:scale-90"
+              className="grid size-11 place-items-center rounded-full bg-(--s7-surface) ring-1 ring-(--s7-ink)/10 transition hover:bg-(--s7-ink) hover:text-(--s7-page) active:scale-90"
             >
               <IconArrow dir="left" width={18} height={18} />
             </button>
@@ -121,7 +129,7 @@ export function Collection() {
               type="button"
               aria-label="Next pieces"
               onClick={() => by(1)}
-              className="grid size-11 place-items-center rounded-full bg-white ring-1 ring-[#1B1712]/10 transition hover:bg-[#1B1712] hover:text-white active:scale-90"
+              className="grid size-11 place-items-center rounded-full bg-(--s7-surface) ring-1 ring-(--s7-ink)/10 transition hover:bg-(--s7-ink) hover:text-(--s7-page) active:scale-90"
             >
               <IconArrow width={18} height={18} />
             </button>
@@ -158,40 +166,25 @@ export function Collection() {
           }}
           className="s7-grab flex h-[min(60svh,520px)] w-max gap-3 px-5 md:gap-4 md:px-8 lg:h-[min(58svh,600px)] lg:px-10"
         >
-          {list.map((f) => (
-            <PieceCard key={`${wood}-${f.slug}`} family={f} wood={wood} dragged={dragged} onFocus={bringIntoView} />
+          {list.map((p) => (
+            <PieceCard key={p.slug} product={p} dragged={dragged} onFocus={bringIntoView} />
           ))}
+          <ShopAll wood={wood} dragged={dragged} onFocus={bringIntoView} />
         </motion.div>
       </div>
     </div>
   );
 }
 
-function PieceCard({
-  family: f,
-  wood,
-  dragged,
-  onFocus,
-}: {
-  family: Family;
-  wood: Wood;
-  dragged: RefObject<boolean>;
-  onFocus: (el: HTMLElement) => void;
-}) {
-  const v = f.variants[wood]!;
+function useTilt() {
   const rx = useSpring(0, { stiffness: 220, damping: 20 });
   const ry = useSpring(0, { stiffness: 220, damping: 20 });
   const lift = useSpring(0, { stiffness: 260, damping: 24 });
-  const px = useTransform(ry, (r) => r * -0.9);
-  const py = useTransform(rx, (r) => r * 0.9);
-
   const onMove = (e: PointerEvent<HTMLDivElement>) => {
     if (e.pointerType !== "mouse") return;
     const r = e.currentTarget.getBoundingClientRect();
-    const nx = (e.clientX - r.left) / r.width - 0.5;
-    const ny = (e.clientY - r.top) / r.height - 0.5;
-    ry.set(nx * 16);
-    rx.set(-ny * 14);
+    ry.set(((e.clientX - r.left) / r.width - 0.5) * 16);
+    rx.set(-((e.clientY - r.top) / r.height - 0.5) * 14);
     lift.set(-6);
   };
   const reset = () => {
@@ -199,6 +192,23 @@ function PieceCard({
     ry.set(0);
     lift.set(0);
   };
+  return { rx, ry, lift, onMove, reset };
+}
+
+function PieceCard({
+  product: p,
+  dragged,
+  onFocus,
+}: {
+  product: Product;
+  dragged: RefObject<boolean>;
+  onFocus: (el: HTMLElement) => void;
+}) {
+  const { rx, ry, lift, onMove, reset } = useTilt();
+  const px = useTransform(ry, (r) => r * -0.9);
+  const py = useTransform(rx, (r) => r * 0.9);
+  const shot = shotOf(p);
+  const chip = p.edition ? `${p.edition.left} of ${p.edition.size} left` : p.badge;
 
   return (
     <motion.div
@@ -209,36 +219,96 @@ function PieceCard({
       className="aspect-[0.68] h-full shrink-0"
     >
       <Link
-        href={`${HOME}/p/${f.slug}`}
+        href={productHref(p.slug)}
         draggable={false}
         onFocus={(e) => onFocus(e.currentTarget.parentElement as HTMLElement)}
         onClick={(e) => {
           if (dragged.current) e.preventDefault();
         }}
-        className="group flex h-full flex-col rounded-[28px] bg-white p-2 shadow-[0_24px_50px_-30px_rgba(27,23,18,0.45)] transition-shadow duration-500 hover:shadow-[0_34px_60px_-28px_rgba(27,23,18,0.55)] md:rounded-[32px] md:p-2.5"
+        className="group flex h-full flex-col rounded-[28px] bg-(--s7-surface) p-2 shadow-[0_24px_50px_-30px_rgba(27,23,18,0.45)] transition-shadow duration-500 hover:shadow-[0_34px_60px_-28px_rgba(27,23,18,0.55)] md:rounded-[32px] md:p-2.5"
       >
         <div className="relative flex-1 overflow-hidden rounded-[22px] md:rounded-[24px]">
           <motion.div className="absolute -inset-5" style={{ x: px, y: py }}>
-            <Photo p={v.shots[0].photo} tone={v.shots[0].tone} sizes="(min-width: 1024px) 26vw, 60vw" />
+            <ShotPhoto shot={shot} sizes="(min-width: 1024px) 26vw, 60vw" />
           </motion.div>
           <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1.5 text-[12px] font-medium text-[#1B1712]">
-            {catLabel(f.category)}
+            {categoryOf(p).label}
           </span>
-          {f.edition && (
-            <span className="absolute right-3 top-3 rounded-full bg-[#1B1712] px-3 py-1.5 text-[12px] font-medium text-white">
-              {f.edition}
+          {chip && (
+            <span className="num absolute right-3 top-3 rounded-full bg-(--s7-ink) px-3 py-1.5 text-[12px] font-medium text-(--s7-page)">
+              {chip}
             </span>
           )}
         </div>
         <div className="px-2 pb-1.5 pt-3">
           <div className="flex items-baseline justify-between gap-3">
-            <p className="d3 text-[19px] md:text-[21px]">{f.name}</p>
-            <p className="num shrink-0 text-[15px] font-medium">{formatINR(v.price)}</p>
+            <p className="d3 text-[19px] md:text-[21px]">{p.name}</p>
+            <p className="num shrink-0 text-[15px] font-medium">{priceLabel(p)}</p>
           </div>
-          <p className="mt-1 line-clamp-1 text-[13.5px] text-[#77706A]">{v.note}</p>
+          <div className="mt-1 flex items-center justify-between gap-3">
+            <p className="line-clamp-1 text-[14px] text-(--s7-muted)">{p.short}</p>
+            <RatingLine slug={p.slug} className="shrink-0" />
+          </div>
         </div>
       </Link>
     </motion.div>
   );
 }
 
+/** The last card in the row: a small fanned deck of what else is in the shop. */
+function ShopAll({ wood, dragged, onFocus }: { wood: Wood; dragged: RefObject<boolean>; onFocus: (el: HTMLElement) => void }) {
+  const { rx, ry, lift, onMove, reset } = useTilt();
+  const all = productsFor(wood);
+  const rest = all.filter((p) => !p.featured);
+  const fan = [rest[2], rest[6], rest[11]].filter(Boolean);
+  const c = CONTENT[wood];
+
+  return (
+    <motion.div
+      data-piece
+      onPointerMove={onMove}
+      onPointerLeave={reset}
+      style={{ rotateX: rx, rotateY: ry, y: lift, transformPerspective: 900 }}
+      className="aspect-[0.68] h-full shrink-0"
+    >
+      <Link
+        href={SHOP}
+        draggable={false}
+        onFocus={(e) => onFocus(e.currentTarget.parentElement as HTMLElement)}
+        onClick={(e) => {
+          if (dragged.current) e.preventDefault();
+        }}
+        className="group relative flex h-full flex-col overflow-hidden rounded-[28px] bg-(--s7-ink) p-5 text-(--s7-page) shadow-[0_24px_50px_-30px_rgba(27,23,18,0.55)] md:rounded-[32px] md:p-6"
+      >
+        <div className="relative h-[46%] shrink-0">
+          {fan.map((p, i) => (
+            <span
+              key={p.slug}
+              className="absolute left-1/2 top-[6%] h-[88%] w-[48%] overflow-hidden rounded-[18px] ring-4 ring-(--s7-ink) transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              style={{
+                transform: `translateX(${-50 + (i - 1) * 46}%) rotate(${(i - 1) * 9}deg)`,
+                zIndex: i === 1 ? 3 : 1,
+              }}
+            >
+              <span className="absolute inset-0 transition-transform duration-700 group-hover:scale-105">
+                <ShotPhoto shot={shotOf(p)} sizes="160px" />
+              </span>
+            </span>
+          ))}
+        </div>
+        <div className="mt-auto">
+          <p className="text-[14px] text-(--s7-page)/65">The whole shop</p>
+          <p className="d1 mt-2 text-[clamp(2.4rem,4.4vw,3.8rem)]">
+            All {all.length} {c.name.toLowerCase()} pieces
+          </p>
+          <p className="mt-4 flex items-center justify-between gap-3 text-[15px] font-medium">
+            <span>{CATEGORIES[wood].length} categories, search and filters</span>
+            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-(--s7-accent) text-white transition group-hover:translate-x-1">
+              <IconArrow width={18} height={18} />
+            </span>
+          </p>
+        </div>
+      </Link>
+    </motion.div>
+  );
+}

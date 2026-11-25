@@ -3,27 +3,42 @@
 import { motion } from "motion/react";
 import { useState, type CSSProperties } from "react";
 import { Photo } from "@/components/Photo";
-import { useWood } from "@/lib/wood";
+import type { Wood } from "@/lib/wood-boot";
 import { s } from "./cls";
 import { cx, STEPS } from "./data";
 import { views } from "./store";
 import { Corner } from "./ui";
 
+const COPY: Record<Wood, { title: string; text: string; label: string }> = {
+  red: {
+    title: "How a piece is turned",
+    text: "Every piece begins as a reading. The artisan studies the grain before the first cut. The wood decides what it will become. The hand follows.",
+    label: "Read how a red sandalwood piece is turned",
+  },
+  white: {
+    title: "How the oil and the carving are made",
+    text: "The scent decides. Only heartwood goes to the still or to the carver, and every batch of oil is tested before it is bottled.",
+    label: "Read how white sandalwood oil and carving are made",
+  },
+};
+
 /**
- * The five making steps. The current step's ring fills, then the next step takes over and the
- * photograph cross-fades. Hovering anywhere on the row pauses it (CSS animation-play-state).
+ * The five making steps of one wood (they differ: red is turned, white is distilled or carved).
+ * The current step's ring fills, then the next takes over and the photograph cross-fades.
+ * Hovering anywhere on the row pauses it (CSS animation-play-state).
  */
-export function CraftBento() {
-  const wood = useWood();
+export function CraftBento({ wood }: { wood: Wood }) {
   const [step, setStep] = useState(0);
-  const open = () => views.open({ kind: "story", id: "craft", from: "craft-ph", img: true });
+  const steps = STEPS[wood];
+  const id = `craft-ph-${wood}`;
+  const open = () => views.open({ kind: "story", id: "craft", from: id, img: true });
 
   return (
-    <section id="craft" aria-label="How a piece is made" className={cx(s.bento, s.craft, s.section, s.pausable)}>
-      <motion.div layoutId="craft-ph" style={{ gridArea: "ph", borderRadius: 28 }} className={cx(s.tile, s.t2, s.opener, "min-h-[440px]")}>
-        <motion.div layoutId="craft-ph-img" className="absolute inset-0 overflow-hidden" style={{ borderRadius: 28 }}>
-          {STEPS.map((st, i) => {
-            const sh = st.shot[wood];
+    <div className={cx(s.bento, s.craft, s.pausable)}>
+      <motion.div layoutId={id} style={{ gridArea: "ph", borderRadius: 28 }} className={cx(s.tile, s.t2, s.opener, "min-h-[440px]")}>
+        <motion.div layoutId={`${id}-img`} className="absolute inset-0 overflow-hidden" style={{ borderRadius: 28 }}>
+          {steps.map((st, i) => {
+            const sh = st.shot;
             return (
               <div
                 key={st.name}
@@ -44,24 +59,22 @@ export function CraftBento() {
           })}
         </motion.div>
 
-        <span className={cx(s.mono, "pointer-events-none absolute left-3 top-3 z-[3] rounded-full bg-white px-3 py-1.5 text-[10.5px]")}>
-          Step {step + 1} of 5, {STEPS[step].name.toLowerCase()}
+        <span className={cx(s.mono, "pointer-events-none absolute left-3 top-3 z-[3] rounded-full bg-[var(--b-tile)] px-3 py-1.5 text-[10.5px]")}>
+          Step {step + 1} of {steps.length}, {steps[step].name.toLowerCase()}
         </span>
         <Corner icon="expand" />
-        <button type="button" className={s.hit} onClick={open} aria-label="Read how a piece is made" />
+        <button type="button" className={s.hit} onClick={open} aria-label={COPY[wood].label} />
 
         <motion.div
           layout="position"
-          className="pointer-events-none absolute bottom-2 left-2 z-[3] w-[min(520px,calc(100%-16px))] rounded-[20px] bg-white p-5 sm:p-6"
+          className="pointer-events-none absolute bottom-2 left-2 z-[3] w-[min(520px,calc(100%-16px))] rounded-[20px] bg-[var(--b-tile)] p-5 sm:p-6"
         >
-          <h2 className="text-[clamp(24px,5.2cqw,40px)] font-medium leading-[1] tracking-[-0.04em]">How a piece is made</h2>
-          <p className="mt-3 text-[15px] leading-[1.5] text-[#2b2b29] sm:text-[16px]">
-            Every piece begins as a reading. The artisan studies the grain before the first cut. The wood decides what it will become. The hand follows.
-          </p>
+          <h2 className="text-[clamp(24px,5.2cqw,40px)] font-medium leading-[1] tracking-[-0.04em]">{COPY[wood].title}</h2>
+          <p className="mt-3 text-[16px] leading-[1.5] text-[var(--b-ink2)]">{COPY[wood].text}</p>
         </motion.div>
       </motion.div>
 
-      {STEPS.map((st, i) => {
+      {steps.map((st, i) => {
         const on = i === step;
         return (
           <button
@@ -80,7 +93,7 @@ export function CraftBento() {
             <span className="flex w-full items-center justify-between">
               <span className="relative grid size-11 place-items-center">
                 <svg viewBox="0 0 44 44" className="absolute inset-0 -rotate-90" aria-hidden>
-                  <circle cx="22" cy="22" r="19.5" fill="none" stroke="rgba(20,20,20,0.1)" strokeWidth="2.5" />
+                  <circle cx="22" cy="22" r="19.5" fill="none" stroke="var(--b-line)" strokeWidth="2.5" />
                   {on && (
                     <circle
                       key={`${step}-${wood}`}
@@ -94,7 +107,7 @@ export function CraftBento() {
                       pathLength={100}
                       className={s.ring}
                       style={{ "--dur": "5.2s" } as CSSProperties}
-                      onAnimationEnd={() => setStep((n) => (n + 1) % STEPS.length)}
+                      onAnimationEnd={() => setStep((n) => (n + 1) % steps.length)}
                     />
                   )}
                 </svg>
@@ -111,6 +124,6 @@ export function CraftBento() {
           </button>
         );
       })}
-    </section>
+    </div>
   );
 }

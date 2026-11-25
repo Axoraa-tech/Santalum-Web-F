@@ -1,30 +1,131 @@
-/* Design 08, Atlas: drafting paper, ink, and one wood-aware accent for pins and routes. */
+/* Design 08, Atlas: drafting paper, ink, and one wood accent for pins and routes.
+   Two complete palettes: red sits on a warm rose-linen, white on a pale ivory-gold. */
+
+@property --a-paper {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #f6f0ec;
+}
+@property --a-paper-2 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #eee3dd;
+}
+@property --a-card {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #fdf9f7;
+}
+@property --a-ink {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #26150f;
+}
+@property --a-ink-2 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #4f3830;
+}
+@property --a-muted {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #806259;
+}
+@property --a-accent {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #9b3520;
+}
+@property --a-accent-deep {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #5e1d10;
+}
+@property --a-accent-soft {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #f1dcd4;
+}
+@property --a-land {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #efe1d8;
+}
+
+/* red, the default */
+.a8-root,
+.a8-root .a8-as-red {
+  --a-paper: #f6f0ec;
+  --a-paper-2: #eee3dd;
+  --a-card: #fdf9f7;
+  --a-ink: #26150f;
+  --a-ink-2: #4f3830;
+  --a-muted: #806259;
+  --a-accent: #9b3520;
+  --a-accent-deep: #5e1d10;
+  --a-accent-soft: #f1dcd4;
+  --a-land: #efe1d8;
+}
+/* white */
+html[data-wood="white"] .a8-root,
+.a8-root .a8-as-white {
+  --a-paper: #f8f4e9;
+  --a-paper-2: #efe7d4;
+  --a-card: #fdfbf4;
+  --a-ink: #2a2216;
+  --a-ink-2: #4e4431;
+  --a-muted: #7f6e53;
+  --a-accent: #a07330;
+  --a-accent-deep: #6b4a1c;
+  --a-accent-soft: #efe3cc;
+  --a-land: #f0e6cf;
+}
 
 .a8-root {
-  --a-paper: #f5f4ef;
-  --a-paper-2: #ecebe3;
-  --a-card: #fbfaf7;
-  --a-ink: #1f1d1a;
-  --a-ink-2: #46423b;
-  --a-muted: #77736b;
-  --a-line: rgb(31 29 26 / 0.13);
-  --a-line-2: rgb(31 29 26 / 0.26);
+  --a-line: color-mix(in srgb, var(--a-ink) 13%, transparent);
+  --a-line-2: color-mix(in srgb, var(--a-ink) 26%, transparent);
+  --a-dot: color-mix(in srgb, var(--a-ink) 15%, transparent);
+  --a-dot-2: color-mix(in srgb, var(--a-ink) 26%, transparent);
   --a-red: #9b3520;
   --a-brass: #a57a38;
   --a-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  /* the shared account and track views take the wood's palette */
+  --sk-ink: var(--a-ink);
+  --sk-muted: var(--a-muted);
+  --sk-accent: var(--a-accent);
+  --sk-accent-soft: var(--a-accent-soft);
+  --sk-surface: var(--a-card);
+  --sk-line: var(--a-line-2);
+  --sk-radius: 12px;
+  --sk-display: var(--font-a8-display), Georgia, serif;
   background: var(--a-paper);
   color: var(--a-ink);
   font-family: var(--font-a8-text), ui-sans-serif, system-ui, sans-serif;
   min-height: 100svh;
   -webkit-font-smoothing: antialiased;
   font-feature-settings: "ss01";
+  transition:
+    --a-paper 0.9s var(--a-ease),
+    --a-paper-2 0.9s var(--a-ease),
+    --a-card 0.9s var(--a-ease),
+    --a-ink 0.9s var(--a-ease),
+    --a-ink-2 0.9s var(--a-ease),
+    --a-muted 0.9s var(--a-ease),
+    --a-accent 0.9s var(--a-ease),
+    --a-accent-deep 0.9s var(--a-ease),
+    --a-accent-soft 0.9s var(--a-ease),
+    --a-land 0.9s var(--a-ease);
+}
+/* fieldsets default to min-inline-size: min-content, so a scrolling chip rail inside one would widen the page */
+.a8-root fieldset {
+  min-inline-size: 0;
 }
 .a8-root ::selection {
-  background: var(--m-accent);
-  color: #fff;
+  background: var(--a-accent);
+  color: var(--a-card);
 }
 .a8-root :focus-visible {
-  outline: 2px solid var(--m-accent);
+  outline: 2px solid var(--a-accent);
   outline-offset: 3px;
 }
 
@@ -37,14 +138,18 @@
   font-family: var(--font-tiro), var(--font-a8-display), serif;
 }
 
-/* Static drafting paper for the list, product and checkout pages. */
+/* Static drafting paper for the list, shop, product, checkout, account and track pages. */
 .a8-paper {
   background-color: var(--a-paper);
   background-image:
-    radial-gradient(circle, rgb(31 29 26 / 0.12) 1px, transparent 1.3px),
-    radial-gradient(circle, rgb(31 29 26 / 0.2) 1.3px, transparent 1.6px);
-  background-size: 24px 24px, 96px 96px;
-  background-position: 12px 12px, 12px 12px;
+    radial-gradient(circle, var(--a-dot) 1px, transparent 1.3px),
+    radial-gradient(circle, var(--a-dot-2) 1.3px, transparent 1.6px);
+  background-size:
+    24px 24px,
+    96px 96px;
+  background-position:
+    12px 12px,
+    12px 12px;
 }
 
 /* ---------------- the canvas ---------------- */
@@ -78,10 +183,12 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-size: 18px 18px, 72px 72px;
+  background-size:
+    18px 18px,
+    72px 72px;
   background-image:
-    radial-gradient(circle, rgb(31 29 26 / 0.15) 1px, transparent 1.25px),
-    radial-gradient(circle, rgb(31 29 26 / 0.26) 1.35px, transparent 1.7px);
+    radial-gradient(circle, var(--a-dot) 1px, transparent 1.25px),
+    radial-gradient(circle, var(--a-dot-2) 1.35px, transparent 1.7px);
 }
 .a8-world {
   position: absolute;
@@ -91,25 +198,28 @@
   opacity: 0;
 }
 
-/* Pinned product cards: slightly rotated, they straighten and lift under the pointer. */
+/* Pinned cards: slightly rotated, they straighten and lift under the pointer. */
 .a8-card {
   position: absolute;
   background: var(--a-card);
   border: 1px solid var(--a-line);
   box-shadow:
-    0 1px 0 rgb(31 29 26 / 0.05),
-    0 22px 44px -30px rgb(31 29 26 / 0.5);
+    0 1px 0 color-mix(in srgb, var(--a-ink) 5%, transparent),
+    0 22px 44px -30px color-mix(in srgb, var(--a-ink) 50%, transparent);
   transform: rotate(var(--rot, 0deg));
   transition:
     transform 0.55s var(--a-ease),
     box-shadow 0.55s var(--a-ease);
 }
+.a8-card.a8-flow {
+  position: relative;
+}
 .a8-card:hover,
 .a8-card:focus-within {
   transform: rotate(0deg) translateY(-8px);
   box-shadow:
-    0 1px 0 rgb(31 29 26 / 0.05),
-    0 40px 70px -34px rgb(31 29 26 / 0.55);
+    0 1px 0 color-mix(in srgb, var(--a-ink) 5%, transparent),
+    0 40px 70px -34px color-mix(in srgb, var(--a-ink) 55%, transparent);
 }
 .a8-card:active {
   transform: rotate(0deg) translateY(-3px) scale(0.995);
@@ -118,8 +228,8 @@
   transform: rotate(0deg) translateY(-8px);
   z-index: 40;
   box-shadow:
-    0 0 0 2px var(--m-accent),
-    0 40px 70px -34px rgb(31 29 26 / 0.55);
+    0 0 0 2px var(--a-accent),
+    0 40px 70px -34px color-mix(in srgb, var(--a-ink) 55%, transparent);
 }
 .a8-pinHead {
   position: absolute;
@@ -129,13 +239,16 @@
   height: 16px;
   margin-left: -8px;
   border-radius: 999px;
-  background: radial-gradient(circle at 35% 32%, rgb(255 255 255 / 0.55), transparent 42%), var(--m-accent);
-  box-shadow: 0 3px 4px -1px rgb(31 29 26 / 0.45);
+  background:
+    radial-gradient(circle at 35% 32%, rgb(255 255 255 / 0.55), transparent 42%),
+    var(--a-accent);
+  box-shadow: 0 3px 4px -1px color-mix(in srgb, var(--a-ink) 45%, transparent);
   transform: translateY(-4px) scale(0.6);
   opacity: 0;
   transition:
     transform 0.45s var(--a-ease),
     opacity 0.3s;
+  z-index: 3;
 }
 .a8-card:hover .a8-pinHead,
 .a8-card:focus-within .a8-pinHead,
@@ -148,6 +261,16 @@
 }
 .a8-card:hover .a8-photoZoom {
   transform: scale(1.045);
+}
+/* Second photograph on hover, desktop pointers only. */
+.a8-alt {
+  opacity: 0;
+  transition: opacity 0.6s var(--a-ease);
+}
+@media (hover: hover) and (pointer: fine) {
+  .a8-card:hover .a8-alt {
+    opacity: 1;
+  }
 }
 
 /* Lines on the board */
@@ -162,29 +285,17 @@
   stroke: var(--a-ink);
   stroke-width: 2;
 }
-.a8-routeRed,
-.a8-routeWhite {
+.a8-route {
   fill: none;
-  stroke: var(--a-ink);
-  stroke-opacity: 0.3;
-  stroke-width: 3;
-  stroke-dasharray: 3 11;
-  stroke-linecap: round;
-  transition:
-    stroke-opacity 0.6s,
-    stroke-width 0.6s;
-}
-html:not([data-wood="white"]) .a8-routeRed,
-html[data-wood="white"] .a8-routeWhite {
-  stroke: var(--m-accent);
-  stroke-opacity: 1;
+  stroke: var(--a-accent);
   stroke-width: 4;
   stroke-dasharray: 14 12;
+  stroke-linecap: round;
   animation: a8-flow 1.8s linear infinite;
 }
 .a8-making {
   fill: none;
-  stroke: var(--m-accent);
+  stroke: var(--a-accent);
   stroke-width: 4;
   stroke-dasharray: 16 14;
   stroke-linecap: round;
@@ -195,37 +306,18 @@ html[data-wood="white"] .a8-routeWhite {
     stroke-dashoffset: -52;
   }
 }
-
-.a8-contourRed,
-.a8-contourWhite {
+.a8-contour {
   fill: none;
+  stroke: var(--a-accent);
   stroke-width: 2.5;
-  transition: stroke-opacity 0.8s var(--a-ease);
+  stroke-opacity: 0.3;
 }
-.a8-contourRed {
-  stroke: var(--a-red);
-  stroke-opacity: 0.13;
-}
-.a8-contourWhite {
-  stroke: var(--a-brass);
-  stroke-opacity: 0.16;
-}
-html:not([data-wood="white"]) .a8-contourRed {
-  stroke-opacity: 0.32;
-}
-html[data-wood="white"] .a8-contourWhite {
-  stroke-opacity: 0.4;
-}
-.a8-fillRed {
-  fill: var(--a-red);
-  fill-opacity: 0.035;
-}
-.a8-fillWhite {
-  fill: var(--a-brass);
-  fill-opacity: 0.05;
+.a8-contourFill {
+  fill: var(--a-accent);
+  fill-opacity: 0.045;
 }
 
-/* The map pins on the board breathe once in a while; only the current wood's. */
+/* Map pins breathe once in a while. */
 .a8-pulse {
   transform-box: fill-box;
   transform-origin: center;
@@ -243,15 +335,14 @@ html[data-wood="white"] .a8-contourWhite {
   }
 }
 
-/* Vault tokens */
+/* Edition tokens */
 .a8-token {
   transition:
     transform 0.4s var(--a-ease),
     background-color 0.3s,
     color 0.3s;
 }
-.a8-token:hover,
-.a8-token:focus-visible {
+.a8-token:hover {
   transform: scale(1.14);
 }
 
@@ -267,25 +358,30 @@ html[data-wood="white"] .a8-contourWhite {
     background-color 0.25s,
     color 0.25s,
     border-color 0.25s,
-    box-shadow 0.35s var(--a-ease);
+    box-shadow 0.35s var(--a-ease),
+    opacity 0.25s;
 }
 .a8-btn:active {
   transform: scale(0.97);
+}
+.a8-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 .a8-btnInk {
   background: var(--a-ink);
   color: var(--a-paper);
 }
-.a8-btnInk:hover {
-  background: #000;
-  box-shadow: 0 10px 24px -12px rgb(31 29 26 / 0.6);
+.a8-btnInk:hover:not(:disabled) {
+  background: var(--a-accent-deep);
+  box-shadow: 0 10px 24px -12px color-mix(in srgb, var(--a-ink) 60%, transparent);
 }
 .a8-btnLine {
   border: 1px solid var(--a-line-2);
   color: var(--a-ink);
   background: var(--a-card);
 }
-.a8-btnLine:hover {
+.a8-btnLine:hover:not(:disabled) {
   border-color: var(--a-ink);
 }
 .a8-link {
@@ -293,17 +389,91 @@ html[data-wood="white"] .a8-contourWhite {
   text-decoration-thickness: 1px;
   text-underline-offset: 0.22em;
   text-decoration-color: var(--a-line-2);
-  transition: text-decoration-color 0.25s;
+  transition:
+    text-decoration-color 0.25s,
+    color 0.25s;
 }
 .a8-link:hover {
-  text-decoration-color: var(--m-accent);
+  text-decoration-color: var(--a-accent);
 }
 
 /* Chips in the top bar and on the controls */
 .a8-chip {
-  background: rgb(251 250 247 / 0.94);
+  background: color-mix(in srgb, var(--a-card) 94%, transparent);
   border: 1px solid var(--a-line);
-  box-shadow: 0 10px 28px -18px rgb(31 29 26 / 0.45);
+  box-shadow: 0 10px 28px -18px color-mix(in srgb, var(--a-ink) 45%, transparent);
+}
+
+/* The wood pins in the top bar. The filled pin follows html[data-wood], which is set before first
+   paint, so the toggle never shows the other wood while React hydrates. */
+.a8-wp {
+  --pin: #9b3520;
+  color: var(--a-muted);
+  transition:
+    color 0.3s,
+    background-color 0.25s;
+}
+.a8-wp-white {
+  --pin: #b8894a;
+}
+.a8-wp-glyph {
+  transform: rotate(-14deg);
+  transition: transform 0.5s var(--a-ease);
+}
+.a8-wp:hover .a8-wp-glyph {
+  transform: translateY(-4px) rotate(0deg);
+}
+.a8-wp-body {
+  fill: var(--a-card, #fbfaf7);
+  stroke: var(--pin);
+  transition: fill 0.35s;
+}
+.a8-wp-eye {
+  fill: var(--pin);
+  transition: fill 0.35s;
+}
+.a8-wp-shadow {
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+:root:not([data-wood="white"]) .a8-wp-red,
+:root[data-wood="white"] .a8-wp-white {
+  color: var(--a-ink);
+}
+:root:not([data-wood="white"]) .a8-wp-red .a8-wp-glyph,
+:root[data-wood="white"] .a8-wp-white .a8-wp-glyph {
+  transform: translateY(-2px);
+}
+:root:not([data-wood="white"]) .a8-wp-red .a8-wp-body,
+:root[data-wood="white"] .a8-wp-white .a8-wp-body {
+  fill: var(--pin);
+}
+:root:not([data-wood="white"]) .a8-wp-red .a8-wp-eye,
+:root[data-wood="white"] .a8-wp-white .a8-wp-eye {
+  fill: var(--a-card, #fbfaf7);
+}
+:root:not([data-wood="white"]) .a8-wp-red .a8-wp-shadow,
+:root[data-wood="white"] .a8-wp-white .a8-wp-shadow {
+  opacity: 1;
+}
+/* pressed on a product page: the pin lifts and bobs until the next page is on screen */
+.a8-wp[data-turning] {
+  color: var(--a-ink);
+}
+.a8-wp[data-turning] .a8-wp-body {
+  fill: color-mix(in srgb, var(--pin) 35%, var(--a-card, #fbfaf7));
+  stroke-dasharray: 3 2.4;
+}
+.a8-wp[data-turning] .a8-wp-glyph {
+  animation: a8-bob 0.9s var(--a-ease) infinite alternate;
+}
+@keyframes a8-bob {
+  from {
+    transform: translateY(0) rotate(0deg);
+  }
+  to {
+    transform: translateY(-5px) rotate(0deg);
+  }
 }
 
 /* Inputs */
@@ -319,41 +489,141 @@ html[data-wood="white"] .a8-contourWhite {
     border-color 0.2s,
     box-shadow 0.2s;
 }
+.a8-field::placeholder {
+  color: var(--a-muted);
+}
 .a8-field:hover {
-  border-color: rgb(31 29 26 / 0.45);
+  border-color: color-mix(in srgb, var(--a-ink) 45%, transparent);
 }
 .a8-field:focus {
   outline: none;
-  border-color: var(--m-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--m-accent) 22%, transparent);
+  border-color: var(--a-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--a-accent) 22%, transparent);
 }
-.a8-field:user-invalid {
+.a8-field[aria-invalid="true"] {
   border-color: #b3261e;
 }
+.a8-check {
+  accent-color: var(--a-accent);
+}
 
-/* List view: dashed routes for the making steps */
+/* Radio cards (delivery, payment, saved addresses): the chosen one is pinned. */
+.a8-opt {
+  position: relative;
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  border: 1px solid var(--a-line-2);
+  background: var(--a-card);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  cursor: pointer;
+  transition:
+    border-color 0.25s,
+    box-shadow 0.35s var(--a-ease),
+    transform 0.35s var(--a-ease);
+}
+.a8-opt:hover {
+  border-color: var(--a-ink);
+}
+.a8-opt:active {
+  transform: scale(0.995);
+}
+.a8-opt:has(input:checked) {
+  border-color: var(--a-ink);
+  box-shadow: inset 0 0 0 1px var(--a-ink);
+}
+.a8-opt:has(input:focus-visible) {
+  outline: 2px solid var(--a-accent);
+  outline-offset: 3px;
+}
+.a8-opt:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.a8-opt input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.a8-optPin {
+  flex-shrink: 0;
+  transition: transform 0.45s var(--a-ease);
+  transform: rotate(-14deg);
+}
+.a8-opt:has(input:checked) .a8-optPin {
+  transform: translateY(-2px);
+}
+.a8-optPin path {
+  fill: var(--a-card);
+  transition: fill 0.3s;
+}
+.a8-opt:has(input:checked) .a8-optPin path {
+  fill: var(--a-accent);
+}
+
+/* Dashed routes in flowing layouts */
 .a8-hroute {
-  background-image: linear-gradient(to right, var(--m-accent) 50%, transparent 50%);
+  background-image: linear-gradient(to right, var(--a-accent) 50%, transparent 50%);
   background-size: 22px 3px;
   background-repeat: repeat-x;
 }
 .a8-vroute {
-  background-image: linear-gradient(to bottom, var(--m-accent) 50%, transparent 50%);
+  background-image: linear-gradient(to bottom, var(--a-accent) 50%, transparent 50%);
   background-size: 3px 22px;
   background-repeat: repeat-y;
 }
+.a8-vroute-mute {
+  background-image: linear-gradient(to bottom, var(--a-line-2) 50%, transparent 50%);
+  background-size: 2px 14px;
+  background-repeat: repeat-y;
+}
+
+/* Hatched range on the maps */
+.a8-hatch-line {
+  stroke: var(--a-accent);
+  stroke-width: 2.2;
+  stroke-opacity: 0.55;
+}
+
+/* Hide scrollbars on horizontal filter rails */
+.a8-rail {
+  scrollbar-width: none;
+}
+.a8-rail::-webkit-scrollbar {
+  display: none;
+}
+
+/* Skeleton while browser-saved state loads */
+.a8-wait {
+  background: linear-gradient(90deg, var(--a-paper-2) 0%, color-mix(in srgb, var(--a-paper-2) 40%, var(--a-card)) 50%, var(--a-paper-2) 100%);
+  background-size: 200% 100%;
+  animation: a8-shimmer 1.6s linear infinite;
+}
+@keyframes a8-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .a8-routeRed,
-  .a8-routeWhite,
+  .a8-root {
+    transition: none;
+  }
+  .a8-route,
   .a8-making,
-  .a8-pulse {
+  .a8-pulse,
+  .a8-wait,
+  .a8-wp[data-turning] .a8-wp-glyph {
     animation: none !important;
   }
   .a8-card,
   .a8-photoZoom,
   .a8-token,
-  .a8-btn {
+  .a8-btn,
+  .a8-alt,
+  .a8-opt,
+  .a8-optPin {
     transition: none;
   }
 }
