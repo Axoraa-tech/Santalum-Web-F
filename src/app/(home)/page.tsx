@@ -36,13 +36,6 @@ export default function ComingSoon() {
         <p className="text-[10px] tracking-[0.42em] text-walnut/70 uppercase md:text-[11px]">Estd. 1985</p>
       </header>
 
-      {/* The story behind the mala, one line per beat (written by the 3D scene). */}
-      <p
-        id="story-line"
-        aria-live="off"
-        className="story-line pointer-events-none absolute inset-x-0 top-[96px] z-10 mx-auto max-w-xl px-6 text-center font-serif text-[17px] leading-snug text-walnut italic md:top-[118px] md:text-[21px]"
-      />
-
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col items-center px-5 pb-7 text-center md:pb-10">
         <h1 className="soon-in soon-d2 soon-late font-serif text-[34px] leading-none font-light tracking-[0.2em] md:text-[56px] md:tracking-[0.24em]">
           SANTALUM AROMA
