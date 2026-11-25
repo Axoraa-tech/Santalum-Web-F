@@ -34,13 +34,13 @@ const TAIL = 6;
 const FRONT = Math.PI / 2;
 
 // One cycle (seconds)
-const DRAW0 = 1.4;
-const DRAW = 6.4;
+const DRAW0 = 1.1;
+const DRAW = 5.0;
 const TIE0 = DRAW0 + DRAW + 0.5;
 const TIE = 1.8;
 const REST0 = TIE0 + TIE;
-const RET0 = REST0 + 11;
-const RET = 4.2;
+const RET0 = REST0 + 8;
+const RET = 3.4;
 const LOOP = RET0 + RET + 0.8;
 const FALL = 0.6; // a bead's journey down the ray
 const COOL = 1.4; // glow fading into wood
@@ -575,12 +575,16 @@ function blendInto(out: Rig, a: Rig, b: Rig, k: number) {
 const win = (t: number, a: number, b: number) => easeInOut(clamp01((t - a) / (b - a)));
 
 function Camera({ mobile, focus }: { mobile: boolean; focus: (d: number) => void }) {
-  const store = useRef<{ rigs: Record<string, Rig>; spark: THREE.Vector3 } | null>(null);
+  const store = useRef<{ rigs: Record<string, Rig>; spark: THREE.Vector3; pos: THREE.Vector3; look: THREE.Vector3; roll: number; ready: boolean } | null>(null);
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     store.current ??= {
       rigs: { descend: mkRig(), gimbal: mkRig(), orbit: mkRig(), lead: mkRig(), wide: mkRig(), top: mkRig(), a: mkRig(), out: mkRig() },
       spark: new THREE.Vector3(),
+      pos: new THREE.Vector3(),
+      look: new THREE.Vector3(),
+      roll: 0,
+      ready: false,
     };
     const { rigs, spark } = store.current;
     const t = shot.t;
@@ -681,7 +685,23 @@ function Camera({ mobile, focus }: { mobile: boolean; focus: (d: number) => void
 
     // ---------- gimbal float: tiny, slow, never shaky ----------
     const cam = state.camera as THREE.PerspectiveCamera;
-    cam.position.copy(out.pos);
+    // Stabiliser: the camera eases toward each rig instead of snapping, like a gimbal's damping.
+    const st = store.current;
+    const dt = Math.min(delta, 0.05);
+    if (!st.ready) {
+      st.pos.copy(out.pos);
+      st.look.copy(out.look);
+      st.roll = out.roll;
+      st.ready = true;
+    }
+    st.pos.x = THREE.MathUtils.damp(st.pos.x, out.pos.x, 5, dt);
+    st.pos.y = THREE.MathUtils.damp(st.pos.y, out.pos.y, 5, dt);
+    st.pos.z = THREE.MathUtils.damp(st.pos.z, out.pos.z, 5, dt);
+    st.look.x = THREE.MathUtils.damp(st.look.x, out.look.x, 7, dt);
+    st.look.y = THREE.MathUtils.damp(st.look.y, out.look.y, 7, dt);
+    st.look.z = THREE.MathUtils.damp(st.look.z, out.look.z, 7, dt);
+    st.roll = THREE.MathUtils.damp(st.roll, out.roll, 3, dt);
+    cam.position.copy(st.pos);
     cam.position.x += Math.sin(T * 0.71) * 0.025 + Math.sin(T * 0.23) * 0.04;
     cam.position.y += Math.sin(T * 1.13) * 0.015;
     cam.position.z += Math.cos(T * 0.83) * 0.025;
@@ -690,14 +710,14 @@ function Camera({ mobile, focus }: { mobile: boolean; focus: (d: number) => void
       cam.position.x += state.pointer.x * 0.18;
       cam.position.y += state.pointer.y * 0.08;
     }
-    cam.lookAt(out.look);
-    cam.rotateZ(out.roll + Math.sin(T * 0.37) * 0.006);
+    cam.lookAt(st.look);
+    cam.rotateZ(st.roll + Math.sin(T * 0.37) * 0.006);
     const fov = out.fov + (mobile ? 12 : 0);
     if (Math.abs(cam.fov - fov) > 0.01) {
       cam.fov = fov;
       cam.updateProjectionMatrix();
     }
-    focus(cam.position.distanceTo(out.look));
+    focus(cam.position.distanceTo(st.look));
   });
   return null;
 }
