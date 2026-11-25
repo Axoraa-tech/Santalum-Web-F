@@ -1,0 +1,13 @@
+import type { Metadata } from "next";
+import { Inventory } from "../../_ui/Inventory";
+import { Gate } from "../../_ui/Shell";
+
+export const metadata: Metadata = { title: "Stock" };
+
+export default function Page() {
+  return (
+    <Gate>
+      <Inventory />
+    </Gate>
+  );
+}

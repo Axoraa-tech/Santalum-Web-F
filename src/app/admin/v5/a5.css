@@ -1,0 +1,2212 @@
+/* ============================================================
+   Santalum admin, design 5: "Pocket".
+   The owner's app. Phone first: large titles, a bottom tab bar,
+   swipeable order cards and sheets that rise from the bottom.
+   On a desktop the same 480px app column sits beside a wide
+   detail panel. Off-white with a sandalwood tint; Figtree;
+   money set large. Every class is prefixed a5-.
+   ============================================================ */
+
+html:has(.a5-root),
+html:has(.a5-root) body {
+  background: #f5efe6;
+}
+
+.a5-root {
+  --bg: #f5efe6;
+  --bg-2: #ede5d8;
+  --bg-3: #e5dbcb;
+  --surface: #fffcf7;
+  --ink: #1f1913;
+  --ink-2: #665b4f;
+  --ink-3: #988c7e;
+  --line: rgb(70 48 24 / 0.09);
+  --line-2: rgb(70 48 24 / 0.17);
+  --red: #9b3520;
+  --white: #a07330;
+  --green: #2f5d46;
+  --sel: #f0e6d6;
+  --r: 22px;
+  --ease: cubic-bezier(0.2, 0.9, 0.3, 1);
+  --tabs: 64px;
+  --safe: env(safe-area-inset-bottom, 0px);
+
+  min-height: 100svh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--a5-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  letter-spacing: -0.005em;
+  font-feature-settings: normal;
+  overflow-x: clip;
+  -webkit-tap-highlight-color: transparent;
+}
+.a5-root *,
+.a5-root *::before,
+.a5-root *::after {
+  box-sizing: border-box;
+}
+.a5-root *:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.a5-root ::selection {
+  background: var(--ink);
+  color: var(--surface);
+}
+.a5-root h1,
+.a5-root h2,
+.a5-root h3,
+.a5-root p {
+  margin: 0;
+}
+.a5-root button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.a5-root img.object-cover {
+  object-fit: cover;
+}
+.a5-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.a5-dim {
+  color: var(--ink-3);
+}
+.a5-red {
+  color: var(--red);
+}
+.a5-muted {
+  color: var(--ink-2);
+  font-size: 14.5px;
+}
+.a5-hint {
+  color: var(--ink-3);
+  font-size: 13px;
+  margin: 4px 2px 10px;
+}
+
+/* ---------- frame ---------- */
+.a5-app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+.a5-col {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.a5-main {
+  flex: 1;
+  padding: 0 16px 28px;
+  min-width: 0;
+}
+.a5-main .a5-savebar {
+  bottom: calc(var(--tabs) + var(--safe));
+}
+
+/* bottom tab bar */
+.a5-tabs {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  height: calc(var(--tabs) + var(--safe));
+  padding-bottom: var(--safe);
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+.a5-tabs a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-3);
+  text-decoration: none;
+  letter-spacing: 0;
+}
+.a5-tabs a[aria-current="page"] {
+  color: var(--ink);
+}
+.a5-tabs a[aria-current="page"] .a5-tab-ic {
+  background: var(--bg-2);
+}
+.a5-tab-ic {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 30px;
+  border-radius: 15px;
+  transition: background 0.2s;
+}
+.a5-tab-ic .a5-badge {
+  position: absolute;
+  top: -4px;
+  right: 2px;
+}
+.a5-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: var(--red);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* detail panel: a sheet over the list on a phone */
+.a5-panel {
+  position: fixed;
+  inset: 12px 0 0;
+  z-index: 40;
+  background: var(--bg);
+  border-radius: 26px 26px 0 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  transform: translateY(102%);
+  visibility: hidden;
+  transition:
+    transform 0.38s var(--ease),
+    visibility 0s linear 0.38s;
+  box-shadow: 0 -12px 40px -16px rgb(31 25 19 / 0.3);
+}
+.a5-app[data-open] .a5-panel {
+  transform: none;
+  visibility: visible;
+  transition: transform 0.38s var(--ease);
+}
+.a5-panel-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  border: 0;
+  padding: 0;
+  background: rgb(31 22 14 / 0.36);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.a5-app[data-open] .a5-panel-scrim {
+  opacity: 1;
+  pointer-events: auto;
+}
+.a5-panel-bar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0 8px 2px;
+  background: var(--bg);
+  border-radius: 26px 26px 0 0;
+}
+.a5-panel-bar .a5-grab {
+  align-self: center;
+}
+.a5-grab {
+  display: block;
+  width: 40px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--bg-3);
+  margin: 8px auto 2px;
+}
+.a5-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 44px;
+  padding: 0 8px 0 2px;
+  border: 0;
+  background: none;
+  color: var(--ink-2);
+  font-size: 15.5px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.a5-back-top {
+  margin: 6px 0 -12px -6px;
+}
+@media (max-width: 1023px) {
+  html:has(.a5-app[data-open]) {
+    overflow: hidden;
+  }
+}
+
+/* desktop: the app column beside a wide panel */
+@media (min-width: 1024px) {
+  .a5-app {
+    grid-template-columns: 480px minmax(0, 1fr);
+    max-width: 1500px;
+    margin: 0 auto;
+  }
+  .a5-col {
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+    background: var(--bg);
+  }
+  .a5-main {
+    padding: 0 24px 32px;
+  }
+  .a5-panel,
+  .a5-app[data-open] .a5-panel {
+    position: sticky;
+    top: 0;
+    inset: auto;
+    height: 100svh;
+    transform: none;
+    visibility: visible;
+    transition: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: #f9f5ee;
+    border-right: 1px solid var(--line);
+  }
+  .a5-panel-scrim,
+  .a5-panel-bar,
+  .a5-phone-only {
+    display: none !important;
+  }
+  .a5-panel-body {
+    padding: 44px 48px 64px;
+  }
+  .a5-panel-body > .a5-detail {
+    padding: 0;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .a5-panel-body > .a5-detail .a5-detail-title {
+    font-size: 30px;
+  }
+  .a5-panel .a5-savebar {
+    background: #f9f5ee;
+  }
+}
+
+/* ---------- headings ---------- */
+.a5-head {
+  padding-top: 22px;
+  margin-bottom: 14px;
+}
+.a5-head-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.a5-head h1 {
+  font-size: 34px;
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.a5-eyebrow {
+  color: var(--ink-2);
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.a5-avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg-3);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 15px;
+}
+.a5-avatar[data-size="l"] {
+  width: 64px;
+  height: 64px;
+  font-size: 22px;
+}
+
+/* ---------- sticky filters ---------- */
+.a5-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  margin: 0 -16px;
+  padding: 10px 16px 10px;
+  background: var(--bg);
+  border-bottom: 1px solid transparent;
+}
+@media (min-width: 1024px) {
+  .a5-sticky {
+    margin: 0 -24px;
+    padding: 10px 24px;
+  }
+}
+.a5-seg {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 15px;
+  background: var(--bg-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.a5-seg::-webkit-scrollbar,
+.a5-chips::-webkit-scrollbar {
+  display: none;
+}
+.a5-seg button {
+  flex: 1 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 650;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.a5-seg button[aria-checked="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgb(31 25 19 / 0.12);
+}
+.a5-seg-n {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 11.5px;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.a5-chips {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.a5-chips-wrap {
+  flex-wrap: wrap;
+  margin: 0;
+}
+.a5-pill {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 13.5px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.a5-pill[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface);
+}
+.a5-pill[aria-pressed="true"] .a5-dim {
+  color: rgb(255 252 247 / 0.6);
+}
+
+.a5-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  margin: 4px 0 14px;
+  padding: 0 14px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--ink-3);
+}
+.a5-root .a5-search input {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink);
+  font-size: 16px;
+  outline: none;
+}
+.a5-search input::-webkit-search-cancel-button {
+  display: none;
+}
+.a5-search button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--bg-2);
+  color: var(--ink-2);
+}
+
+/* ---------- money ---------- */
+.a5-money {
+  display: inline-block;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  line-height: 1.1;
+}
+.a5-money[data-size="s"] {
+  font-size: 15px;
+  font-weight: 650;
+}
+.a5-money[data-size="m"] {
+  font-size: 19px;
+}
+.a5-money[data-size="l"] {
+  font-size: 26px;
+  font-weight: 750;
+}
+.a5-money[data-size="xl"] {
+  font-size: clamp(42px, 12vw, 56px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.a5-rs {
+  font-size: 0.6em;
+  font-weight: 600;
+  vertical-align: 0.42em;
+  margin-right: 0.06em;
+  color: var(--ink-2);
+}
+
+/* ---------- today ---------- */
+.a5-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 20px 20px 16px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: var(--surface);
+  text-align: left;
+}
+.a5-hero-label {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--ink-2);
+}
+.a5-hero-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+.a5-hero .a5-bars {
+  width: 100%;
+  margin-top: 6px;
+}
+.a5-hero-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 600;
+}
+.a5-hero-foot svg {
+  margin-left: auto;
+}
+.a5-bars svg {
+  display: block;
+}
+.a5-bars-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.a5-tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+.a5-tile,
+.a5-pipe-step {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 112px;
+  padding: 16px;
+  border-radius: 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  text-decoration: none;
+  transition: transform 0.15s;
+}
+.a5-tile:active,
+.a5-mtile:active,
+.a5-ptile:active {
+  transform: scale(0.98);
+}
+.a5-tile-n {
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.a5-tile[data-hot] .a5-tile-n {
+  color: var(--red);
+}
+.a5-tile-l {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--ink-2);
+}
+.a5-pipe {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+.a5-group {
+  margin-top: 28px;
+}
+.a5-group-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 0 2px 6px;
+}
+.a5-group-head h2 {
+  font-size: 21px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+.a5-group-head a {
+  font-weight: 650;
+  color: var(--ink-2);
+}
+.a5-split-bar {
+  display: flex;
+  gap: 3px;
+  height: 8px;
+  margin-top: 14px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.a5-legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 6px;
+}
+.a5-legend > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.a5-legend small {
+  color: var(--ink-3);
+}
+.a5-seg-wrap {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ---------- lists and rows ---------- */
+.a5-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.a5-list {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.a5-list + .a5-list,
+.a5-stack + .a5-btn,
+.a5-day + .a5-btn {
+  margin-top: 16px;
+}
+.a5-list-flat {
+  background: none;
+  border: 0;
+  border-radius: 0;
+}
+.a5-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 62px;
+  padding: 10px 16px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  text-decoration: none;
+  color: inherit;
+}
+.a5-row + .a5-row,
+.a5-list-flat > .a5-toggle + .a5-toggle {
+  border-top: 1px solid var(--line);
+}
+.a5-row:is(a, button):hover {
+  background: #fbf6ee;
+}
+.a5-row[data-sel] {
+  background: var(--sel);
+}
+.a5-row-ic {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--bg-2);
+  color: var(--ink-2);
+}
+.a5-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: 15.5px;
+  font-weight: 650;
+  line-height: 1.3;
+}
+.a5-row-main small {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 6px;
+  margin-top: 3px;
+  color: var(--ink-3);
+  font-size: 13px;
+  font-weight: 500;
+}
+.a5-count {
+  font-size: 16px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+.a5-count[data-zero] {
+  color: var(--ink-3);
+  font-weight: 600;
+}
+.a5-srow {
+  padding-right: 12px;
+}
+.a5-srow-open {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+.a5-level {
+  min-width: 40px;
+  text-align: right;
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.a5-level[data-s="low"] {
+  color: var(--white);
+}
+.a5-level[data-s="out"] {
+  color: var(--red);
+}
+
+/* ---------- chips, wood ---------- */
+.a5-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 25px;
+  padding: 0 9px;
+  border-radius: 8px;
+  background: var(--bg-2);
+  color: var(--ink-2);
+  font-size: 12.5px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.a5-chip[data-s="new"],
+.a5-chip[data-t="gold"] {
+  background: #f5e6c8;
+  color: #6f4c12;
+}
+.a5-chip[data-s="confirmed"] {
+  background: #e9e4f0;
+  color: #4d3f66;
+}
+.a5-chip[data-s="packed"] {
+  background: #e2e9ef;
+  color: #304c63;
+}
+.a5-chip[data-s="shipped"] {
+  background: #dfeaec;
+  color: #24535c;
+}
+.a5-chip[data-s="delivered"],
+.a5-chip[data-t="green"] {
+  background: #e1ece2;
+  color: #2a5634;
+}
+.a5-chip[data-s="cancelled"] {
+  background: #ece7e1;
+  color: #857a6e;
+}
+.a5-chip[data-s="return-requested"],
+.a5-chip[data-t="red"] {
+  background: #f5e0d8;
+  color: var(--red);
+}
+.a5-wood {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--ink-2);
+}
+.a5-wood > span:first-child {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--red);
+}
+.a5-wood[data-w="white"] > span:first-child {
+  background: var(--white);
+}
+.a5-thumb {
+  position: relative;
+  flex: none;
+  display: block;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-3);
+}
+
+/* ---------- swipe order card ---------- */
+.a5-swipe {
+  position: relative;
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.a5-swipe:not([data-open]):not(:has(.a5-ocard[data-drag])) .a5-swipe-acts {
+  visibility: hidden;
+}
+.a5-swipe-acts {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 184px;
+  display: flex;
+}
+.a5-act {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 0;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.a5-act[data-k="go"] {
+  background: var(--ink);
+  color: var(--surface);
+}
+.a5-act[data-k="call"] {
+  background: var(--green);
+  color: #fff;
+}
+.a5-act[data-k="none"] {
+  background: var(--bg-3);
+  color: var(--ink-2);
+}
+.a5-ocard {
+  position: relative;
+  display: flex;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0.32s var(--ease);
+}
+.a5-ocard[data-drag] {
+  transition: none;
+}
+.a5-swipe[data-sel] .a5-ocard {
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+.a5-ocard-link {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 4px 14px 16px;
+  text-decoration: none;
+  -webkit-user-drag: none;
+}
+.a5-ocard-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.a5-ocard-top strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 16.5px;
+  font-weight: 700;
+}
+.a5-ocard-meta {
+  color: var(--ink-3);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.a5-ocard-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+.a5-ocard-more {
+  flex: none;
+  width: 40px;
+  border: 0;
+  background: none;
+  color: var(--ink-3);
+}
+.a5-day {
+  margin-top: 18px;
+}
+.a5-day-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 0 4px 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.a5-day-head .a5-money {
+  color: var(--ink-3);
+}
+
+/* ---------- buttons ---------- */
+.a5-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 650;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    transform 0.12s,
+    opacity 0.2s;
+}
+.a5-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.a5-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.a5-btn[data-v="primary"] {
+  background: var(--ink);
+  color: var(--surface);
+}
+.a5-btn[data-v="soft"] {
+  background: var(--bg-2);
+  color: var(--ink);
+}
+.a5-btn[data-v="soft"][aria-pressed="true"] {
+  background: #f5e6c8;
+}
+.a5-btn[data-v="danger"] {
+  background: #f5e0d8;
+  color: var(--red);
+}
+.a5-btn[data-v="danger-solid"] {
+  background: var(--red);
+  color: #fff;
+}
+.a5-main > .a5-btn {
+  width: 100%;
+}
+.a5-textbtn {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  background: none;
+  color: var(--ink-2);
+  font-size: 15px;
+  font-weight: 650;
+}
+.a5-textbtn[data-v="danger"] {
+  color: var(--red);
+}
+.a5-round {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  color: var(--ink);
+}
+.a5-round:disabled {
+  opacity: 0.35;
+}
+.a5-fab {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--ink);
+  color: var(--surface);
+  box-shadow: 0 8px 20px -8px rgb(31 25 19 / 0.5);
+}
+
+/* ---------- detail ---------- */
+.a5-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 6px 16px 32px;
+}
+.a5-detail-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.a5-detail-title {
+  font-size: 25px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+.a5-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.a5-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.a5-actions-row .a5-btn {
+  flex: 1 0 auto;
+  min-height: 48px;
+  font-size: 15px;
+  padding: 0 16px;
+}
+.a5-callout {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: #f5e6c8;
+  font-size: 15px;
+}
+.a5-callout strong {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 13px;
+  color: #6f4c12;
+}
+.a5-callout[data-t="gift"] {
+  background: var(--bg-2);
+}
+.a5-callout[data-t="gift"] strong {
+  color: var(--ink-2);
+}
+.a5-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  min-width: 0;
+}
+.a5-card[data-flush] {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.a5-card[data-flush] .a5-card-head {
+  padding: 16px 16px 4px;
+}
+.a5-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.a5-card-head h2 {
+  font-size: 16.5px;
+  font-weight: 750;
+}
+.a5-card[data-flush] .a5-empty {
+  padding: 20px 16px;
+}
+.a5-pad {
+  padding: 8px 12px 12px;
+}
+.a5-sum {
+  margin: 0;
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--line);
+}
+.a5-card:not([data-flush]) .a5-sum,
+.a5-invoice .a5-sum {
+  padding: 12px 0 0;
+}
+.a5-sum > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+}
+.a5-sum dt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-2);
+}
+.a5-sum dd {
+  margin: 0;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.a5-sum [data-total] {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.a5-sum [data-total] dt {
+  color: var(--ink);
+  font-weight: 700;
+}
+.a5-two {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+@media (min-width: 600px) {
+  .a5-two {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+.a5-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.a5-time {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.a5-time li {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  padding-bottom: 14px;
+}
+.a5-time li::before {
+  content: "";
+  position: absolute;
+  left: 4.5px;
+  top: 16px;
+  bottom: 0;
+  width: 1px;
+  background: var(--line-2);
+}
+.a5-time li:last-child::before {
+  display: none;
+}
+.a5-time-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--bg-3);
+  box-shadow: 0 0 0 3px var(--surface);
+}
+.a5-time li:first-child .a5-time-dot {
+  background: var(--ink);
+}
+.a5-time li[data-k="cancelled"] .a5-time-dot,
+.a5-time li[data-k="return-requested"] .a5-time-dot,
+.a5-time li[data-k="refund"] .a5-time-dot {
+  background: var(--red);
+}
+.a5-time strong {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+.a5-time small {
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+.a5-inline {
+  display: flex;
+  gap: 8px;
+}
+.a5-root .a5-inline input {
+  flex: 1;
+  min-width: 0;
+}
+.a5-root .a5-inline select {
+  width: auto;
+}
+.a5-inline .a5-btn {
+  min-height: 48px;
+}
+.a5-note {
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  font-size: 15px;
+}
+.a5-note small {
+  display: block;
+  margin-top: 2px;
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+.a5-person {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.a5-person.a5-card {
+  flex-direction: row;
+}
+.a5-person .a5-ocard-tags {
+  margin-top: 8px;
+}
+.a5-contact {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.a5-cbtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 74px;
+  border-radius: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: 13.5px;
+  font-weight: 650;
+  text-decoration: none;
+}
+.a5-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.a5-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  min-width: 0;
+}
+.a5-stats small {
+  color: var(--ink-3);
+  font-size: 13px;
+  font-weight: 600;
+}
+.a5-stats .a5-money {
+  font-size: clamp(17px, 5vw, 26px);
+}
+.a5-big {
+  display: block;
+  font-size: 64px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.a5-big[data-s="low"] {
+  color: var(--white);
+}
+.a5-big[data-s="out"] {
+  color: var(--red);
+}
+.a5-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: center;
+}
+.a5-stepper small {
+  color: var(--ink-3);
+}
+.a5-stepper button {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--bg-2);
+}
+.a5-stepper button:disabled {
+  opacity: 0.35;
+}
+
+/* ---------- form fields ---------- */
+.a5-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.a5-field > label,
+.a5-label {
+  font-size: 13.5px;
+  font-weight: 650;
+  color: var(--ink-2);
+}
+.a5-field > small {
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+.a5-root :where(input:not([type="checkbox"]), select, textarea) {
+  width: 100%;
+  min-height: 48px;
+  padding: 11px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line-2);
+  background: #fdf9f3;
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  outline: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.a5-root textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+.a5-root :where(input:not([type="checkbox"]), select, textarea):focus {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgb(31 25 19 / 0.1);
+}
+.a5-field[data-error] :is(input, select, textarea) {
+  border-color: var(--red);
+}
+.a5-root .a5-err {
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 600;
+}
+.a5-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.a5-check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--ink);
+}
+.a5-radios {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.a5-radios button {
+  min-height: 50px;
+  padding: 0 16px;
+  border-radius: 14px;
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  text-align: left;
+  font-size: 15px;
+  font-weight: 600;
+}
+.a5-radios button[aria-checked="true"] {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+.a5-amount {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+}
+.a5-amount .a5-rs {
+  font-size: 28px;
+  vertical-align: baseline;
+}
+.a5-root .a5-amount input {
+  width: 6.2ch;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  text-align: center;
+  font-size: 54px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.a5-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  min-height: 56px;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font-size: 15.5px;
+  font-weight: 600;
+}
+.a5-list-flat > .a5-toggle {
+  padding: 6px 16px;
+}
+.a5-toggle small {
+  display: block;
+  color: var(--ink-3);
+  font-size: 13px;
+  font-weight: 500;
+}
+.a5-knob {
+  position: relative;
+  flex: none;
+  width: 50px;
+  height: 30px;
+  border-radius: 15px;
+  background: var(--bg-3);
+  transition: background 0.2s;
+}
+.a5-knob::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(31 25 19 / 0.25);
+  transition: transform 0.25s var(--ease);
+}
+.a5-toggle[aria-checked="true"] .a5-knob {
+  background: var(--green);
+}
+.a5-toggle[aria-checked="true"] .a5-knob::after {
+  transform: translateX(20px);
+}
+.a5-savebar {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 4px -16px 0;
+  padding: 12px 16px calc(12px + var(--safe));
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+}
+.a5-main .a5-savebar {
+  margin: 16px 0 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+.a5-savebar .a5-btn {
+  min-width: 132px;
+}
+.a5-savebar > :first-child:not(.a5-btn) {
+  margin-right: auto;
+}
+.a5-quiet {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+
+/* product editor */
+.a5-opts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.a5-opt,
+.a5-opt-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px 58px 40px;
+  gap: 6px;
+  align-items: center;
+}
+.a5-opt-head {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--ink-3);
+}
+.a5-root .a5-opt input {
+  min-height: 44px;
+  padding: 8px 10px;
+}
+.a5-opt-price {
+  position: relative;
+}
+.a5-opt-price .a5-rs {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  vertical-align: baseline;
+  font-size: 14px;
+}
+.a5-root .a5-opt-price input {
+  padding-left: 22px;
+  font-variant-numeric: tabular-nums;
+}
+.a5-photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 8px;
+}
+.a5-photos-pick {
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+}
+.a5-photo {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--bg-3);
+}
+.a5-photo-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: none;
+  border: 1.5px dashed var(--line-2);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 650;
+}
+.a5-photo-tag {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgb(255 252 247 / 0.94);
+  font-size: 11px;
+  font-weight: 700;
+}
+.a5-photo-acts {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  gap: 4px;
+}
+.a5-photo-acts button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(255 252 247 / 0.94);
+}
+
+/* product grid */
+.a5-pgrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.a5-ptile {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r);
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  text-decoration: none;
+  transition: transform 0.15s;
+}
+.a5-ptile[data-sel] {
+  box-shadow: 0 0 0 2px var(--ink);
+}
+.a5-ptile-img {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  background: var(--bg-3);
+}
+.a5-ptile-flag {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: #f5e6c8;
+  color: #6f4c12;
+  font-size: 12px;
+  font-weight: 700;
+}
+.a5-ptile-flag[data-s="out"] {
+  background: var(--red);
+  color: #fff;
+}
+.a5-ptile-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px 13px;
+}
+.a5-ptile-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 14.5px;
+  font-weight: 650;
+  line-height: 1.3;
+  min-height: 2.6em;
+}
+.a5-ptile-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.a5-ptile-body small {
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+
+/* reviews, coupons, more */
+.a5-rcard {
+  border-radius: var(--r);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.a5-rcard[data-sel] {
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+.a5-rcard-open {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+.a5-rcard.a5-rcard-open {
+  border: 1px solid var(--line);
+}
+.a5-rcard-open strong {
+  font-size: 16px;
+  font-weight: 700;
+}
+.a5-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--ink-2);
+}
+.a5-rcard-acts {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 14px;
+}
+.a5-rcard-acts .a5-btn {
+  flex: 1;
+  min-height: 46px;
+}
+.a5-stars {
+  display: inline-flex;
+  gap: 1px;
+  color: var(--bg-3);
+}
+.a5-stars svg[data-on] {
+  color: var(--white);
+  fill: var(--white);
+}
+.a5-quote {
+  font-size: 17px;
+  line-height: 1.55;
+}
+.a5-coupon {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 16px;
+  border-radius: var(--r);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  text-align: left;
+}
+.a5-coupon[data-sel] {
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+.a5-coupon:not([data-state="active"]) .a5-coupon-value {
+  color: var(--ink-3);
+}
+.a5-code {
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+.a5-coupon-value {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.a5-mgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 14px 0 16px;
+}
+.a5-mtile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 132px;
+  padding: 16px;
+  border-radius: 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  text-decoration: none;
+  transition: transform 0.15s;
+}
+.a5-mtile .a5-row-ic {
+  margin-bottom: auto;
+}
+.a5-mtile strong {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.a5-mtile small {
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+.a5-mtile .a5-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+.a5-empty {
+  padding: 36px 16px;
+  text-align: center;
+  color: var(--ink-2);
+}
+.a5-empty strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 17px;
+  color: var(--ink);
+}
+
+/* storefront preview */
+.a5-prev {
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.a5-prev-hero {
+  position: relative;
+  min-height: 300px;
+  display: flex;
+  align-items: flex-end;
+  color: #fff;
+}
+.a5-prev-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgb(24 16 10 / 0.45);
+}
+.a5-prev-hero > div {
+  position: relative;
+  z-index: 1;
+  padding: 22px;
+}
+.a5-prev-hero h3 {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  white-space: pre-line;
+}
+.a5-prev-hero p {
+  margin: 8px 0 14px;
+  font-size: 14.5px;
+  max-width: 46ch;
+}
+.a5-prev-cta {
+  display: inline-block;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.a5-prev-ed {
+  padding: 16px 18px;
+}
+.a5-prev-ed small {
+  color: var(--ink-3);
+}
+.a5-prev-ed strong {
+  display: block;
+  font-size: 19px;
+  margin: 2px 0 4px;
+}
+.a5-prev-ed p {
+  color: var(--ink-2);
+  font-size: 14px;
+}
+.a5-prev-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0 18px 18px;
+}
+.a5-prev-row small {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.25;
+}
+.a5-prev-img {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-3);
+}
+
+/* ---------- sheet ---------- */
+.a5-sheet-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.a5-scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: rgb(31 22 14 / 0.4);
+  animation: a5-fade 0.25s both;
+}
+.a5-sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 560px;
+  max-height: 92svh;
+  border-radius: 26px 26px 0 0;
+  background: var(--surface);
+  animation: a5-rise 0.36s var(--ease) both;
+  box-shadow: 0 -10px 40px -12px rgb(31 25 19 / 0.35);
+}
+.a5-sheet[data-wide] {
+  max-width: 820px;
+}
+.a5-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 16px 8px 20px;
+}
+.a5-sheet-head h2 {
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: -0.015em;
+}
+.a5-sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 20px 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.a5-sheet-foot {
+  padding: 12px 20px calc(12px + var(--safe));
+  border-top: 1px solid var(--line);
+}
+.a5-sheet-foot .a5-btn {
+  width: 100%;
+}
+@media (min-width: 700px) {
+  .a5-sheet-wrap {
+    align-items: center;
+    padding: 24px;
+  }
+  .a5-sheet {
+    border-radius: 26px;
+    max-height: 86svh;
+  }
+  .a5-sheet .a5-grab {
+    display: none;
+  }
+  .a5-sheet-head {
+    padding-top: 16px;
+  }
+}
+@keyframes a5-rise {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes a5-fade {
+  from {
+    opacity: 0;
+  }
+}
+@media (min-width: 700px) {
+  @keyframes a5-rise {
+    from {
+      transform: translateY(40px);
+      opacity: 0;
+    }
+  }
+}
+
+/* ---------- toast ---------- */
+.a5-toasts {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+}
+.a5-toast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 10px 30px -10px rgb(31 25 19 / 0.5);
+  animation: a5-drop 0.35s var(--ease) both;
+}
+@keyframes a5-drop {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+}
+
+/* ---------- skeleton, login ---------- */
+.a5-skel {
+  border-radius: 10px;
+  background: var(--bg-2);
+  animation: a5-pulse 1.4s ease-in-out infinite;
+}
+@keyframes a5-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+.a5-login {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: var(--bg);
+}
+.a5-login-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: min(420px, 100%);
+  padding: 28px 22px 24px;
+  border-radius: 30px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.a5-login-card h1 {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  margin-bottom: 6px;
+}
+.a5-login-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.a5-mark {
+  position: relative;
+  display: block;
+  width: 48px;
+  height: 32px;
+  margin-bottom: 6px;
+}
+.a5-mark span {
+  position: absolute;
+  top: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--red);
+}
+.a5-mark span + span {
+  left: 16px;
+  background: var(--white);
+  mix-blend-mode: multiply;
+}
+
+/* ---------- invoice and print ---------- */
+.a5-invoice {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-size: 13.5px;
+  color: #1f1913;
+}
+.a5-inv-top {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.a5-inv-top p,
+.a5-inv-grid p {
+  color: var(--ink-2);
+  margin-top: 4px;
+}
+.a5-inv-name {
+  font-size: 20px;
+  font-weight: 800;
+}
+.a5-inv-no {
+  display: flex;
+  flex-direction: column;
+  text-align: right;
+}
+.a5-inv-no strong {
+  font-size: 16px;
+}
+.a5-invoice small {
+  color: var(--ink-3);
+  font-weight: 600;
+}
+.a5-inv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.a5-inv-scroll {
+  overflow-x: auto;
+}
+.a5-inv-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.a5-inv-table th {
+  text-align: left;
+  padding: 6px 8px 6px 0;
+  font-size: 12px;
+  color: var(--ink-3);
+  border-bottom: 1px solid var(--line-2);
+}
+.a5-inv-table td {
+  padding: 8px 8px 8px 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.a5-inv-table :is(th, td):nth-child(n + 3) {
+  text-align: right;
+}
+.a5-inv-words {
+  font-weight: 650;
+}
+.a5-inv-fine {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+@media print {
+  @page {
+    margin: 12mm;
+  }
+  html:has(.a5-sheet[data-print]),
+  html:has(.a5-sheet[data-print]) body {
+    background: #fff !important;
+  }
+  body:has(.a5-sheet[data-print]) * {
+    visibility: hidden;
+  }
+  body:has(.a5-sheet[data-print]) .a5-app,
+  body:has(.a5-sheet[data-print]) .a5-toasts {
+    display: none !important;
+  }
+  .a5-sheet[data-print] .a5-sheet-body,
+  .a5-sheet[data-print] .a5-sheet-body * {
+    visibility: visible;
+  }
+  .a5-sheet-wrap:has(.a5-sheet[data-print]) {
+    position: static;
+    display: block;
+    padding: 0;
+  }
+  .a5-sheet[data-print] {
+    position: static;
+    max-height: none;
+    max-width: none;
+    box-shadow: none;
+    animation: none;
+    border-radius: 0;
+  }
+  .a5-sheet[data-print] .a5-sheet-body {
+    overflow: visible;
+    padding: 0;
+  }
+  .a5-inv-table {
+    min-width: 0;
+  }
+}
