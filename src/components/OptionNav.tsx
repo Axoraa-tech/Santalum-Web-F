@@ -22,7 +22,7 @@ export function OptionNav({ n }: { n: number }) {
       <Link href={`/${prev.slug}`} className="hover:text-linen" aria-label="Previous option">
         ←
       </Link>
-      <Link href="/" className="whitespace-nowrap hover:text-linen">
+      <Link href="/options" className="whitespace-nowrap hover:text-linen">
         {n} / {OPTIONS.length} · {OPTIONS[n - 1].name}
       </Link>
       <Link href={`/${next.slug}`} className="hover:text-linen" aria-label="Next option">
