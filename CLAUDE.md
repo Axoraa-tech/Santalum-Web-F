@@ -14,10 +14,10 @@ This repo will become their e-commerce site. Today it holds the public coming-so
   release); then the light runs back, beads rise into the light, and the cycle begins again. `MalaScene.tsx` holds the
   timeline, `Studio.tsx` the lights, rays and floor, `materials.ts` the textures and glow shader, `bowl.ts` the sound.
   `Inscriptions.tsx` carves classical Sanskrit lines on sandalwood (no deities) as faint turning rings on the floor.
-  `Murals.tsx` shows the Ramayana as sepia mural sketches on a wall around the studio, in story order (Rama breaks the
-  bow, Sita in the Ashoka grove, Hanuman carries the mountain, Ramapanchayan), from public-domain Raja Ravi Varma prints
-  (sources in `public/murals/CREDITS.md`). They appear only during the moving shots (threading, return, loop back) and
-  fade out for the still full view; the one nearest the light glows brighter.
+  `Story.tsx` tells the story behind the mala as an animated sepia storybook synced to the loop, with captions in
+  `#story-line`: Rama's coronation; Sita gives her necklace (a ring of light passes from her hands to his) to Hanuman;
+  he searches each bead for Rama; he opens his heart and Rama and Sita are there. Art from public-domain Raja Ravi Varma
+  prints (`public/story/CREDITS.md`). Panels show only in the moving shots; the loop timings live in `timeline.ts`.
   Camera = one continuous take of blended rigs (drone descent, low gimbal follow, banking orbit, macro lead, crane
   reveal, drone drift, bird's-eye return) in `MalaScene.tsx` `Camera`; review any moment with `/?at=<s>&hold`.
   Copy is only the brand, "Our website is coming soon.", email capture and socials. No products or photos.

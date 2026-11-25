@@ -82,6 +82,11 @@ html[data-shot="tie"] .soon-count-label::after { content: "Tied · complete"; }
 html[data-shot="rest"] .soon-count-label::after { content: "Draw the mala · let it go"; }
 html[data-shot="return"] .soon-count-label::after { content: "Returning to light"; }
 
+/* Story captions: each line fades in like a film subtitle. */
+.story-line { opacity: 0; transform: translateY(6px); }
+.story-line.is-in { animation: story-in 1.1s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+@keyframes story-in { to { opacity: 0.9; transform: none; } }
+
 /* Sound bars breathe while sound is on. */
 .sound-bar { animation: sound-bar 1.6s ease-in-out infinite; height: 3px; }
 @keyframes sound-bar {
@@ -94,4 +99,5 @@ html[data-shot="return"] .soon-count-label::after { content: "Returning to light
   .soon-grain, .sound-bar { animation: none; }
   .soon-in { animation: none; opacity: 1; }
   .soon-count { display: none; }
+  .story-line.is-in { animation: none; opacity: 0.9; transform: none; }
 }

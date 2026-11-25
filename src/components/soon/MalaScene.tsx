@@ -10,7 +10,8 @@ import type { Line2 } from "three-stdlib";
 import { strike } from "./bowl";
 import { glowFragment, glowVertex, makeWoodMaps, rng } from "./materials";
 import { FloorInscriptions } from "./Inscriptions";
-import { Murals } from "./Murals";
+import { Story } from "./Story";
+import { DRAW, DRAW0, LOOP, REST0, RET, RET0, TIE, TIE0 } from "./timeline";
 import { Floor, Lights, Rays, SOURCE, rayTexture } from "./Studio";
 
 /* =====================================================================
@@ -34,15 +35,6 @@ const R = (N * GAP) / (Math.PI * 2);
 const TAIL = 6;
 const FRONT = Math.PI / 2;
 
-// One cycle (seconds)
-const DRAW0 = 1.1;
-const DRAW = 5.0;
-const TIE0 = DRAW0 + DRAW + 0.5;
-const TIE = 1.8;
-const REST0 = TIE0 + TIE;
-const RET0 = REST0 + 8;
-const RET = 3.4;
-const LOOP = RET0 + RET + 0.8;
 const FALL = 0.6; // a bead's journey down the ray
 const COOL = 1.4; // glow fading into wood
 
@@ -558,6 +550,11 @@ function muralCue() {
   return { vis, angle: angleAt(idx, gap) };
 }
 
+/** The story plays in step with the loop and shows only in the moving shots. */
+function storyCue() {
+  return { t: shot.t, vis: muralCue().vis };
+}
+
 /** Angle on the floor of bead `i` on the (possibly open) circle. */
 function angleAt(i: number, gap: number) {
   return FRONT + gap / 2 + ((Math.PI * 2 - gap) * i) / (N - 1);
@@ -774,7 +771,7 @@ export default function MalaScene({ mobile = false }: { mobile?: boolean }) {
       <Lights />
       <Rays />
       <FloorInscriptions />
-      <Murals cue={muralCue} />
+      <Story cue={storyCue} />
       <Mala mobile={mobile} />
       <Floor mobile={lite} />
       <Sparkles count={mobile ? 30 : 60} scale={[6, 4, 5]} position={[0, 2, -1]} size={2} speed={0.12} color="#b08d57" opacity={0.5} />
