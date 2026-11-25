@@ -4,18 +4,18 @@ import { ContactShadows, OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import type * as THREE from "three";
-import { useWood } from "@/lib/wood";
+import type { Wood } from "@/lib/wood";
 import type { ProfileKey } from "./data";
 import { bounds, createLathe, DISPLAY, profile } from "./lathe";
 import { Studio } from "./LatheScene";
 import { createWoodMaterial, woodTextures } from "./woodMaterial";
 
-/** Small viewer for the product page: the piece's lathe profile, standing, in the current wood. */
-export default function ProductViewer({ shape, reduced }: { shape: ProfileKey; reduced: boolean }) {
+/** Small viewer for the product page: the piece's lathe profile, standing, in the piece's own wood. */
+export default function ProductViewer({ shape, reduced, wood }: { shape: ProfileKey; reduced: boolean; wood: Wood }) {
   return (
     <Canvas dpr={[1, 1.75]} camera={{ position: [0, 1.5, 5.6], fov: 30 }} gl={{ antialias: true, alpha: true }}>
       <Studio />
-      <Piece shape={shape} />
+      <Piece shape={shape} wood={wood} />
       <OrbitControls
         enableZoom={false}
         enablePan={false}
@@ -29,8 +29,7 @@ export default function ProductViewer({ shape, reduced }: { shape: ProfileKey; r
   );
 }
 
-function Piece({ shape }: { shape: ProfileKey }) {
-  const wood = useWood();
+function Piece({ shape, wood }: { shape: ProfileKey; wood: Wood }) {
   const lathe = useMemo(() => createLathe(128), []);
   const mat = useMemo(() => createWoodMaterial(woodTextures(false)), []);
   const mesh = useRef<THREE.Mesh>(null);
@@ -75,7 +74,7 @@ function Piece({ shape }: { shape: ProfileKey }) {
         <mesh ref={mesh} geometry={lathe.geometry} material={mat.material} frustumCulled={false} />
       </group>
       <group ref={floor}>
-        <ContactShadows scale={6} blur={2.2} far={2.4} opacity={0.45} resolution={512} color="#1a1b1d" />
+        <ContactShadows scale={6} blur={2.2} far={2.4} opacity={0.45} resolution={512} color={wood === "white" ? "#2a2318" : "#221715"} />
       </group>
     </>
   );

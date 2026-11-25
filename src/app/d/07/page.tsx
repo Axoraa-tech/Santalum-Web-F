@@ -12,34 +12,34 @@ const CARDS = 8;
 
 /**
  * Design 07 "Stack". The home page is a deck: every card is sticky, and as the next one slides up over it,
- * the one underneath sinks back, shifts up and dims.
+ * the one underneath sinks back, shifts up and dims. Every card renders in both woods; CSS shows the current one.
  */
 export default function StackHome() {
   return (
     <main>
       <Deck>
-        <Slot id="home" label="Santalum Maison" index={1} total={CARDS} tint="#EFE9E0">
+        <Slot id="home" label="Santalum Maison" index={1} total={CARDS} tint="var(--s7-sand)">
           <Hero />
         </Slot>
-        <Slot id="woods" label="Two woods" index={2} total={CARDS} tint="#FFFFFF">
+        <Slot id="woods" label="Two woods" caption={{ red: "A different tree", white: "The temple wood" }} index={2} total={CARDS} tint="var(--s7-surface)">
           <Woods />
         </Slot>
-        <Slot id="pieces" label="The pieces" index={3} total={CARDS} tint="#F1E6DC">
+        <Slot id="pieces" label="The pieces" caption={{ red: "Heavy in the hand", white: "Scent you can hold" }} index={3} total={CARDS} tint="var(--s7-clay)">
           <Collection />
         </Slot>
-        <Slot id="craft" label="How it is made" index={4} total={CARDS} tint="#E4E8E0" extra={3}>
+        <Slot id="craft" label="How it is made" caption={{ red: "How it is turned", white: "How it is distilled" }} index={4} total={CARDS} tint="var(--s7-sage)" extra={3}>
           <Craft />
         </Slot>
-        <Slot id="provenance" label="Provenance" index={5} total={CARDS} tint="#E9E5DC">
+        <Slot id="provenance" label="Provenance" caption={{ red: "The batch record", white: "The lot record" }} index={5} total={CARDS} tint="var(--s7-stone)">
           <Provenance />
         </Slot>
-        <Slot id="vault" label="The 2011 Vault" index={6} total={CARDS} tint="#EFE9E0">
+        <Slot id="vault" label="The 2011 edition" caption={{ red: "The 2011 Vault", white: "The 2011 Reserve" }} index={6} total={CARDS} tint="var(--s7-sand)">
           <Vault />
         </Slot>
-        <Slot id="gifting" label="Gifting and the Circle" index={7} total={CARDS} tint="#FFFFFF">
+        <Slot id="gifting" label="Gifting and the Circle" caption={{ red: "A gift with weight", white: "A gift that fills the room" }} index={7} total={CARDS} tint="var(--s7-surface)">
           <Gifting />
         </Slot>
-        <Slot id="house" label="The house" index={8} total={CARDS} tint="var(--m-accent-soft)">
+        <Slot id="house" label="The house" caption={{ red: "Shop, orders and help", white: "Orders, care and help" }} index={8} total={CARDS} tint="var(--s7-accent-soft)">
           <FooterCard />
         </Slot>
       </Deck>

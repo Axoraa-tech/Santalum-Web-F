@@ -4,14 +4,13 @@ import { animate, motion, useMotionValue, useReducedMotion, useTransform, type M
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { Photo } from "@/components/Photo";
-import { FAMILIES, formatINR, type Family } from "@/lib/catalog";
-import { useWood, type Wood } from "@/lib/wood";
-import { productHref, splitName } from "./copy";
+import { featured, priceLabel, productsFor, type Product, type Wood } from "@/lib/shop/products";
+import { SHOP, WOOD_LABEL, productHref, splitName } from "./copy";
+import { RatingLine } from "./Rating";
 import { s } from "./cls";
 import { ArrowIcon } from "./ui";
 
-function Item({ f, i, n, base, wood }: { f: Family; i: number; n: number; base: MotionValue<number>; wood: Wood }) {
-  const v = f.variants[wood]!;
+function Item({ f, i, n, base }: { f: Product; i: number; n: number; base: MotionValue<number> }) {
   const step = (Math.PI * 2) / n;
   const angle = useTransform(base, (b) => i * step + b);
   // front of the orbit is the bottom of the ellipse: larger, sharper, on top
@@ -26,22 +25,23 @@ function Item({ f, i, n, base, wood }: { f: Family; i: number; n: number; base: 
     <motion.div className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left, top, scale, opacity, zIndex }}>
       <Link href={productHref(f.slug)} className="group flex w-[170px] flex-col items-center text-center">
         <span className="relative block size-[150px] overflow-hidden rounded-full border-[6px] border-white bg-[var(--o-floor)] shadow-[0_24px_50px_-24px_rgb(25_23_20/0.55)] transition-transform duration-500 group-hover:-translate-y-2">
-          <Photo p={v.shots[0].photo} tone={v.shots[0].tone} sizes="150px" />
+          <Photo p={f.shots[0].photo} tone={f.shots[0].tone} sizes="150px" />
         </span>
         <motion.span style={{ opacity: labelOpacity }} className="mt-3 block">
           <span className={`${s.syne} block text-[17px] font-bold leading-tight tracking-[-0.02em] group-hover:underline`}>{splitName(f.name)[0]}</span>
-          <span className="block text-[13px] tabular-nums text-[var(--o-muted)]">{formatINR(v.price)}</span>
+          <span className="block text-[13px] tabular-nums text-[var(--o-muted)]">{priceLabel(f)}</span>
+          <RatingLine slug={f.slug} size={11} />
         </motion.span>
       </Link>
     </motion.div>
   );
 }
 
-/** Related pieces riding a flat elliptical orbit. It drifts slowly; hover or focus holds it; the arrows step it. */
-export function OrbitRow({ current }: { current: string }) {
-  const wood = useWood();
+/** The wood's featured pieces riding a flat elliptical orbit. It drifts slowly; hover or focus holds it; the arrows step it. */
+export function OrbitRow({ current, wood }: { current: string; wood: Wood }) {
   const reduced = !!useReducedMotion();
-  const list = FAMILIES.filter((f) => f.slug !== current && f.variants[wood]);
+  const list = featured(wood).filter((f) => f.slug !== current);
+  const total = productsFor(wood).length;
   const n = list.length;
   const base = useMotionValue(0);
   const held = useRef(false);
@@ -90,8 +90,19 @@ export function OrbitRow({ current }: { current: string }) {
           <ellipse cx="50" cy="50" rx="49.8" ry="49.5" fill="none" stroke="var(--o-line)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
         </svg>
         {list.map((f, i) => (
-          <Item key={f.slug} f={f} i={i} n={n} base={base} wood={wood} />
+          <Item key={f.slug} f={f} i={i} n={n} base={base} />
         ))}
+      </div>
+      <div className="mt-4 flex justify-center">
+        <Link
+          href={SHOP}
+          className={`${s.syne} group inline-flex h-14 items-center gap-3 rounded-full border border-[var(--o-ink)] pl-6 pr-2 text-[15px] font-bold transition-colors hover:bg-[var(--o-ink)] hover:text-white`}
+        >
+          All {total} {WOOD_LABEL[wood].toLowerCase()} pieces
+          <span className="grid size-10 place-items-center rounded-full bg-[var(--m-accent)] text-white transition-transform duration-300 group-hover:rotate-[-45deg]">
+            <ArrowIcon />
+          </span>
+        </Link>
       </div>
     </section>
   );

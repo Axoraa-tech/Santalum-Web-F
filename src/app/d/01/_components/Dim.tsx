@@ -20,7 +20,8 @@ export function DimH({ label, className = "", bg = "var(--paper)" }: { label: Re
       <span className="absolute -top-[7px] right-0 h-[15px] w-px bg-current opacity-60" />
       <Arrow dir="l" />
       <span className="h-px flex-1 bg-current" />
-      <span className={`${s.mono} whitespace-nowrap px-2 text-[11px] leading-none tabular-nums`} style={{ background: bg }}>
+      {/* The figure stays between the arrowheads: a long one breaks onto a second line rather than running over them. */}
+      <span className={`${s.mono} min-w-0 px-2 text-center text-[11px] leading-[1.25] tabular-nums [text-wrap:balance]`} style={{ background: bg }}>
         {label}
       </span>
       <span className="h-px flex-1 bg-current" />

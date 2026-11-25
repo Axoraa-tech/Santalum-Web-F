@@ -2,15 +2,20 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { Component, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { WT } from "@/components/maison/W";
 import { Photo } from "@/components/Photo";
-import { FAMILIES, formatINR, type Family } from "@/lib/catalog";
-import { switchWood, useWood, type Wood } from "@/lib/wood";
+import { CONTENT } from "@/lib/shop/content";
+import { categoryOf, featured, priceLabel, productsFor, type Product } from "@/lib/shop/products";
+import { useHydrated } from "@/lib/shop/store";
+import { useWood } from "@/lib/wood";
 import { DetailCard } from "./DetailCard";
-import { EASE, LEVEL_LINE, firstShot, splitName } from "./copy";
+import { EASE, SHOP, shopHref, splitName } from "./copy";
 import type { RingItem, RingState } from "./RingScene";
+import { RatingLine } from "./Rating";
 import { clamp } from "./store";
-import { ArrowIcon, Swatch } from "./ui";
+import { ArrowIcon, CurrentSwatch } from "./ui";
 import { s } from "./cls";
 
 const RingScene = dynamic(() => import("./RingScene"), { ssr: false });
@@ -18,6 +23,7 @@ const RingScene = dynamic(() => import("./RingScene"), { ssr: false });
 /** Scroll distance (px) that turns the ring by one disc while the hero is pinned. */
 const stepPx = () => clamp(window.innerHeight * 0.12, 90, 130);
 const STEP_CSS = "clamp(90px, 12vh, 130px)";
+const TOTAL = { red: productsFor("red").length, white: productsFor("white").length };
 
 class CanvasBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -91,7 +97,7 @@ function NameLine({ text, sub, reduced }: { text: string; sub?: string; reduced:
       </p>
       {sub && (
         <motion.p
-          className={`${s.syne} mt-3 rounded-full bg-[var(--o-bg)]/80 px-3 text-[clamp(1rem,1.5vw,1.3rem)] font-semibold text-[var(--o-ink-2)]`}
+          className={`${s.syne} mt-3 rounded-full bg-[var(--o-bg)]/80 px-3 text-[clamp(1rem,1.5vw,1.3rem)] font-semibold text-[var(--o-ink-2)] md:hidden`}
           variants={{ in: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { delay: 0.25 } }, out: { opacity: 0 } }}
         >
           {sub}
@@ -101,10 +107,10 @@ function NameLine({ text, sub, reduced }: { text: string; sub?: string; reduced:
   );
 }
 
-function Fallback({ family, wood }: { family: Family; wood: Wood }) {
-  const shot = firstShot(family, wood);
+function Fallback({ product }: { product: Product }) {
+  const shot = product.shots[0];
   return (
-    <div className="absolute left-1/2 top-[66%] aspect-square w-[min(34vh,62vw)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-[6px] border-[#b9563b] bg-[var(--o-floor)] shadow-[0_40px_60px_-30px_rgb(40_20_10/0.5)]">
+    <div className="absolute left-1/2 top-[66%] aspect-square w-[min(34vh,62vw)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-[6px] border-[var(--m-accent)] bg-[var(--o-floor)] shadow-[0_40px_60px_-30px_rgb(40_20_10/0.5)]">
       <Photo p={shot.photo} tone={shot.tone} sizes="40vh" priority />
     </div>
   );
@@ -112,15 +118,17 @@ function Fallback({ family, wood }: { family: Family; wood: Wood }) {
 
 export function Hero() {
   const wood = useWood();
+  const hydrated = useHydrated();
   const reduced = !!useReducedMotion();
-  const list = useMemo(() => FAMILIES.filter((f) => f.variants[wood]), [wood]);
+  // the ring holds the featured pieces of the current wood; the shop holds the rest
+  const list = useMemo(() => featured(wood), [wood]);
   const items = useMemo<RingItem[]>(
     () =>
-      list.map((f) => {
-        const shot = f.variants[wood]!.shots[0];
-        return { slug: f.slug, photo: shot.photo.id, tone: shot.tone };
+      list.map((p) => {
+        const shot = p.shots[0];
+        return { slug: p.slug, photo: shot.photo.id, tone: shot.tone };
       }),
-    [list, wood],
+    [list],
   );
   const ringRef = useRef<RingState>({ rot: 0, target: 0, vel: 0, dragging: false, dragged: false, hover: -1, open: false });
   const prevList = useRef(list);
@@ -137,17 +145,18 @@ export function Hero() {
   const n = list.length;
   const found = list.findIndex((f) => f.slug === activeSlug);
   const idx = found < 0 ? 0 : found;
-  const family = list[idx];
-  const [name, sub] = splitName(family.name);
+  const product = list[idx];
+  const [name, sub] = splitName(product.name);
+  const cat = categoryOf(product);
 
-  // Switching wood changes which pieces are in the ring; keep the same piece at the front.
+  // Switching wood swaps the whole ring. If the front piece has a counterpart in the other wood, it stays in front.
   useLayoutEffect(() => {
     const prev = prevList.current;
     if (prev === list) return;
     prevList.current = list;
     const st = ringRef.current;
     const oldFront = ((Math.round(st.rot) % prev.length) + prev.length) % prev.length;
-    let ni = list.findIndex((f) => f.slug === prev[oldFront].slug);
+    let ni = list.findIndex((f) => f.slug === prev[oldFront].counterpart);
     if (ni < 0) ni = Math.min(oldFront, list.length - 1);
     st.rot = ni;
     st.target = ni;
@@ -283,11 +292,13 @@ export function Hero() {
       id="ring"
       ref={sectionRef}
       aria-roledescription="carousel"
-      aria-label="The collection, as a ring of wooden discs"
+      aria-label="Featured pieces, as a ring of wooden discs"
       className="relative"
       style={{ height: `calc(100svh + ${n} * ${STEP_CSS})` }}
     >
-      <h1 className="sr-only">Santalum Maison: objects, jewellery and gifts in red and white sandalwood</h1>
+      <h1 className="sr-only">
+        <WT red="Santalum Maison: beads, objects and jewellery in red sandalwood" white="Santalum Maison: oil, attar, incense and carving in white sandalwood" />
+      </h1>
       <div className="sticky top-0 h-svh min-h-[560px] overflow-hidden">
         <div aria-hidden className={`pointer-events-none absolute inset-0 ${s.floor}`} />
 
@@ -298,9 +309,7 @@ export function Hero() {
           animate={{ opacity: open ? 0 : 1, y: open ? -30 : 0 }}
           transition={{ duration: 0.5, ease: EASE }}
         >
-          <AnimatePresence initial={false}>
-            <NameLine key={family.slug} text={name} sub={sub} reduced={reduced} />
-          </AnimatePresence>
+          <AnimatePresence initial={false}>{hydrated && <NameLine key={product.slug} text={name} sub={sub} reduced={reduced} />}</AnimatePresence>
         </motion.div>
 
         {/* the ring */}
@@ -312,63 +321,79 @@ export function Hero() {
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
         >
-          <CanvasBoundary fallback={<Fallback family={family} wood={wood} />}>
+          <CanvasBoundary fallback={<Fallback product={product} />}>
             <RingScene items={items} wood={wood} ringRef={ringRef} onActive={onActive} onOpen={openCard} reduced={reduced} running={running} />
           </CanvasBoundary>
         </div>
 
-        {/* left edge: the house line, set vertically */}
+        {/* left edge: the wood's own line, set vertically */}
         <motion.p
           className={`${s.syne} pointer-events-none absolute left-6 top-1/2 z-20 hidden origin-center -translate-x-1/2 -translate-y-1/2 -rotate-90 whitespace-nowrap text-[14px] font-bold tracking-[-0.01em] text-[var(--o-ink-2)] md:left-10 md:block`}
           animate={{ opacity: open ? 0 : 1 }}
         >
-          Objects time cannot repeat
+          <WT red={CONTENT.red.hero.title} white={CONTENT.white.hero.title} />
         </motion.p>
 
-        {/* bottom: what the front piece is, what it costs, open it */}
+        {/* bottom: what the front piece is, what it costs, open it; and the way into the shop */}
         <motion.div
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-5 pb-[84px] md:px-10 md:pb-8"
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-5 pb-[76px] md:px-10 md:pb-8"
           animate={{ opacity: open ? 0 : 1, y: open ? 24 : 0 }}
           transition={{ duration: 0.45, ease: EASE }}
         >
           <div className="flex items-end justify-between gap-4">
-            <div className="pointer-events-auto mb-[52px] hidden w-[300px] lg:block">
-              <p className="text-[13px] text-[var(--o-muted)]">{LEVEL_LINE[family.level]}</p>
-              <p className="mt-1 text-[15px] leading-snug text-[var(--o-ink-2)]">{family.summary}</p>
+            <div className="pointer-events-auto mb-[30px] hidden w-[320px] lg:block">
+              {hydrated && (
+                <>
+                  <Link href={shopHref(cat.id)} className="text-[13px] font-semibold text-[var(--m-accent)] underline-offset-4 hover:underline">
+                    {cat.label}
+                  </Link>
+                  <p className="mt-1 text-[15px] leading-snug text-[var(--o-ink-2)]">{product.short}</p>
+                </>
+              )}
+              <Link
+                href={SHOP}
+                className={`${s.syne} group mt-4 inline-flex h-12 items-center gap-3 rounded-full border border-[var(--o-ink)] bg-[var(--o-card)]/80 pl-5 pr-1.5 text-[14px] font-bold backdrop-blur-sm transition-colors hover:bg-[var(--o-ink)] hover:text-white`}
+              >
+                <WT red={`All ${TOTAL.red} red sandalwood pieces`} white={`All ${TOTAL.white} white sandalwood pieces`} />
+                <span className="grid size-9 place-items-center rounded-full bg-[var(--m-accent)] text-white transition-transform duration-300 group-hover:rotate-[-45deg]">
+                  <ArrowIcon className="size-4" />
+                </span>
+              </Link>
             </div>
 
             <div className="pointer-events-auto mx-auto flex items-center gap-2 sm:gap-3 md:gap-4 lg:mx-0">
-              <div className="flex items-center gap-1 rounded-full border border-[var(--o-line)] bg-white/80 p-1 backdrop-blur-sm">
-                {(["red", "white"] as Wood[]).map((w) => {
-                  const v = family.variants[w];
-                  const on = w === wood;
-                  return (
-                    <button
-                      key={w}
-                      type="button"
-                      disabled={!v || on}
-                      onClick={() => switchWood(w)}
-                      aria-label={v ? `${w === "red" ? "Red" : "White"} sandalwood, ${formatINR(v.price)}` : `Not made in ${w} sandalwood`}
-                      className={`flex items-center gap-1.5 rounded-full py-1.5 pl-1.5 pr-3 text-[12px] transition-colors duration-300 sm:gap-2 md:pr-4 md:text-[14px] ${
-                        on ? "bg-[var(--o-ink)] text-white" : "text-[var(--o-ink)] enabled:hover:bg-[var(--o-floor)] disabled:opacity-50"
-                      }`}
-                    >
-                      <Swatch wood={w} className="size-5 md:size-6" />
-                      <span className="font-semibold">{w === "red" ? "Red" : "White"}</span>
-                      <span className="tabular-nums">{v ? formatINR(v.price) : "not made"}</span>
-                    </button>
-                  );
-                })}
+              <div className="flex h-[52px] w-[216px] items-center gap-2.5 rounded-full border border-[var(--o-line)] bg-white/80 py-1 pl-1.5 pr-4 backdrop-blur-sm sm:w-[290px] md:h-[60px] md:w-[300px] md:pr-5">
+                <CurrentSwatch className="size-9 md:size-11" />
+                {hydrated ? (
+                  <span className="min-w-0 leading-tight">
+                    <span className="block truncate text-[12px] text-[var(--o-muted)] md:text-[13px]">
+                      {/* on wider screens the back of the ring covers the line under the giant name, so it rides here */}
+                      {sub && <span className="hidden font-semibold text-[var(--o-ink-2)] md:inline">{sub}, </span>}
+                      {product.edition ? `Edition of ${product.edition.size}, ${product.edition.left} left` : cat.label}
+                    </span>
+                    <span className="flex items-center gap-2 whitespace-nowrap text-[15px] font-semibold tabular-nums md:text-[16px]">
+                      {priceLabel(product)}
+                      {/* the stars only where the pill has room for them */}
+                      <span className="hidden sm:inline-flex">
+                        <RatingLine slug={product.slug} size={10} className="text-[12px]" />
+                      </span>
+                    </span>
+                  </span>
+                ) : (
+                  <span className="min-w-0 truncate text-[13px] text-[var(--o-muted)]">
+                    <WT red={CONTENT.red.name} white={CONTENT.white.name} />
+                  </span>
+                )}
               </div>
               <button
                 ref={openBtnRef}
                 type="button"
                 onClick={openCard}
-                className={`${s.syne} group relative grid size-[64px] shrink-0 place-items-center rounded-full bg-[var(--o-ink)] text-[16px] font-bold text-white transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-[1.06] active:scale-95 md:size-[96px] md:text-[18px]`}
+                className={`${s.syne} group relative grid size-[56px] shrink-0 place-items-center rounded-full bg-[var(--o-ink)] text-[15px] font-bold text-white transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-[1.06] active:scale-95 md:size-[96px] md:text-[18px]`}
               >
                 <span aria-hidden className="absolute inset-0 rounded-full border border-[var(--m-accent)] opacity-0 transition-[transform,opacity] duration-500 group-hover:scale-[1.22] group-hover:opacity-100" />
                 Open
-                <span className="sr-only"> {family.name}</span>
+                <span className="sr-only"> {product.name}</span>
               </button>
             </div>
 
@@ -392,18 +417,33 @@ export function Hero() {
               </button>
             </div>
           </div>
-          <p className="pointer-events-none mt-3 text-center text-[12px] text-[var(--o-muted)] md:absolute md:bottom-[132px] md:right-10 md:mt-0 md:text-right">
-            <span className="md:hidden">Swipe sideways or scroll to turn the ring</span>
-            <span className="hidden md:inline">Drag, scroll or use the arrow keys to turn the ring</span>
-          </p>
+          <div className="mt-3 flex flex-col items-center gap-2 text-center text-[12px] text-[var(--o-muted)] md:absolute md:bottom-[132px] md:right-10 md:mt-0 md:items-end md:text-right">
+            <p className="pointer-events-none">
+              <span className="md:hidden">
+                <WT red="Eight red pieces. Swipe sideways to turn them" white="Eight white pieces. Swipe sideways to turn them" />
+              </span>
+              <span className="hidden md:inline">
+                <WT red="Eight red pieces. Drag, scroll or use the arrow keys" white="Eight white pieces. Drag, scroll or use the arrow keys" />
+              </span>
+            </p>
+            <Link
+              href={SHOP}
+              className={`${s.syne} pointer-events-auto inline-flex h-10 items-center gap-2 rounded-full bg-[var(--o-card)]/90 pl-4 pr-1 text-[13px] font-bold text-[var(--o-ink)] shadow-[0_8px_20px_-14px_rgb(25_23_20/0.5)] transition-colors hover:bg-[var(--o-ink)] hover:text-white lg:hidden`}
+            >
+              <WT red={`All ${TOTAL.red} red pieces`} white={`All ${TOTAL.white} white pieces`} />
+              <span className="grid size-8 place-items-center rounded-full bg-[var(--m-accent)] text-white">
+                <ArrowIcon className="size-3.5" />
+              </span>
+            </Link>
+          </div>
         </motion.div>
 
         <p className="sr-only" aria-live="polite">
-          {family.name}, {idx + 1} of {n}
+          {hydrated ? `${product.name}, ${idx + 1} of ${n}` : ""}
         </p>
       </div>
 
-      <AnimatePresence>{open && <DetailCard key="card" family={family} onClose={closeCard} reduced={reduced} />}</AnimatePresence>
+      <AnimatePresence>{open && <DetailCard key="card" product={product} onClose={closeCard} reduced={reduced} />}</AnimatePresence>
     </section>
   );
 }

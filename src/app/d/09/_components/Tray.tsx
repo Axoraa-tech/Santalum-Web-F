@@ -4,8 +4,10 @@ import { AnimatePresence, animate, motion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { Photo } from "@/components/Photo";
-import { formatINR, getFamily, getVariant, WOOD_NAMES } from "@/lib/catalog";
-import { bag, bagTotals, useBag, type Line } from "@/lib/cart";
+import { bag, bagSummary, useBag, type BagItem } from "@/lib/shop/bag";
+import { CONTENT } from "@/lib/shop/content";
+import { formatINR, getOption, getProduct } from "@/lib/shop/products";
+import { useHydrated } from "@/lib/shop/store";
 import s from "../styles";
 import { EASE } from "./data";
 import { openPiece, useAdded } from "./store";
@@ -13,7 +15,8 @@ import { openPiece, useAdded } from "./store";
 /** The bag: a round offering tray at the bottom right that opens into a rounded panel. */
 export function Tray() {
   const lines = useBag();
-  const { count, subtotal } = bagTotals(lines);
+  const hydrated = useHydrated();
+  const { items, count, subtotal } = bagSummary(hydrated ? lines : []);
   const [open, setOpen] = useState(false);
   const added = useAdded();
   const wrap = useRef<HTMLDivElement>(null);
@@ -47,7 +50,8 @@ export function Tray() {
     };
   }, [open]);
 
-  const addedFamily = added ? getFamily(added.slug) : null;
+  const addedP = added ? getProduct(added.slug) : undefined;
+  const addedOpt = addedP && added ? getOption(addedP, added.option) : undefined;
 
   return (
     <div ref={wrap} className="fixed bottom-3 right-3 z-[140] sm:bottom-5 sm:right-5">
@@ -75,25 +79,24 @@ export function Tray() {
 
             {count === 0 ? (
               <div className="px-6 pb-7">
-                <p className="text-[15px] leading-[1.65] text-[var(--muted)]">
-                  Nothing on the tray yet. Open any piece in the day and add it here.
-                </p>
-                <Link href="/d/09#all-pieces" onClick={() => setOpen(false)} className={`${s.ghost} mt-5`}>
-                  See all pieces
+                <p className="text-[15px] leading-[1.65] text-[var(--muted)]">Nothing on the tray yet. Open any piece in the day, or walk through the shop, and add it here.</p>
+                <Link href="/d/09/shop" onClick={() => setOpen(false)} className={`${s.ghost} mt-5`}>
+                  Go to the shop
                 </Link>
               </div>
             ) : (
               <>
                 <ul className={`${s.panelScroll} min-h-0 flex-1 overflow-y-auto overscroll-contain px-4`} data-lenis-prevent>
-                  {lines.map((l) => (
-                    <TrayLine key={`${l.slug}-${l.wood}-${l.custom ?? ""}`} line={l} onOpen={() => setOpen(false)} />
+                  {items.map((it) => (
+                    <TrayLine key={it.key} item={it} onOpen={() => setOpen(false)} />
                   ))}
                 </ul>
                 <div className="border-t border-[var(--hair)] px-6 pb-6 pt-4">
                   <div className="flex items-baseline justify-between">
                     <span className="text-[14px] text-[var(--muted)]">Subtotal</span>
-                    <span className={`${s.display} ${s.tab} text-[28px] leading-none`}>{formatINR(subtotal)}</span>
+                    <span className={`${s.num} text-[26px] leading-none`}>{formatINR(subtotal)}</span>
                   </div>
+                  <p className="mt-1 text-[13px] text-[var(--muted)]">Free delivery across India. Express ₹350.</p>
                   <Link href="/d/09/checkout" onClick={() => setOpen(false)} className={`${s.btn} mt-4 w-full`}>
                     Check out
                   </Link>
@@ -105,7 +108,7 @@ export function Tray() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {added && addedFamily && !open && (
+        {added && addedP && !open && (
           <motion.p
             key={added.n}
             role="status"
@@ -115,7 +118,9 @@ export function Tray() {
             transition={{ duration: 0.4, ease: EASE }}
             className="absolute bottom-[78px] right-0 w-max max-w-[min(300px,calc(100vw-24px))] rounded-[1.25rem] bg-[var(--ink)] px-4 py-2.5 text-[13px] leading-snug text-[var(--paper)]"
           >
-            On the tray: {addedFamily.name}, {WOOD_NAMES[added.wood].common.toLowerCase()}
+            On the tray: {addedP.name}
+            {addedOpt ? `, ${addedOpt.label}` : ""}
+            {added.qty > 1 ? `, ${added.qty}` : ""}
           </motion.p>
         )}
       </AnimatePresence>
@@ -144,53 +149,54 @@ export function Tray() {
             return <circle key={i} cx={(34 + Math.cos(a) * 25).toFixed(2)} cy={(34 + Math.sin(a) * 25).toFixed(2)} r="1.1" fill="rgb(90 64 30 / 0.35)" />;
           })}
         </svg>
-        <span className={`${s.display} ${s.tab} relative text-[24px] leading-none text-[var(--ink)]`}>{count}</span>
+        <span className={`${s.num} relative text-[21px] font-normal leading-none text-[var(--ink)]`}>{count}</span>
       </button>
     </div>
   );
 }
 
-function TrayLine({ line, onOpen }: { line: Line; onOpen: () => void }) {
-  const f = getFamily(line.slug);
-  const v = getVariant(line.slug, line.wood);
-  if (!f || !v) return null;
-  const sh = v.shots[0];
+function TrayLine({ item, onOpen }: { item: BagItem; onOpen: () => void }) {
+  const p = item.product;
+  const sh = p.shots[0];
   return (
     <li className="flex items-center gap-4 border-b border-[var(--hair)] px-2 py-3 last:border-b-0">
       <button
         type="button"
         onClick={() => {
           onOpen();
-          openPiece(line.slug);
+          openPiece(p.slug);
         }}
-        aria-label={`Open ${f.name}`}
+        aria-label={`Open ${p.name}`}
         className={`${s.press} ${s.mask} ${s.circle} size-14 shrink-0`}
       >
         <Photo p={sh.photo} tone={sh.tone} sizes="56px" />
       </button>
       <div className="min-w-0 flex-1">
-        <p className={`${s.display} line-clamp-2 text-[19px] leading-tight`}>{f.name}</p>
-        <p className="text-[12px] text-[var(--muted)]">{WOOD_NAMES[line.wood].common}</p>
-        {line.custom && <p className="mt-0.5 truncate text-[12px] text-[var(--muted)]">Custom: {line.custom}</p>}
-        <p className={`${s.tab} mt-0.5 text-[13px]`}>{formatINR(v.price * line.qty)}</p>
+        <p className={`${s.display} line-clamp-2 text-[19px] leading-tight`}>{p.name}</p>
+        <p className="text-[12px] text-[var(--muted)]">
+          {CONTENT[p.wood].name}
+          {item.optionValue ? `, ${item.optionValue.label}` : ""}
+        </p>
+        {item.note && <p className="mt-0.5 truncate text-[12px] text-[var(--muted)]">Note: {item.note}</p>}
+        <p className={`${s.tab} mt-0.5 text-[13px]`}>{formatINR(item.total)}</p>
       </div>
-      <div className="flex items-center gap-1" role="group" aria-label={`Quantity of ${f.name}`}>
+      <div className="flex items-center gap-1" role="group" aria-label={`Quantity of ${p.name}`}>
         <button
           type="button"
-          onClick={() => bag.setQty(line, line.qty - 1)}
-          aria-label={line.qty === 1 ? `Remove ${f.name}` : `One fewer ${f.name}`}
+          onClick={() => bag.setQty(item.key, item.qty - 1)}
+          aria-label={item.qty === 1 ? `Remove ${p.name}` : `One fewer ${p.name}`}
           className="grid size-8 place-items-center rounded-full border border-[var(--hair)] text-[16px] transition-colors hover:border-[var(--ink)] active:scale-90"
         >
           −
         </button>
         <span className={`${s.tab} w-6 text-center text-[14px]`} aria-live="polite">
-          {line.qty}
+          {item.qty}
         </span>
         <button
           type="button"
-          onClick={() => bag.setQty(line, line.qty + 1)}
-          disabled={line.qty >= 9}
-          aria-label={`One more ${f.name}`}
+          onClick={() => bag.setQty(item.key, item.qty + 1)}
+          disabled={item.qty >= 9}
+          aria-label={`One more ${p.name}`}
           className="grid size-8 place-items-center rounded-full border border-[var(--hair)] text-[16px] transition-colors hover:border-[var(--ink)] active:scale-90 disabled:opacity-40"
         >
           +

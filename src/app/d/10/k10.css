@@ -1,34 +1,108 @@
 /* ==========================================================================
    Design 10, Kinetic (global, every class prefixed k10-; CSS modules are not processed by this project's Turbopack css rule). Type is the image: Anybody's wdth/wght axes move with
-   scroll and the pointer. Paper #F2F0EB, ink #121212, grey #7C7A75, one accent.
+   scroll and the pointer. Two complete palettes, one per wood: red sits on a rose linen,
+   white on a pale ivory gold. Both stay light; the colours ease when the wood changes.
    ========================================================================== */
+
+/* Registered so the palette can transition when <html data-wood> flips. */
+@property --k10-bg {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #f3e8e3;
+}
+@property --k10-paper {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #fbf5f2;
+}
+@property --k10-stone {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #e9d6ce;
+}
+@property --k10-ink {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #23110c;
+}
+@property --k10-grey {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #7f5c51;
+}
+@property --k10-accent {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #9b3520;
+}
+@property --k10-accent-deep {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #5e1d10;
+}
+@property --k10-accent-soft {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #efd6cb;
+}
+@property --k10-line {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgb(35 17 12 / 0.15);
+}
 
 /* In Tailwind's components layer, so utilities next to these classes still win. */
 @layer components {
+  /* Red sandalwood: rose linen, deep red-brown ink, brick accent. */
   .k10-root {
-    --k-bg: #f2f0eb;
-    --k-paper: #faf9f6;
-    --k-stone: #e7e3da;
-    --k-ink: #121212;
-    --k-grey: #7c7a75;
-    --k-line: rgb(18 18 18 / 0.14);
-    --k-ease: cubic-bezier(0.22, 1, 0.36, 1);
-    --k-gut: clamp(16px, 2.2vw, 32px);
-    background: var(--k-bg);
-    color: var(--k-ink);
+    --k10-bg: #f3e8e3;
+    --k10-paper: #fbf5f2;
+    --k10-stone: #e9d6ce;
+    --k10-ink: #23110c;
+    --k10-grey: #7f5c51;
+    --k10-accent: #9b3520;
+    --k10-accent-deep: #5e1d10;
+    --k10-accent-soft: #efd6cb;
+    --k10-line: rgb(35 17 12 / 0.15);
+    --k10-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --k10-gut: clamp(16px, 2.2vw, 32px);
+    background: var(--k10-bg);
+    color: var(--k10-ink);
     font-family: var(--font-anybody), ui-sans-serif, sans-serif;
     font-weight: 400;
     font-synthesis: none;
     min-height: 100svh;
     overflow-x: clip;
     -webkit-font-smoothing: antialiased;
+    transition:
+      --k10-bg 0.9s var(--k10-ease),
+      --k10-paper 0.9s var(--k10-ease),
+      --k10-stone 0.9s var(--k10-ease),
+      --k10-ink 0.9s var(--k10-ease),
+      --k10-grey 0.9s var(--k10-ease),
+      --k10-accent 0.9s var(--k10-ease),
+      --k10-accent-deep 0.9s var(--k10-ease),
+      --k10-accent-soft 0.9s var(--k10-ease),
+      --k10-line 0.9s var(--k10-ease);
+  }
+  /* White sandalwood: pale ivory gold, warm umber ink, brass accent. */
+  html[data-wood="white"] .k10-root {
+    --k10-bg: #f5efe1;
+    --k10-paper: #fcf8ee;
+    --k10-stone: #eadfc6;
+    --k10-ink: #2a2216;
+    --k10-grey: #776749;
+    --k10-accent: #a07330;
+    --k10-accent-deep: #6b4a1c;
+    --k10-accent-soft: #efe2c8;
+    --k10-line: rgb(42 34 22 / 0.15);
   }
   .k10-root ::selection {
-    background: var(--m-accent);
-    color: var(--k-bg);
+    background: var(--k10-accent);
+    color: var(--k10-paper);
   }
   .k10-root :focus-visible {
-    outline: 2px solid var(--m-accent);
+    outline: 2px solid var(--k10-accent);
     outline-offset: 3px;
   }
 
@@ -57,15 +131,15 @@
   }
 
   .k10-gut {
-    padding-inline: var(--k-gut);
+    padding-inline: var(--k10-gut);
   }
 
   .k10-hair {
-    border-color: var(--k-line);
+    border-color: var(--k10-line);
   }
 
   .k10-grey {
-    color: var(--k-grey);
+    color: var(--k10-grey);
   }
 
   /* ---------- links and buttons ---------- */
@@ -75,7 +149,7 @@
   .k10-link {
     position: relative;
     text-decoration: none;
-    transition: color 0.3s var(--k-ease);
+    transition: color 0.3s var(--k10-ease);
   }
   .k10-link::after {
     content: "";
@@ -87,7 +161,7 @@
     background: currentColor;
     transform: scaleX(0);
     transform-origin: right;
-    transition: transform 0.45s var(--k-ease);
+    transition: transform 0.45s var(--k10-ease);
   }
   .k10-link:hover::after,
   .k10-link:focus-visible::after {
@@ -95,7 +169,7 @@
     transform-origin: left;
   }
   .k10-link:active {
-    color: var(--m-accent);
+    color: var(--k10-accent);
   }/* The big ink button: the label stretches on hover. */
 
 
@@ -107,43 +181,43 @@
     min-height: 64px;
     padding: 0 28px;
     border-radius: 999px;
-    background: var(--k-ink);
-    color: var(--k-bg);
+    background: var(--k10-ink);
+    color: var(--k10-bg);
     transition:
-      background-color 0.35s var(--k-ease),
-      transform 0.35s var(--k-ease);
+      background-color 0.35s var(--k10-ease),
+      transform 0.35s var(--k10-ease);
   }
   .k10-btnLabel {
     font-family: var(--font-anybody);
     font-size: 22px;
     line-height: 1;
     font-variation-settings: "wdth" 80, "wght" 640;
-    transition: font-variation-settings 0.6s var(--k-ease);
+    transition: font-variation-settings 0.6s var(--k10-ease);
   }
   .k10-btn:hover .k10-btnLabel,
   .k10-btn:focus-visible .k10-btnLabel {
     font-variation-settings: "wdth" 150, "wght" 800;
   }
   .k10-btn:hover {
-    background: var(--m-accent);
+    background: var(--k10-accent);
   }
   .k10-btn:active {
     transform: scale(0.98);
   }
   .k10-btn:disabled {
-    background: var(--k-grey);
+    background: var(--k10-grey);
     cursor: not-allowed;
   }
 
   .k10-ghost {
     background: transparent;
-    color: var(--k-ink);
-    box-shadow: inset 0 0 0 1.5px var(--k-ink);
+    color: var(--k10-ink);
+    box-shadow: inset 0 0 0 1.5px var(--k10-ink);
   }
   .k10-ghost:hover,
   .k10-ghost:focus-visible {
-    background: var(--k-ink);
-    color: var(--k-bg);
+    background: var(--k10-ink);
+    color: var(--k10-bg);
   }
 
   .k10-chip {
@@ -152,21 +226,21 @@
     line-height: 1;
     padding: 9px 14px;
     border-radius: 999px;
-    box-shadow: inset 0 0 0 1px var(--k-line);
+    box-shadow: inset 0 0 0 1px var(--k10-line);
     transition:
-      background-color 0.3s var(--k-ease),
-      color 0.3s var(--k-ease),
-      box-shadow 0.3s var(--k-ease);
+      background-color 0.3s var(--k10-ease),
+      color 0.3s var(--k10-ease),
+      box-shadow 0.3s var(--k10-ease);
   }
   .k10-chip:hover {
-    box-shadow: inset 0 0 0 1px var(--k-ink);
+    box-shadow: inset 0 0 0 1px var(--k10-ink);
   }
   .k10-chip:active {
     transform: translateY(1px);
   }
   .k10-chip[aria-pressed="true"] {
-    background: var(--k-ink);
-    color: var(--k-bg);
+    background: var(--k10-ink);
+    color: var(--k10-bg);
     box-shadow: none;
   }
 
@@ -177,14 +251,14 @@
   .k10-tog {
     font-family: var(--font-anybody);
     line-height: 0.9;
-    color: var(--k-grey);
+    color: var(--k10-grey);
     font-variation-settings: "wdth" 62, "wght" 520;
     transition:
-      font-variation-settings 0.75s var(--k-ease),
-      color 0.4s var(--k-ease);
+      font-variation-settings 0.75s var(--k10-ease),
+      color 0.4s var(--k10-ease);
   }
   .k10-tog:hover {
-    color: var(--k-ink);
+    color: var(--k10-ink);
     font-variation-settings: "wdth" 75, "wght" 600;
   }
   .k10-tog:active {
@@ -192,33 +266,47 @@
   }
   html:not([data-wood="white"]) .k10-togRed,
   html[data-wood="white"] .k10-togWhite {
-    color: var(--k-ink);
+    color: var(--k10-ink);
     font-variation-settings: "wdth" 150, "wght" 820;
+  }
+  /* On a product page the switch waits for the other wood's page; the chosen word breathes until it opens. */
+  .k10-tog[data-pending] {
+    color: var(--k10-accent);
+    animation: k10-togWait 0.9s var(--k10-ease) infinite alternate;
+  }
+  @keyframes k10-togWait {
+    from {
+      font-variation-settings: "wdth" 62, "wght" 520;
+    }
+    to {
+      font-variation-settings: "wdth" 150, "wght" 820;
+    }
   }
 
   /* ---------- nav ---------- */
 
 
 
+  /* Opaque, like the bag tab it meets: type scrolling under the bar never shows through the links. */
   .k10-navLine {
-    background: color-mix(in srgb, var(--k-bg) 94%, transparent);
-    border-bottom: 1px solid var(--k-line);
+    background: var(--k10-bg);
+    border-bottom: 1px solid var(--k10-line);
   }
   .k10-bagTab {
-    background: var(--k-bg);
-    border: 1px solid var(--k-line);
+    background: var(--k10-bg);
+    border: 1px solid var(--k10-line);
     border-top: 0;
     border-radius: 0 0 0 22px;
-    transition: background-color 0.3s var(--k-ease);
+    transition: background-color 0.3s var(--k10-ease);
   }
   .k10-bagTab:hover {
-    background: var(--k-paper);
+    background: var(--k10-paper);
   }
   .k10-bagNum {
     font-family: var(--font-anybody);
     font-variation-settings: "wdth" 74, "wght" 820;
     line-height: 0.78;
-    transition: font-variation-settings 0.6s var(--k-ease);
+    transition: font-variation-settings 0.6s var(--k10-ease);
   }
   .k10-bagTab:hover .k10-bagNum,
   .k10-bagTab:focus-visible .k10-bagNum {
@@ -230,19 +318,19 @@
     line-height: 0.86;
     font-variation-settings: "wdth" 50, "wght" 560;
     transition:
-      font-variation-settings 0.7s var(--k-ease),
-      color 0.3s var(--k-ease);
+      font-variation-settings 0.7s var(--k10-ease),
+      color 0.3s var(--k10-ease);
   }
   .k10-menuItem:hover .k10-menuWord,
   .k10-menuItem:focus-visible .k10-menuWord {
-    font-variation-settings: "wdth" 150, "wght" 860;
+    font-variation-settings: "wdth" var(--hw, 150), "wght" 860;
   }
   .k10-menuItem:active .k10-menuWord {
-    color: var(--m-accent);
+    color: var(--k10-accent);
   }
   @media (hover: hover) {
     .k10-menuList:hover .k10-menuItem:not(:hover) .k10-menuWord {
-      color: var(--k-grey);
+      color: var(--k10-grey);
     }
   }
 
@@ -261,6 +349,13 @@
   }
   .k10-heroWord [data-l] {
     font-variation-settings: "wdth" 50, "wght" 100;
+  }
+  /* The photo pill waits until the hero has measured its text blocks, then fades in where it fits. */
+  .k10-heroPill {
+    transition: opacity 0.7s var(--k10-ease);
+  }
+  .k10-heroPill:not([data-ready]) {
+    opacity: 0;
   }
 
   /* ---------- marquee ---------- */
@@ -285,15 +380,15 @@
   .k10-bandOutline {
     font-variation-settings: "wdth" 150, "wght" 840;
     color: transparent;
-    -webkit-text-stroke: 1.5px var(--k-ink);
+    -webkit-text-stroke: 1.5px var(--k10-ink);
   }
   html:not([data-wood="white"]) .k10-bandRed .k10-bandWide,
   html[data-wood="white"] .k10-bandWhite .k10-bandWide {
-    color: var(--m-accent);
+    color: var(--k10-accent);
   }
   html[data-wood="white"] .k10-bandWhite .k10-bandOutline,
   html:not([data-wood="white"]) .k10-bandRed .k10-bandOutline {
-    -webkit-text-stroke-color: var(--m-accent);
+    -webkit-text-stroke-color: var(--k10-accent);
   }
   .k10-bandPill {
     position: relative;
@@ -338,33 +433,33 @@
     line-height: 0.76;
     white-space: nowrap;
     font-size: var(--fs-r);
-    color: var(--k-grey);
+    color: var(--k10-grey);
     font-variation-settings: "wdth" 50, "wght" 300;
     transition:
-      font-variation-settings 0.95s var(--k-ease),
-      font-size 0.95s var(--k-ease),
-      color 0.5s var(--k-ease);
+      font-variation-settings 0.95s var(--k10-ease),
+      font-size 0.95s var(--k10-ease),
+      color 0.5s var(--k10-ease);
   }
   html[data-wood="white"] .k10-wood {
     font-size: var(--fs-w);
   }
   html:not([data-wood="white"]) .k10-woodRed,
   html[data-wood="white"] .k10-woodWhite {
-    color: var(--k-ink);
+    color: var(--k10-ink);
     font-variation-settings: "wdth" 150, "wght" 860;
   }
   .k10-woodBtn:hover .k10-wood {
-    color: var(--k-ink);
+    color: var(--k10-ink);
   }
   .k10-woodBtn:active .k10-wood {
-    color: var(--m-accent);
+    color: var(--k10-accent);
   }
   .k10-woodCol {
     flex: 1 1 0;
     min-width: 0;
     transition:
-      flex-grow 0.95s var(--k-ease),
-      opacity 0.5s var(--k-ease);
+      flex-grow 0.95s var(--k10-ease),
+      opacity 0.5s var(--k10-ease);
   }
   .k10-woods .k10-woodColRed {
     flex-grow: var(--g-rr, 1.65);
@@ -396,21 +491,33 @@
     white-space: nowrap;
     font-variation-settings: "wdth" 50, "wght" 560;
     transition:
-      font-variation-settings 0.75s var(--k-ease),
-      color 0.35s var(--k-ease);
+      font-variation-settings 0.75s var(--k10-ease),
+      color 0.35s var(--k10-ease);
   }
   .k10-row:hover .k10-rowName,
   .k10-row:focus-visible .k10-rowName,
+  .k10-row:has(:focus-visible) .k10-rowName,
   .k10-row[data-active="true"] .k10-rowName {
     font-variation-settings: "wdth" var(--hw, 110), "wght" 840;
   }
   .k10-row:active .k10-rowName {
-    color: var(--m-accent);
+    color: var(--k10-accent);
   }
   @media (hover: hover) {
     .k10-rows:hover .k10-row:not(:hover) .k10-rowName {
-      color: var(--k-grey);
+      color: var(--k10-grey);
     }
+  }
+  /* Phones: the active row's name is cut from its photograph (multiplied by the accent so it stays dark on the light page). */
+  .k10-row[data-active="true"] .k10-rowFill {
+    background-image: linear-gradient(var(--k10-accent), var(--k10-accent)), var(--fill);
+    background-blend-mode: multiply;
+    background-size: cover;
+    background-position: center 40%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
   }
   .k10-rowPill {
     position: absolute;
@@ -435,7 +542,7 @@
   .k10-titleL {
     display: inline-block;
     font-variation-settings: "wdth" 150, "wght" 820;
-    animation: k10-stretchIn 1.05s var(--k-ease) both;
+    animation: k10-stretchIn 1.05s var(--k10-ease) both;
   }
   @keyframes k10-stretchIn {
     from {
@@ -465,22 +572,22 @@
   .k10-pwood {
     font-family: var(--font-anybody);
     line-height: 0.85;
-    color: var(--k-grey);
+    color: var(--k10-grey);
     font-variation-settings: "wdth" 50, "wght" 420;
     transition:
-      font-variation-settings 0.75s var(--k-ease),
-      color 0.4s var(--k-ease);
+      font-variation-settings 0.75s var(--k10-ease),
+      color 0.4s var(--k10-ease);
   }
   .k10-pwoodBtn:hover .k10-pwood {
-    color: var(--k-ink);
+    color: var(--k10-ink);
     font-variation-settings: "wdth" 80, "wght" 600;
   }
   .k10-pwoodBtn[aria-pressed="true"] .k10-pwood {
-    color: var(--k-ink);
+    color: var(--k10-ink);
     font-variation-settings: "wdth" 150, "wght" 840;
   }
   .k10-pwoodBtn:disabled .k10-pwood {
-    color: color-mix(in srgb, var(--k-grey) 55%, transparent);
+    color: color-mix(in srgb, var(--k10-grey) 55%, transparent);
     text-decoration: line-through;
     text-decoration-thickness: 2px;
   }
@@ -501,9 +608,9 @@
 
 
   .k10-slip {
-    background: var(--k-paper);
+    background: var(--k10-paper);
     box-shadow:
-      0 0 0 1px var(--k-line),
+      0 0 0 1px var(--k10-line),
       0 30px 60px -40px rgb(18 18 18 / 0.35);
     background-image: repeating-linear-gradient(
       to bottom,
@@ -516,7 +623,7 @@
     width: 0.6em;
     height: 1.1em;
     vertical-align: -0.2em;
-    background: var(--m-accent);
+    background: var(--k10-accent);
     animation: k10-blink 1s steps(1) infinite;
   }
   @keyframes k10-blink {
@@ -535,14 +642,14 @@
     line-height: 1;
     font-variation-settings: "wdth" 60, "wght" 780;
     transition:
-      font-variation-settings 0.5s var(--k-ease),
-      color 0.3s var(--k-ease);
+      font-variation-settings 0.5s var(--k10-ease),
+      color 0.3s var(--k10-ease);
     cursor: default;
   }
   .k10-vnum:hover,
   .k10-vnum[data-on="true"] {
     font-variation-settings: "wdth" 150, "wght" 900;
-    color: var(--m-accent);
+    color: var(--k10-accent);
   }
 
   /* ---------- forms: large type fields ---------- */
@@ -554,28 +661,28 @@
     width: 100%;
     background: transparent;
     border: 0;
-    border-bottom: 1.5px solid var(--k-ink);
+    border-bottom: 1.5px solid var(--k10-ink);
     border-radius: 0;
     padding: 6px 0 10px;
     font-family: var(--font-anybody);
     font-size: clamp(26px, 3.4vw, 46px);
     line-height: 1.1;
     font-variation-settings: "wdth" 70, "wght" 560;
-    color: var(--k-ink);
+    color: var(--k10-ink);
     transition:
-      border-color 0.3s var(--k-ease),
-      font-variation-settings 0.6s var(--k-ease);
+      border-color 0.3s var(--k10-ease),
+      font-variation-settings 0.6s var(--k10-ease);
     appearance: none;
   }
   .k10-field::placeholder {
-    color: color-mix(in srgb, var(--k-grey) 70%, transparent);
+    color: color-mix(in srgb, var(--k10-grey) 70%, transparent);
   }
   .k10-field:hover {
-    border-color: var(--m-accent);
+    border-color: var(--k10-accent);
   }
   .k10-field:focus {
     outline: none;
-    border-color: var(--m-accent);
+    border-color: var(--k10-accent);
     font-variation-settings: "wdth" 120, "wght" 640;
   }
   .k10-field:focus-visible {
@@ -586,8 +693,8 @@
   }
   select.k10-field {
     cursor: pointer;
-    background-image: linear-gradient(45deg, transparent 50%, var(--k-ink) 50%),
-      linear-gradient(135deg, var(--k-ink) 50%, transparent 50%);
+    background-image: linear-gradient(45deg, transparent 50%, var(--k10-ink) 50%),
+      linear-gradient(135deg, var(--k10-ink) 50%, transparent 50%);
     background-position:
       calc(100% - 18px) 55%,
       calc(100% - 10px) 55%;
@@ -603,30 +710,30 @@
     width: 28px;
     height: 28px;
     border-radius: 8px;
-    box-shadow: inset 0 0 0 1.5px var(--k-ink);
+    box-shadow: inset 0 0 0 1.5px var(--k10-ink);
     display: grid;
     place-items: center;
     cursor: pointer;
     flex-shrink: 0;
-    transition: background-color 0.25s var(--k-ease);
+    transition: background-color 0.25s var(--k10-ease);
   }
   .k10-check::after {
     content: "";
     width: 12px;
     height: 7px;
-    border-left: 2px solid var(--k-bg);
-    border-bottom: 2px solid var(--k-bg);
+    border-left: 2px solid var(--k10-bg);
+    border-bottom: 2px solid var(--k10-bg);
     transform: rotate(-45deg) translate(1px, -1px);
     opacity: 0;
   }
   .k10-check:checked {
-    background: var(--k-ink);
+    background: var(--k10-ink);
   }
   .k10-check:checked::after {
     opacity: 1;
   }
   .k10-check:hover {
-    box-shadow: inset 0 0 0 1.5px var(--m-accent);
+    box-shadow: inset 0 0 0 1.5px var(--k10-accent);
   }
 
   .k10-giant {
@@ -637,12 +744,12 @@
     padding: 0;
     font-family: var(--font-anybody);
     line-height: 1.02;
-    color: var(--k-ink);
+    color: var(--k10-ink);
     font-size: 12vw;
     font-variation-settings: "wdth" 150, "wght" 820;
   }
   .k10-giant::placeholder {
-    color: color-mix(in srgb, var(--k-grey) 45%, transparent);
+    color: color-mix(in srgb, var(--k10-grey) 45%, transparent);
   }
   .k10-giant:focus {
     outline: none;
@@ -664,7 +771,265 @@
     font-variation-settings: "wdth" 100, "wght" 800;
   }
 
+  /* ---------- shop: a typographic list ---------- */
+
+  .k10-thumb {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--k10-stone);
+    flex-shrink: 0;
+  }
+  .k10-thumbAlt {
+    position: absolute;
+    inset: 0;
+    clip-path: inset(0 0 0 100%);
+    transition: clip-path 0.7s var(--k10-ease);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .k10-srow:hover .k10-thumbAlt,
+    .k10-srow:focus-within .k10-thumbAlt {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  .k10-srow .k10-rowName {
+    font-variation-settings: "wdth" 50, "wght" 600;
+  }
+  .k10-srow:hover .k10-rowName,
+  .k10-srow:focus-within .k10-rowName {
+    font-variation-settings: "wdth" var(--hw, 110), "wght" 840;
+  }
+  @media (hover: hover) {
+    .k10-rows:hover .k10-srow:not(:hover) .k10-rowName {
+      color: var(--k10-grey);
+    }
+  }
+  .k10-badge {
+    display: inline-block;
+    font-family: var(--font-jbm), ui-monospace, monospace;
+    font-size: 11px;
+    line-height: 1;
+    padding: 5px 9px 4px;
+    border-radius: 999px;
+    background: var(--k10-accent-soft);
+    color: var(--k10-accent-deep);
+    white-space: nowrap;
+  }
+
+  /* The wishlist toggle: a small ring that fills, and a word. */
+  .k10-wish {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-jbm), ui-monospace, monospace;
+    font-size: 12px;
+    line-height: 1;
+    min-height: 40px;
+    padding: 0 4px;
+    color: var(--k10-ink);
+    transition: color 0.3s var(--k10-ease);
+  }
+  .k10-wish::before {
+    content: "";
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1.5px currentColor;
+    transition:
+      background-color 0.35s var(--k10-ease),
+      transform 0.35s var(--k10-ease);
+  }
+  .k10-wish:hover {
+    color: var(--k10-accent);
+  }
+  .k10-wish:active::before {
+    transform: scale(0.8);
+  }
+  .k10-wish[aria-pressed="true"]::before {
+    background: var(--k10-accent);
+    box-shadow: inset 0 0 0 1.5px var(--k10-accent);
+  }
+
+  /* Tabs and choices: the chosen word is set wide, the rest condensed. */
+  .k10-tab {
+    font-family: var(--font-anybody);
+    line-height: 0.86;
+    color: var(--k10-grey);
+    font-variation-settings: "wdth" 52, "wght" 480;
+    transition:
+      font-variation-settings 0.75s var(--k10-ease),
+      color 0.35s var(--k10-ease);
+  }
+  .k10-tab:hover {
+    color: var(--k10-ink);
+    font-variation-settings: "wdth" 72, "wght" 620;
+  }
+  .k10-tab[aria-selected="true"],
+  .k10-tab[aria-pressed="true"],
+  .k10-tab[aria-current="true"] {
+    color: var(--k10-ink);
+    font-variation-settings: "wdth" 150, "wght" 840;
+  }
+
+  .k10-opt {
+    position: relative;
+    display: grid;
+    cursor: pointer;
+    border-top: 1px solid var(--k10-line);
+    transition: background-color 0.3s var(--k10-ease);
+  }
+  .k10-opt:hover {
+    background: color-mix(in srgb, var(--k10-paper) 70%, transparent);
+  }
+  .k10-opt input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .k10-optName {
+    font-family: var(--font-anybody);
+    line-height: 0.9;
+    color: var(--k10-grey);
+    font-variation-settings: "wdth" 55, "wght" 540;
+    transition:
+      font-variation-settings 0.7s var(--k10-ease),
+      color 0.3s var(--k10-ease);
+  }
+  .k10-opt:hover .k10-optName {
+    color: var(--k10-ink);
+  }
+  .k10-opt:has(input:checked) .k10-optName {
+    color: var(--k10-ink);
+    font-variation-settings: "wdth" 130, "wght" 820;
+  }
+  .k10-opt:has(input:checked) .k10-optDot {
+    background: var(--k10-accent);
+    box-shadow: inset 0 0 0 1.5px var(--k10-accent);
+  }
+  .k10-opt:has(input:focus-visible) {
+    outline: 2px solid var(--k10-accent);
+    outline-offset: 2px;
+  }
+  .k10-opt:has(input:disabled) {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  .k10-optDot {
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1.5px var(--k10-ink);
+    transition: background-color 0.3s var(--k10-ease);
+  }
+
+  /* A small ink pill whose label stretches on hover: quick add, choose, track. */
+  .k10-mini {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 0 18px;
+    border-radius: 999px;
+    background: var(--k10-ink);
+    color: var(--k10-bg);
+    font-family: var(--font-anybody);
+    font-size: 16px;
+    line-height: 1;
+    white-space: nowrap;
+    font-variation-settings: "wdth" 72, "wght" 640;
+    transition:
+      font-variation-settings 0.55s var(--k10-ease),
+      background-color 0.3s var(--k10-ease),
+      color 0.3s var(--k10-ease),
+      transform 0.2s var(--k10-ease);
+  }
+  .k10-mini:hover,
+  .k10-mini:focus-visible {
+    background: var(--k10-accent);
+    font-variation-settings: "wdth" 128, "wght" 760;
+  }
+  .k10-mini:active {
+    transform: scale(0.97);
+  }
+  .k10-mini:disabled {
+    background: var(--k10-grey);
+    cursor: not-allowed;
+  }
+  .k10-mini[data-ghost] {
+    background: transparent;
+    color: var(--k10-ink);
+    box-shadow: inset 0 0 0 1.5px var(--k10-ink);
+  }
+  .k10-mini[data-ghost]:hover,
+  .k10-mini[data-ghost]:focus-visible {
+    background: var(--k10-ink);
+    color: var(--k10-bg);
+  }
+
+  /* Edition counter: one tick per numbered piece; the ones still free are open rings. */
+  .k10-tick {
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    background: var(--k10-ink);
+  }
+  .k10-tick[data-free] {
+    background: transparent;
+    box-shadow: inset 0 0 0 1.5px var(--k10-accent);
+  }
+
+  .k10-err {
+    font-family: var(--font-jbm), ui-monospace, monospace;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: #a3261b;
+  }
+  .k10-field[aria-invalid="true"] {
+    border-color: #a3261b;
+  }
+
+  /* ---------- tracking: the current stage is set huge; the timeline condenses around it ---------- */
+
+  .k10-stage {
+    font-family: var(--font-anybody);
+    line-height: 0.84;
+    white-space: nowrap;
+    color: color-mix(in srgb, var(--k10-grey) 70%, transparent);
+    font-variation-settings: "wdth" 50, "wght" 180;
+    transition:
+      font-variation-settings 0.9s var(--k10-ease),
+      color 0.5s var(--k10-ease);
+  }
+  .k10-stage[data-state="done"] {
+    color: var(--k10-ink);
+    font-variation-settings: "wdth" 62, "wght" 620;
+  }
+  .k10-stage[data-state="current"] {
+    color: var(--k10-accent);
+    font-variation-settings: "wdth" 150, "wght" 880;
+  }
+  .k10-pulse {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--k10-accent);
+    animation: k10-pulse 1.6s var(--k10-ease) infinite;
+  }
+  @keyframes k10-pulse {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--k10-accent) 45%, transparent);
+    }
+    100% {
+      box-shadow: 0 0 0 12px transparent;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
+    .k10-root {
+      transition: none;
+    }
     .k10-root *,
     .k10-root *::before,
     .k10-root *::after {
@@ -676,4 +1041,28 @@
       animation: none;
     }
   }
+}
+
+/* Wood switch, Kinetic: no cross-dissolve (two woods' type ghosting over each other). The new wood opens out
+   from the centre like the wdth axis going from 50 to 150, over the old one, which holds still until covered.
+   Unlayered so it outranks the shared fade in globals.css; scoped to pages that contain this design. */
+html.wood-vt:has([data-k10])::view-transition-old(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+html.wood-vt:has([data-k10])::view-transition-new(root) {
+  animation: k10-woodOpen 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+  mix-blend-mode: normal;
+}
+@keyframes k10-woodOpen {
+  from {
+    clip-path: inset(0 50% 0 50%);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+/* The new wood is revealed already in its own colours, not mid-way through the palette ease. */
+html.wood-vt .k10-root {
+  transition: none;
 }

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import type { CategoryKey } from "@/lib/catalog";
+import type { Wood } from "@/lib/wood";
 
 /**
  * Live story state. The 3D scene reads it every frame, so writing it never re-renders React.
@@ -34,8 +34,18 @@ type Store<T> = ReturnType<typeof createStore<T>>;
 export const chapterStore = createStore<number>(-1);
 /** The work-order sheet (bag). */
 export const sheetStore = createStore<boolean>(false);
-/** Category filter of the parts list; the story's "Shop this" buttons set it. */
-export const filterStore = createStore<CategoryKey | "all">("all");
+/**
+ * Set while a product page is open: the page belongs to one wood, so flipping the switch there
+ * moves to the same piece in the other wood (or to the catalogue when there is none).
+ */
+export const productRoute = createStore<{ wood: Wood; counterpart?: string } | null>(null);
+
+/**
+ * A sheet change in progress: the wood switch (or a link) is taking the visitor from a piece in one
+ * wood to a page in the other. A new sheet is laid over the drawing until the other wood's page is up,
+ * so a piece is never seen in the other wood's colours.
+ */
+export const sheetChangeStore = createStore<{ to: Wood; href: string; piece?: string } | null>(null);
 
 export function useStore<T>(s: Store<T>, server: T) {
   return useSyncExternalStore(s.subscribe, s.get, () => server);

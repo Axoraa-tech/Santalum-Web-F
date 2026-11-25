@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useWood } from "@/lib/wood";
 
 type Pt = [number, number];
 
@@ -45,6 +46,8 @@ export function ThreadLine({ children }: { children: ReactNode }) {
   const path = useRef<SVGPathElement>(null);
   const tip = useRef<SVGCircleElement>(null);
   const [geo, setGeo] = useState({ d: "", w: 0, h: 0 });
+  // each wood shows its own sections, so the knots move when it changes
+  const wood = useWood();
 
   // measure the knots
   useEffect(() => {
@@ -55,11 +58,13 @@ export function ThreadLine({ children }: { children: ReactNode }) {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         const r = el.getBoundingClientRect();
+        const narrow = r.width < 768;
         const pts = [...el.querySelectorAll<HTMLElement>("[data-knot]")]
           .filter((k) => k.offsetParent !== null)
           .map((k): Pt => {
             const b = k.getBoundingClientRect();
-            return [b.left + b.width / 2 - r.left, b.top + b.height / 2 - r.top];
+            // at phone width there is no gutter between knots and text: the thread hangs straight down the right edge instead
+            return [narrow ? r.width - 6 : b.left + b.width / 2 - r.left, b.top + b.height / 2 - r.top];
           });
         setGeo({ d: through(pts), w: r.width, h: r.height });
       });
@@ -75,7 +80,7 @@ export function ThreadLine({ children }: { children: ReactNode }) {
       window.removeEventListener("load", measure);
       window.clearTimeout(late);
     };
-  }, []);
+  }, [wood]);
 
   // draw it with the scroll
   useLayoutEffect(() => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
+import { WT } from "@/components/maison/W";
 import { switchWood, useWood } from "@/lib/wood";
 import { s } from "../cls";
 import { cx } from "../data";
@@ -72,32 +73,36 @@ const DOTS: Dot[] = (() => {
   return out;
 })();
 
-const MYSURU = { x: ((76.64 - LON0) / STEP) * 10 + 5, y: ((LAT0 - 12.3) / STEP) * 10 + 5 };
+const at = (lon: number, lat: number) => ({ x: ((lon - LON0) / STEP) * 10 + 5, y: ((LAT0 - lat) / STEP) * 10 + 5 });
+const MYSURU = at(76.64, 12.3);
+const SESHACHALAM = at(79.35, 13.68);
+const RED_RING = "#e0603f";
+const GOLD = "#f3e6c8";
 
-const RED = "#c9462a";
-const WHITE = "#f6f2ea";
-const BASE = "#3a3935";
-
+/**
+ * Each wood lights its own region and rings its own place: the Seshachalam hills for red,
+ * Mysuru for white. Colours and rings are switched by CSS from <html data-wood>, so the map is
+ * right before hydration; hovering a legend entry focuses that region.
+ */
 export function IndiaMap() {
   const wood = useWood();
   const [focus, setFocus] = useState<Region>(null);
-  const live: Region = wood === "red" ? "g" : "k";
-
-  const fill = (r: Region) => {
-    if (!r) return BASE;
-    if (focus && focus !== r) return BASE;
-    return r === "g" ? RED : WHITE;
-  };
 
   return (
     <div className="flex h-full min-h-[340px] w-full flex-col p-4">
-      <p className="text-[17px] font-medium leading-none tracking-[-0.02em] text-white">Where the woods grow</p>
+      <p className="text-[17px] font-medium leading-none tracking-[-0.02em] text-white">
+        <WT red="Where red sandalwood grows" white="Where white sandalwood is worked" />
+      </p>
+      <p className={cx(s.mono, "mt-1.5 text-[10px] text-white/55")}>
+        <WT red="Seshachalam hills, Eastern Ghats" white="Mysuru, Karnataka" />
+      </p>
       <div className="relative mt-2 min-h-[200px] flex-1">
         <svg
           viewBox={`0 0 ${COLS * 10} ${ROWS * 10}`}
-          className="absolute inset-0 h-full w-full"
+          className={cx(s.map, "absolute inset-0 h-full w-full")}
+          data-focus={focus ?? undefined}
           role="img"
-          aria-label="Dot map of India. The Eastern Ghats, home of red sandalwood, are marked in red. Karnataka, the traditional centre for white sandalwood, is marked in white, with Mysuru ringed."
+          aria-label="Dot map of India. The Eastern Ghats, home of red sandalwood, are marked in red, with the Seshachalam hills ringed. Karnataka, the traditional centre for white sandalwood, is marked in pale gold, with Mysuru ringed."
         >
           {DOTS.map((d, i) => (
             <circle
@@ -105,20 +110,25 @@ export function IndiaMap() {
               cx={d.x}
               cy={d.y}
               r={d.r ? 3.5 : 2.9}
-              fill={fill(d.r)}
-              className={cx(s.dot, d.r === live && !focus && s.twinkle)}
-              style={d.r === live ? ({ "--d": `${(d.x / 400) * 2.4}s` } as CSSProperties) : undefined}
+              className={cx(s.dot, d.r === "g" ? "b6-dg" : d.r === "k" ? "b6-dk" : "b6-dn")}
+              style={d.r ? ({ "--d": `${(d.x / 400) * 2.4}s` } as CSSProperties) : undefined}
             />
           ))}
-          <circle cx={MYSURU.x} cy={MYSURU.y} r={6} fill="none" stroke={WHITE} strokeWidth={1.4} className={s.pulse} />
-          <circle cx={MYSURU.x} cy={MYSURU.y} r={4.2} fill={WHITE} />
+          <g className="b6-svgR">
+            <circle cx={SESHACHALAM.x} cy={SESHACHALAM.y} r={6} fill="none" stroke={RED_RING} strokeWidth={1.4} className={s.pulse} />
+            <circle cx={SESHACHALAM.x} cy={SESHACHALAM.y} r={4.2} fill={RED_RING} />
+          </g>
+          <g className="b6-svgW">
+            <circle cx={MYSURU.x} cy={MYSURU.y} r={6} fill="none" stroke={GOLD} strokeWidth={1.4} className={s.pulse} />
+            <circle cx={MYSURU.x} cy={MYSURU.y} r={4.2} fill={GOLD} />
+          </g>
         </svg>
       </div>
       <div className="mt-2 grid grid-cols-2 gap-1">
         {(
           [
-            { r: "g", w: "red", name: "Eastern Ghats", note: "Red sandalwood", color: RED },
-            { r: "k", w: "white", name: "Karnataka", note: "White sandalwood, Mysuru", color: WHITE },
+            { r: "g", w: "red", name: "Eastern Ghats", note: "Red sandalwood", color: "#c9462a" },
+            { r: "k", w: "white", name: "Karnataka", note: "White sandalwood, Mysuru", color: GOLD },
           ] as const
         ).map((l) => (
           <button

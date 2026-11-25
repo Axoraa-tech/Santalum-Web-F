@@ -2,6 +2,8 @@
 
 import { AnimatePresence, motion, useScroll, useTransform } from "motion/react";
 import { useRef, useState, type FormEvent } from "react";
+import { W, WT } from "@/components/maison/W";
+import { CONTENT } from "@/lib/shop/content";
 import { s } from "./cx";
 import { EASE } from "./data";
 
@@ -62,20 +64,37 @@ export function Circle() {
             </p>
           </div>
           <p className={`${s.mono} absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10.5px] text-(--steel)`}>
-            Index plate, {HOLES} divisions
+            <WT red={`Index plate, ${HOLES} divisions`} white={`Brass index plate, ${HOLES} divisions`} />
           </p>
         </div>
 
         <div className="lg:col-span-6 lg:col-start-7">
-          <h2 className={`${s.x125} text-[clamp(2.4rem,5vw,5rem)] font-[600] leading-[0.9] tracking-[-0.03em]`}>
-            Letters from
-            <br />
-            the workshop
-          </h2>
-          <p className="mt-6 max-w-[32rem] text-[16px] leading-[1.6] text-(--ink-2) md:text-[17px]">
-            The Santalum Circle is our letter, a few times a year: new pieces as they leave the lathe, the next Vault number,
-            and care notes for what you already hold.
-          </p>
+          <W
+            red={
+              <>
+                <h2 className={`${s.x125} text-[clamp(2.4rem,5vw,5rem)] font-[600] leading-[0.9] tracking-[-0.03em]`}>
+                  Letters from
+                  <br />
+                  the turning floor
+                </h2>
+                <p className="mt-6 max-w-[32rem] text-[16px] leading-[1.6] text-(--ink-2) md:text-[17px]">
+                  {CONTENT.red.circle.text} A few letters a year, with care notes for what you already hold.
+                </p>
+              </>
+            }
+            white={
+              <>
+                <h2 className={`${s.x125} text-[clamp(2.4rem,5vw,5rem)] font-[600] leading-[0.9] tracking-[-0.03em]`}>
+                  Letters from
+                  <br />
+                  the still
+                </h2>
+                <p className="mt-6 max-w-[32rem] text-[16px] leading-[1.6] text-(--ink-2) md:text-[17px]">
+                  {CONTENT.white.circle.text} A few letters a year, never more.
+                </p>
+              </>
+            }
+          />
 
           <AnimatePresence mode="wait" initial={false}>
             {sent === null ? (
@@ -93,7 +112,7 @@ export function Circle() {
                 <fieldset className="mt-6">
                   <legend className={`${s.mono} text-[11.5px] text-(--steel)`}>Write to me about</legend>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {["Pterocarpus", "Santalum", "Both woods"].map((w, i) => (
+                    {["Red sandalwood", "White sandalwood", "Both woods"].map((w, i) => (
                       <label key={w} className="cursor-pointer">
                         <input type="radio" name="interest" value={w} defaultChecked={i === 2} className="peer sr-only" />
                         <span
@@ -109,7 +128,9 @@ export function Circle() {
                   <button type="submit" className={s.btn}>
                     Join the Circle
                   </button>
-                  <span className="text-[13px] text-(--steel)">Preview: nothing is sent yet.</span>
+                  <span className="text-[14px] text-(--steel)">
+                    <WT red="Preview: nothing is sent yet." white="Preview: no letters go out yet." />
+                  </span>
                 </div>
               </motion.form>
             ) : (

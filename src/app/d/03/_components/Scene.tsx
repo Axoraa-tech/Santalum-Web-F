@@ -4,10 +4,12 @@ import { Environment, Lightformer, PerformanceMonitor } from "@react-three/drei"
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useState } from "react";
 import * as THREE from "three";
-import { FAMILIES, TONE_FILTER, type Tone } from "@/lib/catalog";
+import { TONE_FILTER, type Tone } from "@/lib/shop/products";
 import type { Wood } from "@/lib/wood";
 import { ui } from "./store";
-import { DESK_RIG, LINEN, PHONE_RIG, StrandEngine } from "./strand-engine";
+import { BG } from "./palette";
+import { DESK_RIG, PHONE_RIG, StrandEngine } from "./strand-engine";
+import { STRAND } from "./strand-list";
 
 /* ---------- product photos as textures (toned like the site's photos) ---------- */
 
@@ -56,6 +58,8 @@ type Props = { wood: Wood; mobile: boolean; reduced: boolean; running: boolean }
 export default function Scene({ wood, mobile, reduced, running }: Props) {
   const rig = mobile ? PHONE_RIG : DESK_RIG;
   const [dpr, setDpr] = useState(mobile ? 1.25 : 1.75);
+  // the starting room colour; the engine eases it when the wood changes
+  const [bg] = useState(() => BG[wood]);
   return (
     <Canvas
       flat
@@ -69,8 +73,8 @@ export default function Scene({ wood, mobile, reduced, running }: Props) {
         </p>
       }
     >
-      <color attach="background" args={[LINEN]} />
-      <fog attach="fog" args={[LINEN, rig.near, rig.far]} />
+      <color attach="background" args={[bg]} />
+      <fog attach="fog" args={[bg, rig.near, rig.far]} />
       <hemisphereLight args={["#fff8ee", "#b9a083", 1.35]} />
       <Environment resolution={128} frames={1}>
         <color attach="background" args={["#2b2219"]} />
@@ -96,15 +100,15 @@ function Strand({ wood, mobile, reduced }: { wood: Wood; mobile: boolean; reduce
     engine.setWood(wood, clock.elapsedTime);
   }, [engine, wood, clock]);
 
+  // photos for the current wood first, then the other wood's, so a switch finds them ready
   useEffect(() => {
     let alive = true;
-    FAMILIES.forEach((f) => {
-      const v = f.variants[wood];
-      if (!v) return;
-      const shot = v.shots[0];
+    const order = [...STRAND.filter((p) => p.wood === wood), ...STRAND.filter((p) => p.wood !== wood)];
+    order.forEach((p) => {
+      const shot = p.shots[0];
       loadPhoto(shot.photo.id, shot.tone)
         .then((tex) => {
-          if (alive) engine.setPhoto(f.slug, tex);
+          if (alive) engine.setPhoto(p.slug, tex);
         })
         .catch(() => {});
     });

@@ -1,12 +1,45 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import type { KeyboardEvent } from "react";
 import { WT } from "@/components/maison/W";
-import { switchWood, useWood, type Wood } from "@/lib/wood";
+import { useUser } from "@/lib/shop/account";
+import { useHydrated } from "@/lib/shop/store";
+import { useWood, type Wood } from "@/lib/wood";
 import s from "../styles";
+import { swapWood } from "./store";
 
-/** Wordmark top left; the wood toggle (two bowls of powder) to the left of the sundial. */
+/** The house links on wide screens; on phones they live on the sundial's plinth. */
+function House() {
+  const user = useUser();
+  const hydrated = useHydrated();
+  const path = usePathname();
+  const items = [
+    { href: "/d/09/shop", label: "Shop" },
+    { href: "/d/09/track", label: "Track order" },
+    { href: "/d/09/account", label: hydrated && user ? user.name.split(" ")[0] : "Sign in" },
+  ];
+  return (
+    <nav aria-label="The house" className="pointer-events-auto hidden items-center gap-7 lg:flex">
+      {items.map((it) => {
+        const here = path === it.href || path.startsWith(`${it.href}/`);
+        return (
+          <Link
+            key={it.href}
+            href={it.href}
+            aria-current={here ? "page" : undefined}
+            className={`${s.link} ${s.linkQuiet} text-[14px] ${here ? "text-[var(--m-accent)]" : ""}`}
+          >
+            {it.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+/** Wordmark top left; the house links and the wood toggle (two bowls of powder) to the left of the sundial. */
 export function Nav() {
   return (
     <header className="pointer-events-none fixed inset-x-0 top-0 z-[120]">
@@ -21,7 +54,10 @@ export function Nav() {
             Maison
           </span>
         </Link>
-        <Bowls className="pointer-events-auto" />
+        <div className="flex items-center gap-8">
+          <House />
+          <Bowls className="pointer-events-auto" />
+        </div>
       </div>
     </header>
   );
@@ -60,6 +96,8 @@ function Bowl({ wood }: { wood: Wood }) {
 /** The red / white switch: two small bowls of powder. A radio group, so arrow keys move between them. */
 export function Bowls({ className = "", showName = true }: { className?: string; showName?: boolean }) {
   const wood = useWood();
+  const router = useRouter();
+  const switchWood = (w: Wood) => swapWood(w, (href) => router.push(href));
   const onKey = (e: KeyboardEvent) => {
     if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
       e.preventDefault();

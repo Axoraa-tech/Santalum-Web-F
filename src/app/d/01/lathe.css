@@ -1,14 +1,62 @@
-/* Design 01, Lathe: a cool workshop white, graphite ink, steel grey and hairlines. */
+/*
+ * Design 01, Lathe: a workshop sheet, graphite ink, steel grey and hairlines.
+ * Two palettes. Red sandalwood: a warm rose-linen sheet, red-brown graphite, brick accent.
+ * White sandalwood: pale ivory-gold, sepia graphite, brass accent. The colours are registered
+ * so the whole sheet eases from one wood to the other.
+ */
+@property --l01-paper { syntax: "<color>"; inherits: true; initial-value: #f5f0ee; }
+@property --l01-paper-2 { syntax: "<color>"; inherits: true; initial-value: #ebe2df; }
+@property --l01-paper-3 { syntax: "<color>"; inherits: true; initial-value: #ddd1cd; }
+@property --l01-sheet { syntax: "<color>"; inherits: true; initial-value: #fbf8f7; }
+@property --l01-ink { syntax: "<color>"; inherits: true; initial-value: #221715; }
+@property --l01-ink-2 { syntax: "<color>"; inherits: true; initial-value: #574542; }
+@property --l01-steel { syntax: "<color>"; inherits: true; initial-value: #7a6864; }
+@property --l01-accent { syntax: "<color>"; inherits: true; initial-value: #9b3520; }
+@property --l01-accent-deep { syntax: "<color>"; inherits: true; initial-value: #5e1d10; }
+@property --l01-accent-soft { syntax: "<color>"; inherits: true; initial-value: #f1dcd4; }
+@property --l01-plate-a { syntax: "<color>"; inherits: true; initial-value: #ebe6e3; }
+@property --l01-plate-b { syntax: "<color>"; inherits: true; initial-value: #dcd5d1; }
+@property --l01-plate-c { syntax: "<color>"; inherits: true; initial-value: #e5dfdc; }
+@property --l01-screw { syntax: "<color>"; inherits: true; initial-value: #b9b3b0; }
+
 .l01 {
-  --paper: #f3f3f1;
-  --paper-2: #e9e9e6;
-  --paper-3: #dcdcd8;
-  --sheet: #fafaf8;
-  --ink: #1a1b1d;
-  --ink-2: #46484c;
-  --steel: #8a8c90;
-  --hair: rgba(26, 27, 29, 0.1);
-  --hair-2: rgba(26, 27, 29, 0.2);
+  /* Red sandalwood (default) */
+  --l01-paper: #f5f0ee;
+  --l01-paper-2: #ebe2df;
+  --l01-paper-3: #ddd1cd;
+  --l01-sheet: #fbf8f7;
+  --l01-ink: #221715;
+  --l01-ink-2: #574542;
+  --l01-steel: #7a6864;
+  --l01-accent: #9b3520;
+  --l01-accent-deep: #5e1d10;
+  --l01-accent-soft: #f1dcd4;
+  /* The spec plate: brushed steel with a warm cast. */
+  --l01-plate-a: #ebe6e3;
+  --l01-plate-b: #dcd5d1;
+  --l01-plate-c: #e5dfdc;
+  --l01-screw: #b9b3b0;
+
+  --paper: var(--l01-paper);
+  --paper-2: var(--l01-paper-2);
+  --paper-3: var(--l01-paper-3);
+  --sheet: var(--l01-sheet);
+  --ink: var(--l01-ink);
+  --ink-2: var(--l01-ink-2);
+  --steel: var(--l01-steel);
+  --accent: var(--l01-accent);
+  --accent-deep: var(--l01-accent-deep);
+  --accent-soft: var(--l01-accent-soft);
+  --m-accent: var(--l01-accent);
+  --m-accent-soft: var(--l01-accent-soft);
+  --hair: color-mix(in srgb, var(--l01-ink) 11%, transparent);
+  --hair-2: color-mix(in srgb, var(--l01-ink) 21%, transparent);
+  --wash: color-mix(in srgb, var(--l01-ink) 4%, transparent);
+  --wash-2: color-mix(in srgb, var(--l01-ink) 8%, transparent);
+  --wash-3: color-mix(in srgb, var(--l01-ink) 13%, transparent);
+  --glass: color-mix(in srgb, var(--l01-paper) 90%, transparent);
+  --ok: #3d6b3a;
+  --bad: #b4271b;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   background: var(--paper);
   color: var(--ink);
@@ -16,9 +64,42 @@
   font-variation-settings: "wdth" 100;
   min-height: 100svh;
   overflow-x: clip;
+  transition:
+    --l01-paper 0.9s var(--ease),
+    --l01-paper-2 0.9s var(--ease),
+    --l01-paper-3 0.9s var(--ease),
+    --l01-sheet 0.9s var(--ease),
+    --l01-ink 0.9s var(--ease),
+    --l01-ink-2 0.9s var(--ease),
+    --l01-steel 0.9s var(--ease),
+    --l01-accent 0.9s var(--ease),
+    --l01-accent-deep 0.9s var(--ease),
+    --l01-accent-soft 0.9s var(--ease),
+    --l01-plate-a 0.9s var(--ease),
+    --l01-plate-b 0.9s var(--ease),
+    --l01-plate-c 0.9s var(--ease),
+    --l01-screw 0.9s var(--ease);
+}
+/* White sandalwood */
+html[data-wood="white"] .l01 {
+  --l01-paper: #f6f2e8;
+  --l01-paper-2: #ece5d5;
+  --l01-paper-3: #dfd5c0;
+  --l01-sheet: #fcfaf3;
+  --l01-ink: #2a2318;
+  --l01-ink-2: #5e533f;
+  --l01-steel: #7d7058;
+  --l01-accent: #a07330;
+  --l01-accent-deep: #6b4a1c;
+  --l01-accent-soft: #efe3cc;
+  /* The spec plate turns to brushed brass. */
+  --l01-plate-a: #eee2c6;
+  --l01-plate-b: #dcc89f;
+  --l01-plate-c: #e8d9b6;
+  --l01-screw: #c7ad78;
 }
 .l01 ::selection {
-  background: var(--m-accent);
+  background: var(--accent);
   color: var(--paper);
 }
 .l01 :focus-visible {
@@ -62,11 +143,11 @@
   height: 0.5rem;
   border-radius: 999px;
   background: var(--m-accent);
-  box-shadow: 0 0 0 3px rgb(255 255 255 / 0.08);
+  box-shadow: 0 0 0 3px rgb(255 255 255 / 0.1);
   transition: transform 0.35s var(--ease);
 }
 .l01 .l01-btn:hover {
-  background: #2b2d30;
+  background: color-mix(in srgb, var(--ink) 86%, var(--accent));
 }
 .l01 .l01-btn:hover::before {
   transform: scale(1.35);
@@ -97,7 +178,11 @@
 }
 .l01 .l01-btn-line:hover {
   border-color: var(--ink);
-  background: rgb(26 27 29 / 0.04);
+  background: var(--wash);
+}
+.l01 .l01-btn-line:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 .l01 .l01-btn-line:active {
   transform: scale(0.97);
@@ -130,8 +215,8 @@
 .l01 .l01-sheet {
   background-color: var(--sheet);
   background-image:
-    linear-gradient(rgb(26 27 29 / 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(26 27 29 / 0.035) 1px, transparent 1px);
+    linear-gradient(color-mix(in srgb, var(--l01-ink) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--l01-ink) 4%, transparent) 1px, transparent 1px);
   background-size: 18px 18px;
 }
 
@@ -164,8 +249,24 @@
   border-bottom-color: var(--m-accent);
   box-shadow: 0 1px 0 0 var(--m-accent);
 }
-.l01 .l01-field input:user-invalid {
-  border-bottom-color: #b4271b;
+.l01 .l01-field input:user-invalid,
+.l01 .l01-field[data-error] input,
+.l01 .l01-field[data-error] select,
+.l01 .l01-field[data-error] textarea {
+  border-bottom-color: var(--bad);
+}
+.l01 .l01-field select {
+  cursor: pointer;
+}
+.l01 .l01-field select option {
+  color: #221715;
+}
+.l01 .l01-err {
+  display: block;
+  margin-top: 0.4rem;
+  font-family: var(--f01-mono), ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--bad);
 }
 .l01 .l01-field > span {
   position: absolute;
@@ -183,16 +284,16 @@
   background:
     repeating-linear-gradient(90deg, rgb(255 255 255 / 0.22) 0 1px, transparent 1px 3px),
     repeating-linear-gradient(90deg, rgb(0 0 0 / 0.025) 0 2px, transparent 2px 7px),
-    linear-gradient(180deg, #e7e8e6 0%, #d9dad7 55%, #e2e3e0 100%);
+    linear-gradient(180deg, var(--l01-plate-a) 0%, var(--l01-plate-b) 55%, var(--l01-plate-c) 100%);
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.9),
     inset 0 -1px 0 rgb(0 0 0 / 0.08),
     0 1px 0 rgb(255 255 255 / 0.6),
-    0 18px 40px -24px rgb(26 27 29 / 0.35);
-  border: 1px solid rgb(26 27 29 / 0.12);
+    0 18px 40px -24px color-mix(in srgb, var(--l01-ink) 40%, transparent);
+  border: 1px solid var(--hair);
 }
 .l01 .l01-engraved {
-  color: #3a3c40;
+  color: color-mix(in srgb, var(--l01-ink) 86%, var(--l01-plate-b));
   text-shadow:
     0 1px 0 rgb(255 255 255 / 0.85),
     0 -1px 0 rgb(0 0 0 / 0.18);
@@ -202,7 +303,7 @@
   width: 14px;
   height: 14px;
   border-radius: 999px;
-  background: radial-gradient(circle at 35% 30%, #f4f4f2, #b9bbbd 60%, #9fa1a4);
+  background: radial-gradient(circle at 35% 30%, #f7f3ef, var(--l01-screw) 60%, color-mix(in srgb, var(--l01-screw) 80%, #000));
   box-shadow:
     inset 0 -1px 1px rgb(0 0 0 / 0.25),
     0 1px 0 rgb(255 255 255 / 0.8);
@@ -214,16 +315,16 @@
   right: 2px;
   top: 6px;
   height: 2px;
-  background: rgb(60 62 66 / 0.55);
+  background: color-mix(in srgb, var(--l01-ink) 50%, transparent);
   transform: rotate(var(--r, 30deg));
   border-radius: 2px;
 }
 
-/* Rubber stamp. */
+/* Rubber stamp. Inked straight onto the sheet (no blend), so it reads the same over paper and photographs;
+   a stamp that sits on a photograph is given a paper patch (.l01-stamp-patch). */
 .l01 .l01-stamp {
   color: var(--m-accent);
   border: 2px solid currentColor;
-  mix-blend-mode: multiply;
   -webkit-mask-image: radial-gradient(circle at 30% 40%, #000 0 60%, rgb(0 0 0 / 0.75) 61%, #000 75%);
   mask-image: radial-gradient(circle at 30% 40%, #000 0 60%, rgb(0 0 0 / 0.75) 61%, #000 75%);
 }
@@ -271,7 +372,164 @@
   display: none;
 }
 
+/* The spec sheet of the wood in use stands forward (keyed on <html data-wood>, so no flash). */
+.l01 .l01-woodsheet {
+  border-color: var(--hair-2);
+  transition:
+    border-color 0.5s var(--ease),
+    box-shadow 0.5s var(--ease);
+}
+html:not([data-wood="white"]) .l01 .l01-woodsheet[data-for="red"],
+html[data-wood="white"] .l01 .l01-woodsheet[data-for="white"] {
+  border-color: var(--ink);
+  box-shadow: 0 30px 60px -40px color-mix(in srgb, var(--l01-ink) 55%, transparent);
+}
+
+/* Wood switch, drawn from <html data-wood> so it is right before hydration. */
+.l01 .l01-knob {
+  transform: translateX(0);
+  transition: transform 0.5s var(--ease);
+}
+html[data-wood="white"] .l01 .l01-knob {
+  transform: translateX(18px);
+}
+.l01 .l01-on-red {
+  color: var(--ink);
+}
+.l01 .l01-on-white {
+  color: var(--steel);
+}
+html[data-wood="white"] .l01 .l01-on-red {
+  color: var(--steel);
+}
+html[data-wood="white"] .l01 .l01-on-white {
+  color: var(--ink);
+}
+
+/* Show-only helpers for places where W cannot go (SVG text). */
+html[data-wood="white"] .l01 .l01-r,
+html:not([data-wood="white"]) .l01 .l01-w {
+  display: none;
+}
+
+/* Mono chips: filters, bands, options. Pressed reads as ink. */
+.l01 .l01-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.25rem;
+  padding: 0 0.9rem;
+  border: 1px solid var(--hair-2);
+  /* An index tab, not a pill. */
+  border-radius: 2px;
+  font-family: var(--f01-mono), ui-monospace, monospace;
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--ink);
+  transition:
+    background-color 0.25s var(--ease),
+    border-color 0.25s var(--ease),
+    color 0.25s var(--ease),
+    transform 0.3s var(--ease);
+}
+.l01 .l01-chip:hover {
+  border-color: var(--ink);
+}
+.l01 .l01-chip:active {
+  transform: scale(0.97);
+}
+.l01 .l01-chip[aria-pressed="true"],
+.l01 .l01-chip[aria-checked="true"],
+.l01 .l01-chip[aria-current="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+.l01 .l01-chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Small round icon buttons (wishlist, steppers). */
+.l01 .l01-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  color: var(--ink);
+  transition:
+    background-color 0.2s var(--ease),
+    color 0.2s var(--ease),
+    transform 0.3s var(--ease);
+}
+.l01 .l01-icon:hover {
+  background: var(--wash-2);
+}
+.l01 .l01-icon:active {
+  transform: scale(0.92);
+  background: var(--wash-3);
+}
+.l01 .l01-icon:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.l01 .l01-icon[aria-pressed="true"] {
+  color: var(--accent);
+}
+
+/* Corner marks on a drawing frame. */
+.l01 .l01-corners {
+  position: relative;
+}
+.l01 .l01-corners::before,
+.l01 .l01-corners::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  border-color: var(--ink);
+  border-style: solid;
+  opacity: 0.55;
+  transition: opacity 0.3s var(--ease);
+}
+.l01 .l01-corners::before {
+  left: 6px;
+  top: 6px;
+  border-width: 1px 0 0 1px;
+}
+.l01 .l01-corners::after {
+  right: 6px;
+  bottom: 6px;
+  border-width: 0 1px 1px 0;
+}
+.l01 .l01-corners:hover::before,
+.l01 .l01-corners:hover::after {
+  opacity: 1;
+}
+
+/* The live station on a job card. */
+.l01 .l01-live {
+  animation: l01-live 2s var(--ease) infinite;
+}
+@keyframes l01-live {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--l01-accent) 45%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+/* Oil rising in the Reserve tray. */
+.l01 .l01-fill {
+  transform-origin: bottom;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .l01,
   .l01 *,
   .l01 *::before,
   .l01 *::after {

@@ -1,67 +1,97 @@
 "use client";
 
-import { motion, useMotionValue, useReducedMotion, useScroll, useTransform, type MotionValue } from "motion/react";
+import { AnimatePresence, motion, useMotionValue, useReducedMotion, useScroll, useTransform, type MotionValue } from "motion/react";
 import Link from "next/link";
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { Photo } from "@/components/Photo";
-import { formatINR, getFamily, WOOD_NAMES, type Family, type Shot } from "@/lib/catalog";
-import { bag } from "@/lib/cart";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { toggleWishlist, useWishlist } from "@/lib/shop/account";
+import { bag, DELIVERY } from "@/lib/shop/bag";
+import { CONTENT } from "@/lib/shop/content";
+import { categoryOf, formatINR, getOption, getProduct, priceOf, productsFor, type Product } from "@/lib/shop/products";
+import { useHydrated } from "@/lib/shop/store";
 import { PHOTOS } from "@/lib/photos";
-import { switchWood, useWood, type Wood } from "@/lib/wood";
-import { IconArrow } from "./Icons";
-import { CARE, catLabel, HOME, inWood, sheet } from "./store";
+import { setWoodQuietly } from "@/lib/wood";
+import { IconArrow, IconHeart } from "./Icons";
+import { LiveRating, Reviews } from "./Reviews";
+import { shotOf, shotsOf, ShotPhoto, type Shot7 } from "./shots";
+import { ProductCard } from "./shop/ProductCard";
+import { productHref, sheet, shopHref, useSheetOpen } from "./store";
 
 const REST = [0, 2.4, -2, 1.6, -1.2, 0.8];
 
 /** Photos for a piece: its own shots, then the wood and the hands that worked it. */
-function sheetsFor(f: Family, wood: Wood): Shot[] {
-  const v = f.variants[wood]!;
-  const extra: Shot[] = [{ photo: wood === "red" ? PHOTOS.redGrain : PHOTOS.whiteLog }, { photo: PHOTOS.carving }];
+function sheetsFor(p: Product): Shot7[] {
+  const extra: Shot7[] = p.wood === "red" ? [{ photo: PHOTOS.redGrain }, { photo: PHOTOS.carving }] : [{ photo: PHOTOS.whiteLog }, { photo: PHOTOS.diyaHands }];
   const seen = new Set<string>();
-  return [...v.shots, ...extra].filter((s) => (seen.has(s.photo.id) ? false : (seen.add(s.photo.id), true))).slice(0, 5);
+  return [...shotsOf(p), ...extra].filter((s) => (seen.has(s.photo.id) ? false : (seen.add(s.photo.id), true))).slice(0, 5);
+}
+
+/** Three pieces from the same wood that go with this one: the same category first. */
+function pairsFor(p: Product): Product[] {
+  const rest = productsFor(p.wood).filter((x) => x.slug !== p.slug);
+  return [...rest.filter((x) => x.category === p.category), ...rest.filter((x) => x.category !== p.category && x.featured), ...rest].filter(
+    (x, i, a) => a.findIndex((y) => y.slug === x.slug) === i,
+  ).slice(0, 3);
 }
 
 /** The product view: photographs are stacked sheets that peel away as you scroll; details stay at the side. */
 export function ProductStack({ slug }: { slug: string }) {
-  const f = getFamily(slug)!;
-  const wood = useWood();
-  const reduce = useReducedMotion();
-  const other: Wood = wood === "red" ? "white" : "red";
-  const v = f.variants[wood];
-  const shownWood: Wood = v ? wood : other;
-  const shown = f.variants[shownWood]!;
-  const sheets = sheetsFor(f, shownWood);
+  const p = getProduct(slug)!;
+  // the server cannot know the motion preference, so the first client render matches it and then settles
+  const hydrated = useHydrated();
+  const reduce = !!useReducedMotion() && hydrated;
+  const sheets = sheetsFor(p);
   const n = sheets.length;
+
+  // The page belongs to its piece's wood; set before the first paint so the dock never shows the other one.
+  useLayoutEffect(() => {
+    setWoodQuietly(p.wood);
+  }, [p.wood]);
+
+  const buy = useBuy(p);
+  const topBuy = useRef<HTMLDivElement>(null);
+  const panelBuy = useRef<HTMLDivElement>(null);
+  const bar = useBuyBar(topBuy, panelBuy);
 
   const col = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: col, offset: ["start start", "end end"] });
-  const peel = useTransform(scrollYProgress, (p) => Math.min(1, p / 0.9) * (n - 1));
+  const peel = useTransform(scrollYProgress, (v) => Math.min(1, v / 0.9) * (n - 1));
 
-  const fams = inWood(wood);
-  const at = fams.findIndex((x) => x.slug === f.slug);
-  const next = fams[(at + 1 + fams.length) % fams.length] ?? fams[0];
-  const nextV = next.variants[wood]!;
+  const all = productsFor(p.wood);
+  const at = all.findIndex((x) => x.slug === p.slug);
+  const next = all[(at + 1) % all.length];
+  const pairs = pairsFor(p);
 
   return (
-    <main className="px-2 pb-[150px] pt-2 md:px-3 md:pt-3 lg:px-[14px] lg:pb-[100px] lg:pt-[14px]">
+    <div className="overflow-x-clip px-2 pt-2 md:px-3 md:pt-3 lg:px-[14px] lg:pt-[14px]">
       <div className="grid gap-3 lg:grid-cols-12 lg:gap-[14px]">
         {/* the sheets */}
-        <div className="px-3 pb-1 pt-3 lg:hidden">
-          <p className="text-[13px] text-[#77706A]">{catLabel(f.category)}</p>
-          <p className="d1 mt-1 text-[52px]">{f.name}</p>
-          <p className="num mt-2 text-[15px]">
-            {formatINR(shown.price)} <span className="text-[#77706A]">in {WOOD_NAMES[shownWood].common.toLowerCase()}</span>
+        {/* phones: the name, the price and the add come before the photographs */}
+        <div ref={topBuy} className="px-3 pb-1 pt-3 lg:hidden">
+          <p className="flex items-center justify-between gap-3 text-[13px] text-(--s7-muted)">
+            {categoryOf(p).label}
+            <a href="#reviews" className="transition hover:opacity-75">
+              <LiveRating slug={p.slug} />
+            </a>
           </p>
+          <p className="d1 mt-1 text-[52px]">{p.name}</p>
+          <p className="num mt-2 text-[15px]">
+            {formatINR(buy.unit)} <span className="text-(--s7-muted)">in {CONTENT[p.wood].name.toLowerCase()}</span>
+          </p>
+          {p.options && <OptionCards product={p} buy={buy} row />}
+          <div className="mt-3 flex items-center gap-2">
+            <AddButton buy={buy} className="h-12 flex-1" />
+            <Heart slug={p.slug} />
+          </div>
         </div>
         <div
           ref={col}
-          className="relative h-[calc(var(--n)*55svh)] lg:col-span-7 lg:h-[calc(var(--n)*72svh)]"
+          className="relative h-[calc(var(--n)*34svh)] md:h-[calc(var(--n)*45svh)] lg:col-span-7 lg:h-[calc(var(--n)*72svh)]"
           style={{ "--n": Math.max(2, n) } as CSSProperties}
         >
-          <div className="sticky top-2 h-[calc(100svh-150px)] md:top-3 lg:top-[14px] lg:h-[calc(100svh-28px)]">
+          <div className="sticky top-2 h-[min(calc(100svh-150px),125vw)] md:top-3 md:h-[calc(100svh-150px)] lg:top-[14px] lg:h-[calc(100svh-28px)]">
             <div className="relative size-full">
               {sheets.map((s, i) => (
-                <Sheet key={`${shownWood}-${s.photo.id}`} shot={s} i={i} n={n} peel={peel} reduce={!!reduce} />
+                <Sheet key={s.photo.id} shot={s} i={i} n={n} peel={peel} reduce={!!reduce} />
               ))}
               <PeelHint peel={peel} n={n} />
             </div>
@@ -69,41 +99,66 @@ export function ProductStack({ slug }: { slug: string }) {
         </div>
 
         {/* the details */}
-        <Details family={f} wood={wood} shownWood={shownWood} />
+        <Details product={p} buy={buy} buyRef={panelBuy} />
       </div>
+      <BuyBar product={p} buy={buy} show={bar} />
+
+      <Reviews slug={p.slug} name={p.name} />
+
+      {/* pairs with: three from the same wood, fanned like a hand of cards */}
+      <section aria-labelledby="s7-pairs" className="mt-3 rounded-[28px] bg-(--s7-sage) px-4 pb-6 pt-6 md:rounded-[40px] md:px-8 md:pb-10 md:pt-8 lg:mt-[14px] lg:rounded-[48px] lg:px-10">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <h2 id="s7-pairs" className="d1 text-[clamp(2.8rem,6vw,5.6rem)]">
+            Pairs with
+          </h2>
+          <Link
+            href={shopHref(p.category)}
+            className="inline-flex items-center gap-2 text-[15px] font-medium underline decoration-(--s7-ink)/25 underline-offset-[6px] transition hover:decoration-(--s7-accent)"
+          >
+            More in {categoryOf(p).label}
+            <IconArrow width={16} height={16} />
+          </Link>
+        </div>
+        <ul className="mt-6 grid gap-3 sm:grid-cols-3 md:gap-4">
+          {pairs.map((x, i) => (
+            <li key={x.slug} className={`transition-transform duration-500 ${["sm:-rotate-[2deg]", "sm:translate-y-4", "sm:rotate-[2deg]"][i]} hover:rotate-0`}>
+              <ProductCard product={x} sizes="(min-width: 640px) 30vw, 90vw" />
+            </li>
+          ))}
+        </ul>
+      </section>
 
       {/* next card in the deck */}
       <Link
-        href={`${HOME}/p/${next.slug}`}
-        className="group mt-3 grid overflow-hidden rounded-[28px] bg-[#E4E8E0] md:grid-cols-12 md:rounded-[40px] lg:mt-[14px] lg:rounded-[48px]"
+        href={productHref(next.slug)}
+        className="group mt-3 grid overflow-hidden rounded-[28px] bg-(--s7-clay) md:grid-cols-12 md:rounded-[40px] lg:mt-[14px] lg:rounded-[48px]"
       >
-        <div className="relative h-64 overflow-hidden md:col-span-5 md:h-auto md:min-h-[380px]">
-          <Photo
-            p={nextV.shots[0].photo}
-            tone={nextV.shots[0].tone}
+        <div className="relative h-64 overflow-hidden md:col-span-5 md:h-auto md:min-h-[360px]">
+          <ShotPhoto
+            shot={shotOf(next)}
             sizes="(min-width: 768px) 40vw, 100vw"
             className="transition-transform duration-[1.2s] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.05]"
           />
         </div>
         <div className="flex flex-col justify-between gap-8 p-6 md:col-span-7 md:p-10">
-          <p className="text-[14px] text-[#77706A]">Next in the deck</p>
+          <p className="text-[14px] text-(--s7-muted)">Next in {CONTENT[p.wood].name.toLowerCase()}</p>
           <div>
-            <p className="d1 text-[clamp(3rem,7vw,7.5rem)] transition-colors group-hover:text-[var(--m-accent)]">{next.name}</p>
-            <p className="mt-3 max-w-[50ch] text-[16px] leading-relaxed text-[#3d3731]">{next.summary}</p>
+            <p className="d1 text-[clamp(3rem,7vw,7.5rem)] transition-colors group-hover:text-(--s7-accent)">{next.name}</p>
+            <p className="mt-3 max-w-[50ch] text-[16px] leading-relaxed text-(--s7-body)">{next.short}</p>
           </div>
           <p className="flex items-center gap-3 text-[15px] font-medium">
-            <span className="num">{formatINR(nextV.price)}</span>
-            <span className="grid size-10 place-items-center rounded-full bg-[#1B1712] text-white transition group-hover:translate-x-1 group-hover:bg-[var(--m-accent)]">
+            <span className="num">{formatINR(next.price)}</span>
+            <span className="grid size-10 place-items-center rounded-full bg-(--s7-ink) text-(--s7-page) transition group-hover:translate-x-1 group-hover:bg-(--s7-accent)">
               <IconArrow width={18} height={18} />
             </span>
           </p>
         </div>
       </Link>
-    </main>
+    </div>
   );
 }
 
-function Sheet({ shot, i, n, peel, reduce }: { shot: Shot; i: number; n: number; peel: MotionValue<number>; reduce: boolean }) {
+function Sheet({ shot, i, n, peel, reduce }: { shot: Shot7; i: number; n: number; peel: MotionValue<number>; reduce: boolean }) {
   const last = i === n - 1;
   // k < 0: still in the pile (depth = -k). 0..1: being peeled away.
   const k = useTransform(peel, (p) => Math.max(-4, Math.min(1, p - i)));
@@ -116,10 +171,10 @@ function Sheet({ shot, i, n, peel, reduce }: { shot: Shot; i: number; n: number;
 
   return (
     <motion.figure
-      className="absolute inset-x-0 bottom-8 top-0 m-0 overflow-hidden rounded-[28px] md:bottom-10 lg:bottom-11 bg-[#E9E5DC] shadow-[0_30px_60px_-36px_rgba(27,23,18,0.55)] md:rounded-[40px] lg:rounded-[48px]"
+      className="absolute inset-x-0 bottom-8 top-0 m-0 overflow-hidden rounded-[28px] bg-(--s7-stone) shadow-[0_30px_60px_-36px_rgba(27,23,18,0.55)] md:bottom-10 md:rounded-[40px] lg:bottom-11 lg:rounded-[48px]"
       style={{ y, x, rotate, rotateX, scale, opacity, zIndex: n - i, transformPerspective: 1400, originY: 1 }}
     >
-      <Photo p={shot.photo} tone={shot.tone} sizes="(min-width: 1024px) 58vw, 100vw" priority={i === 0} />
+      <ShotPhoto shot={shot} sizes="(min-width: 1024px) 58vw, 100vw" priority={i === 0} />
       <figcaption className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-3 md:bottom-6 md:left-6 md:right-6">
         <span className="rounded-full bg-white/90 px-3.5 py-2 text-[12.5px] leading-tight text-[#1B1712]">{shot.photo.alt}</span>
         <span className="num shrink-0 rounded-full bg-[#1B1712]/75 px-3 py-2 text-[12.5px] text-white">
@@ -144,14 +199,12 @@ function PeelHint({ peel, n }: { peel: MotionValue<number>; n: number }) {
   );
 }
 
-function Details({ family: f, wood, shownWood }: { family: Family; wood: Wood; shownWood: Wood }) {
+function Details({ product: p, buy, buyRef }: { product: Product; buy: Buy; buyRef: RefObject<HTMLDivElement | null> }) {
   const panel = useRef<HTMLElement>(null);
   const top = useMotionValue(14);
-  const [qty, setQty] = useState(1);
-  const [added, setAdded] = useState(false);
-  const v = f.variants[wood];
-  const shown = f.variants[shownWood]!;
-  const other: Wood = wood === "red" ? "white" : "red";
+  const { option, qty, setQty, unit } = buy;
+  const c = CONTENT[p.wood];
+  const counterpart = p.counterpart ? getProduct(p.counterpart) : undefined;
 
   useEffect(() => {
     const el = panel.current;
@@ -166,142 +219,125 @@ function Details({ family: f, wood, shownWood }: { family: Family; wood: Wood; s
     };
   }, [top]);
 
-  const add = () => {
-    bag.add(f.slug, wood, qty);
-    setAdded(true);
-    window.setTimeout(() => setAdded(false), 1800);
-    sheet.open();
-  };
-
   return (
     <motion.aside
+      id="s7-details"
       ref={panel}
       style={{ top }}
-      className="self-start rounded-[28px] bg-white p-5 md:rounded-[40px] md:p-8 lg:sticky lg:col-span-5 lg:rounded-[48px] lg:p-10"
+      className="self-start rounded-[28px] bg-(--s7-surface) p-5 md:rounded-[40px] md:p-8 lg:sticky lg:col-span-5 lg:rounded-[48px] lg:p-10"
     >
-      <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-[13.5px] text-[#77706A]">
-        <Link href={`${HOME}#pieces`} className="underline-offset-4 transition hover:text-[#1B1712] hover:underline">
-          The pieces
+      <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-[14px] text-(--s7-muted)">
+        <Link href={shopHref()} className="underline-offset-4 transition hover:text-(--s7-ink) hover:underline">
+          Shop
         </Link>
         <span aria-hidden>/</span>
-        <span>{catLabel(f.category)}</span>
+        <Link href={shopHref(p.category)} className="underline-offset-4 transition hover:text-(--s7-ink) hover:underline">
+          {categoryOf(p).label}
+        </Link>
       </nav>
-      <div className="mt-5 flex flex-wrap gap-2">
-        <span className="rounded-full bg-[#E9E5DC] px-3 py-1.5 text-[12.5px] font-medium">{f.level}</span>
-        {f.edition && <span className="rounded-full bg-[#1B1712] px-3 py-1.5 text-[12.5px] font-medium text-white">{f.edition}</span>}
-      </div>
-      <h1 className="d1 mt-4 text-[clamp(3rem,min(5vw,10vh),5.6rem)]">{f.name}</h1>
-      <p className="mt-4 text-[16.5px] leading-relaxed text-[#3d3731]">{f.summary}</p>
-
-      <fieldset className="mt-7">
-        <legend className="text-[13.5px] text-[#77706A]">Wood</legend>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          {(["red", "white"] as const).map((w) => {
-            const wv = f.variants[w];
-            const on = wood === w;
-            return (
-              <button
-                key={w}
-                type="button"
-                aria-pressed={on}
-                disabled={!wv}
-                onClick={() => !on && switchWood(w)}
-                className={`flex items-center gap-3 rounded-[20px] p-3 text-left transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 ${
-                  on ? "bg-[#1B1712] text-white" : "bg-[#F8F6F2] ring-1 ring-[#1B1712]/10 hover:ring-[#1B1712]/35"
-                }`}
-              >
-                <span className={`size-8 shrink-0 rounded-full ${w === "red" ? "ring-red" : "ring-white"}`} aria-hidden />
-                <span className="min-w-0">
-                  <span className="block text-[14px] font-medium">{WOOD_NAMES[w].common}</span>
-                  <span className={`num block text-[13px] ${on ? "text-white/70" : "text-[#77706A]"}`}>
-                    {wv ? formatINR(wv.price) : `Not made in ${w}`}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
-      <p className="mt-3 text-[14.5px] text-[#77706A]">{shown.note}</p>
-
-      {v ? (
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <div className="flex h-12 items-center rounded-full bg-[#F8F6F2] p-1 ring-1 ring-[#1B1712]/10">
-            <button
-              type="button"
-              aria-label="One fewer"
-              onClick={() => setQty((q) => Math.max(1, q - 1))}
-              className="grid size-10 place-items-center rounded-full text-[18px] transition hover:bg-white active:scale-90"
-            >
-              &minus;
-            </button>
-            <span className="num w-8 text-center text-[15px]" aria-live="polite">
-              {qty}
+      {(p.badge || p.edition) && (
+        <div className="mt-5 flex flex-wrap gap-2">
+          {p.badge && <span className="rounded-full bg-(--s7-stone) px-3 py-1.5 text-[12.5px] font-medium">{p.badge}</span>}
+          {p.edition && (
+            <span className="num rounded-full bg-(--s7-ink) px-3 py-1.5 text-[12.5px] font-medium text-(--s7-page)">
+              Edition of {p.edition.size}
             </span>
-            <button
-              type="button"
-              aria-label="One more"
-              onClick={() => setQty((q) => Math.min(9, q + 1))}
-              className="grid size-10 place-items-center rounded-full text-[18px] transition hover:bg-white active:scale-90"
-            >
-              +
-            </button>
-          </div>
-          <button
-            type="button"
-            onClick={add}
-            className="inline-flex h-12 flex-1 items-center justify-between gap-4 rounded-full bg-[#1B1712] pl-6 pr-5 text-[15px] font-medium text-white transition hover:bg-[var(--m-accent)] active:scale-[0.98]"
-          >
-            <span>{added ? "Added to the bag" : "Add to the bag"}</span>
-            <span className="num text-white/75">{formatINR(v.price * qty)}</span>
-          </button>
-        </div>
-      ) : (
-        <div className="mt-6 rounded-[22px] bg-[var(--m-accent-soft)] p-4">
-          <p className="text-[15px]">
-            This piece is made only in {WOOD_NAMES[other].common.toLowerCase()}. {f.variants[other]?.note}
-          </p>
-          <button
-            type="button"
-            onClick={() => switchWood(other)}
-            className="mt-3 inline-flex h-11 items-center rounded-full bg-[#1B1712] px-5 text-[14.5px] font-medium text-white transition hover:bg-[var(--m-accent)] active:scale-[0.98]"
-          >
-            Switch to {WOOD_NAMES[other].common.toLowerCase()}
-          </button>
+          )}
         </div>
       )}
+      <h1 className="d1 mt-4 text-[clamp(3rem,min(5vw,10vh),5.6rem)]">{p.name}</h1>
+      <p className="mt-3 flex flex-wrap items-center gap-2 text-[15px]">
+        <span aria-hidden className={`size-5 rounded-full ${p.wood === "red" ? "ring-red" : "ring-white"}`} />
+        {c.name}, <i>{c.latin}</i>
+      </p>
+      <a href="#reviews" className="mt-3 inline-flex rounded-full transition hover:opacity-75">
+        <LiveRating slug={p.slug} className="text-[14px]" />
+      </a>
+      <p className="mt-3 text-[17px] leading-relaxed text-(--s7-body)">{p.short}</p>
 
-      <div className="mt-9 border-t border-[#1B1712]/12 pt-6">
+      <p className="d2 num mt-6 text-[44px]" aria-live="polite">
+        {formatINR(unit)}
+        {p.options && <span className="ml-3 align-middle text-[15px] font-normal tracking-normal text-(--s7-muted)">{getOption(p, option)?.label}</span>}
+      </p>
+
+      {p.options && <OptionCards product={p} buy={buy} />}
+
+      <div ref={buyRef} className="mt-6 flex flex-wrap items-center gap-2.5">
+        <div className="flex h-12 items-center rounded-full bg-(--s7-page) p-1 ring-1 ring-(--s7-ink)/10">
+          <button
+            type="button"
+            aria-label="One fewer"
+            onClick={() => setQty((q) => Math.max(1, q - 1))}
+            className="grid size-10 place-items-center rounded-full text-[18px] transition hover:bg-(--s7-surface) active:scale-90"
+          >
+            &minus;
+          </button>
+          <span className="num w-8 text-center text-[15px]" aria-live="polite" aria-label={`Quantity ${qty}`}>
+            {qty}
+          </span>
+          <button
+            type="button"
+            aria-label="One more"
+            onClick={() => setQty((q) => Math.min(9, q + 1))}
+            className="grid size-10 place-items-center rounded-full text-[18px] transition hover:bg-(--s7-surface) active:scale-90"
+          >
+            +
+          </button>
+        </div>
+        <AddButton buy={buy} className="h-12 min-w-[220px] flex-1" />
+        <Heart slug={p.slug} />
+      </div>
+      <p className="mt-3 text-[14.5px] text-(--s7-muted)">
+        Free delivery across India, 3–5 working days. Express {formatINR(DELIVERY.express.price)}.
+      </p>
+
+      {p.edition && <Edition size={p.edition.size} left={p.edition.left} />}
+
+      {counterpart && (
+        <Link
+          href={productHref(counterpart.slug)}
+          className="group mt-6 flex items-center gap-3 rounded-[22px] bg-(--s7-page) p-2 pr-4 ring-1 ring-(--s7-ink)/8 transition hover:ring-(--s7-ink)/30"
+        >
+          <span className="relative size-16 shrink-0 overflow-hidden rounded-[16px]">
+            <ShotPhoto shot={shotOf(counterpart)} sizes="64px" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13px] text-(--s7-muted)">Also in {CONTENT[counterpart.wood].name.toLowerCase()}</span>
+            <span className="d3 block text-[18px]">{counterpart.name}</span>
+          </span>
+          <IconArrow width={18} height={18} className="shrink-0 transition group-hover:translate-x-1" />
+        </Link>
+      )}
+
+      <div className="mt-9 border-t border-(--s7-ink)/12 pt-6">
         <h2 className="d3 text-[20px]">About the piece</h2>
-        {f.story.map((p) => (
-          <p key={p} className="mt-3 text-[15.5px] leading-relaxed text-[#3d3731]">
-            {p}
+        {p.story.map((s) => (
+          <p key={s} className="mt-3 text-[16px] leading-relaxed text-(--s7-body)">
+            {s}
           </p>
         ))}
       </div>
 
-      <dl className="mt-6 text-[14.5px]">
-        {[...f.details, { label: "Wood", value: `${WOOD_NAMES[shownWood].common} (${WOOD_NAMES[shownWood].latin})` }].map((d) => (
-          <div key={d.label} className="grid grid-cols-[120px_1fr] gap-3 border-t border-[#1B1712]/12 py-2.5">
-            <dt className="text-[#77706A]">{d.label}</dt>
+      <dl className="mt-6 text-[15px]">
+        {[...p.details, { label: "Wood", value: `${c.name} (${c.latin}), heartwood` }].map((d) => (
+          <div key={d.label} className="grid grid-cols-[120px_1fr] gap-3 border-t border-(--s7-ink)/12 py-2.5">
+            <dt className="text-(--s7-muted)">{d.label}</dt>
             <dd>{d.value}</dd>
           </div>
         ))}
       </dl>
 
       <Fold title="Care">
-        <ul className="grid gap-2">
-          {CARE[f.category].map((c) => (
-            <li key={c} className="flex gap-2.5">
-              <span className="mt-[9px] size-1.5 shrink-0 rounded-full bg-[var(--m-accent)]" aria-hidden />
-              {c}
-            </li>
-          ))}
-        </ul>
+        <p>{p.care}</p>
+      </Fold>
+      <Fold title={p.wood === "red" ? "The batch record" : "The lot record"}>
+        <p>{c.provenance.text}</p>
+        <p className="mt-2 text-(--s7-muted)">{c.regulation}</p>
       </Fold>
       <Fold title="Delivery and returns">
         <p>
-          Complimentary delivery across India, packed by hand. Unused pieces can be returned within 14 days in their original
+          Free delivery across India, 3–5 working days, packed by hand and insured to the full value. Express delivery is{" "}
+          {formatINR(DELIVERY.express.price)}, 1–2 working days. Unused pieces can be returned within 14 days in their original
           packaging. Numbered editions are final.
         </p>
       </Fold>
@@ -309,16 +345,171 @@ function Details({ family: f, wood, shownWood }: { family: Family; wood: Wood; s
   );
 }
 
+/** An edition as a row of small tokens: the ones already placed are filled. */
+function Edition({ size, left }: { size: number; left: number }) {
+  const placed = size - left;
+  return (
+    <div className="mt-6 rounded-[22px] bg-(--s7-accent-soft) p-4">
+      <p className="flex items-baseline justify-between gap-3">
+        <span className="text-[15px] font-medium">
+          {left} of {size} still to be placed
+        </span>
+        <span className="num text-[13px] text-(--s7-accent-deep)">{placed} with their owners</span>
+      </p>
+      <div aria-hidden className="mt-3 flex flex-wrap gap-1">
+        {Array.from({ length: size }, (_, i) => (
+          <span key={i} className={`size-3 rounded-full ${i < placed ? "bg-(--s7-accent)" : "ring-1 ring-(--s7-accent)/50"}`} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Fold({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <details className="group border-t border-[#1B1712]/12 [&:last-of-type]:border-b">
-      <summary className="flex cursor-pointer list-none items-center justify-between py-3.5 text-[15px] font-medium transition hover:text-[var(--m-accent)] [&::-webkit-details-marker]:hidden">
+    <details className="group border-t border-(--s7-ink)/12 [&:last-of-type]:border-b">
+      <summary className="flex cursor-pointer list-none items-center justify-between py-3.5 text-[15px] font-medium transition hover:text-(--s7-accent) [&::-webkit-details-marker]:hidden">
         {title}
-        <span aria-hidden className="grid size-7 place-items-center rounded-full bg-[#F8F6F2] text-[16px] transition group-open:rotate-45">
+        <span aria-hidden className="grid size-7 place-items-center rounded-full bg-(--s7-page) text-[16px] transition group-open:rotate-45">
           +
         </span>
       </summary>
-      <div className="pb-4 text-[14.5px] leading-relaxed text-[#3d3731]">{children}</div>
+      <div className="pb-4 text-[15px] leading-relaxed text-(--s7-body)">{children}</div>
     </details>
+  );
+}
+
+/* ---------- buying: one state shared by the phone header, the slip bar and the panel ---------- */
+
+function useBuy(p: Product) {
+  const [option, setOption] = useState<string | undefined>(p.options?.values[0].id);
+  const [qty, setQty] = useState(1);
+  const [added, setAdded] = useState(false);
+  const unit = priceOf(p, option);
+  const add = () => {
+    bag.add(p.slug, { option, qty });
+    setAdded(true);
+    window.setTimeout(() => setAdded(false), 1800);
+    sheet.open();
+  };
+  return { option, setOption, qty, setQty, unit, added, add };
+}
+type Buy = ReturnType<typeof useBuy>;
+
+/** The bar shows on phones only while neither the header's add nor the panel's add is on screen. */
+function useBuyBar(a: RefObject<HTMLElement | null>, b: RefObject<HTMLElement | null>) {
+  const [seen, setSeen] = useState({ a: true, b: false });
+  useEffect(() => {
+    const io = new IntersectionObserver((entries) => {
+      setSeen((prev) => {
+        const next = { ...prev };
+        for (const e of entries) {
+          if (e.target === a.current) next.a = e.isIntersecting;
+          if (e.target === b.current) next.b = e.isIntersecting;
+        }
+        return next;
+      });
+    });
+    if (a.current) io.observe(a.current);
+    if (b.current) io.observe(b.current);
+    return () => io.disconnect();
+  }, [a, b]);
+  return !seen.a && !seen.b;
+}
+
+function OptionCards({ product: p, buy, row = false }: { product: Product; buy: Buy; row?: boolean }) {
+  const values = p.options!.values;
+  return (
+    <fieldset className={row ? "mt-3" : "mt-4"}>
+      <legend className={row ? "sr-only" : "text-[14px] text-(--s7-muted)"}>{p.options!.name}</legend>
+      <div className={`flex gap-2 ${row ? "s7-noscroll -mx-3 overflow-x-auto px-3 pb-1 pt-1" : "mt-2 flex-wrap"}`}>
+        {values.map((v) => {
+          const on = (buy.option ?? values[0].id) === v.id;
+          return (
+            <label
+              key={v.id}
+              className={`relative flex shrink-0 cursor-pointer flex-col rounded-[18px] px-4 py-2.5 transition active:scale-[0.98] has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-(--s7-accent) ${
+                on ? "-translate-y-0.5 bg-(--s7-ink) text-(--s7-page) shadow-[0_12px_22px_-14px_rgba(27,23,18,0.7)]" : "bg-(--s7-page) ring-1 ring-(--s7-ink)/12 hover:ring-(--s7-ink)/35"
+              }`}
+            >
+              <input type="radio" name={`opt-${p.slug}${row ? "-top" : ""}`} value={v.id} checked={on} onChange={() => buy.setOption(v.id)} className="sr-only" />
+              <span className="text-[15px] font-medium">{v.label}</span>
+              <span className={`num text-[13px] ${on ? "text-(--s7-page)/70" : "text-(--s7-muted)"}`}>{formatINR(v.price)}</span>
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+function AddButton({ buy, className = "" }: { buy: Buy; className?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={buy.add}
+      className={`inline-flex items-center justify-between gap-4 rounded-full bg-(--s7-ink) pl-6 pr-5 text-[15px] font-medium text-(--s7-page) transition hover:bg-(--s7-accent) active:scale-[0.98] ${className}`}
+    >
+      <span>{buy.added ? "Added to the bag" : "Add to the bag"}</span>
+      <span className="num opacity-75">{formatINR(buy.unit * buy.qty)}</span>
+    </button>
+  );
+}
+
+function Heart({ slug }: { slug: string }) {
+  const hydrated = useHydrated();
+  const wish = useWishlist();
+  const saved = hydrated && wish.includes(slug);
+  return (
+    <button
+      type="button"
+      onClick={() => toggleWishlist(slug)}
+      aria-pressed={saved}
+      aria-label={saved ? "Remove from your wishlist" : "Save to your wishlist"}
+      className={`grid size-12 shrink-0 place-items-center rounded-full transition active:scale-90 ${
+        saved ? "bg-(--s7-accent) text-white" : "bg-(--s7-page) ring-1 ring-(--s7-ink)/12 hover:ring-(--s7-ink)/35"
+      }`}
+    >
+      <IconHeart filled={saved} width={20} height={20} />
+    </button>
+  );
+}
+
+/** Phones: once both adds have scrolled away, a small card is dealt up from behind the dock with the price and the add. */
+function BuyBar({ product: p, buy, show }: { product: Product; buy: Buy; show: boolean }) {
+  const open = useSheetOpen();
+  const reduce = useReducedMotion();
+  const opt = p.options ? getOption(p, buy.option)?.label : undefined;
+  return (
+    <AnimatePresence>
+      {show && !open && (
+        <motion.div
+          key="bar"
+          initial={reduce ? { opacity: 0 } : { y: 90, rotate: -2.5, opacity: 0 }}
+          animate={{ y: 0, rotate: 0, opacity: 1 }}
+          exit={reduce ? { opacity: 0 } : { y: 90, rotate: 2, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 360, damping: 30 }}
+          className="fixed inset-x-2 bottom-[140px] z-[140] flex items-center gap-2 rounded-[22px] bg-(--s7-surface) p-1.5 shadow-[0_22px_44px_-20px_rgba(27,23,18,0.6)] ring-1 ring-(--s7-ink)/8 lg:hidden"
+        >
+          <span className="relative size-11 shrink-0 overflow-hidden rounded-[16px]">
+            <ShotPhoto shot={shotOf(p)} sizes="44px" />
+          </span>
+          <span className="min-w-0 flex-1 leading-tight">
+            <span className="d3 block truncate text-[15px]">{p.name}</span>
+            <span className="num block truncate text-[12.5px] text-(--s7-muted)">
+              {formatINR(buy.unit)}
+              {opt ? `, ${opt}` : ""}
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={buy.add}
+            className="h-11 shrink-0 rounded-full bg-(--s7-ink) px-4 text-[14px] font-medium text-(--s7-page) transition hover:bg-(--s7-accent) active:scale-95"
+          >
+            {buy.added ? "Added" : "Add to the bag"}
+          </button>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

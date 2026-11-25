@@ -2,6 +2,8 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useState } from "react";
+import { WT } from "@/components/maison/W";
+import { CONTENT } from "@/lib/shop/content";
 import { EASE } from "./copy";
 import { s } from "./cls";
 import { ArrowIcon, CheckIcon } from "./ui";
@@ -42,7 +44,7 @@ export function CircleSignup() {
       <div className="relative mx-auto flex max-w-[1100px] flex-col items-center text-center">
         <h2 className={`${s.display} text-[clamp(2.4rem,7vw,7rem)]`}>The Santalum Circle</h2>
         <p className="mt-6 max-w-[560px] text-[17px] leading-relaxed text-[var(--o-ink-2)]">
-          A letter a few times a year: new pieces, news from the 2011 Vault, and notes from the workshop on how the wood is worked.
+          <WT red={CONTENT.red.circle.text} white={CONTENT.white.circle.text} />
         </p>
 
         <div className="mt-10 w-full max-w-[560px]">
@@ -61,7 +63,7 @@ export function CircleSignup() {
                   <CheckIcon className="size-5" />
                 </span>
                 <span className="text-[15px] leading-snug">
-                  You are in the Circle. The next letter goes to <span className="font-semibold">{joined}</span>.
+                  You are in the Circle. The next <WT red="workshop letter" white="letter on fragrance and ritual" /> goes to <span className="font-semibold">{joined}</span>.
                 </span>
               </motion.div>
             ) : (
@@ -100,7 +102,9 @@ export function CircleSignup() {
               </motion.form>
             )}
           </AnimatePresence>
-          <p className="mt-4 text-[13px] text-[var(--o-muted)]">Leave whenever you like. We do not share addresses.</p>
+          <p className="mt-4 text-[14px] text-[var(--o-muted)]">
+            <WT red="A few letters a year, when the lathe has something to show. Leave whenever you like." white="A few letters a year, when the still has something to show. Leave whenever you like." />
+          </p>
         </div>
       </div>
     </section>

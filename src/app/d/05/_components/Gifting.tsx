@@ -1,92 +1,99 @@
-"use client";
-
 import Link from "next/link";
-import { WT } from "@/components/maison/W";
-import { formatINR } from "@/lib/catalog";
-import { PHOTOS } from "@/lib/photos";
-import { useWood } from "@/lib/wood";
-import { familiesIn, sectionNo } from "./content";
+import { W, WT } from "@/components/maison/W";
+import { CATEGORIES, PRICE_BANDS, priceLabel, productsFor, type Wood } from "@/lib/shop/products";
+import { catNo, GIFT, sectionNo } from "./content";
 import { Head } from "./Head";
 import { WPhoto } from "./WPhoto";
 
-const BANDS = [
-  { label: `Under ${formatINR(2500)}`, test: (p: number) => p < 2500 },
-  { label: `${formatINR(2500)} to ${formatINR(7500)}`, test: (p: number) => p >= 2500 && p <= 7500 },
-  { label: `Above ${formatINR(7500)}`, test: (p: number) => p > 7500 },
-];
+function GiftText({ wood }: { wood: Wood }) {
+  return (
+    <div className="x5-giftText">
+      {GIFT[wood].text.map((p) => (
+        <p key={p}>{p}</p>
+      ))}
+    </div>
+  );
+}
 
-/** Gifting: two columns of text beside a large photograph, and the catalogue regrouped by price. */
+function GiftBands({ wood }: { wood: Wood }) {
+  const g = GIFT[wood];
+  const cat = CATEGORIES[wood].find((c) => c.id === g.category)!;
+  const items = productsFor(wood).filter((p) => p.category === g.category);
+  return (
+    <div className="x5-bands">
+      <p className="x5-bandsHead">{g.bandsHead}</p>
+      {PRICE_BANDS.map((b) => {
+        const inBand = items.filter((p) => p.price >= b.min && p.price <= b.max);
+        if (inBand.length === 0) return null;
+        return (
+          <div key={b.id} className="x5-bandRow">
+            <p className="x5-bandLabel">{b.label}</p>
+            <ul>
+              {inBand.map((p) => (
+                <li key={p.slug}>
+                  <Link href={`/d/05/p/${p.slug}`} className="x5-bandLink">
+                    <span className="x5-bandNo">{catNo(p)}</span>
+                    <span>{p.name}</span>
+                    <span className="x5-bandPrice">{priceLabel(p)}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })}
+      <Link href={`/d/05/shop?c=${cat.id}`} className="x5-bandsMore">
+        All {items.length} gifts in {wood} sandalwood, in the catalogue
+      </Link>
+    </div>
+  );
+}
+
+/** Gifting in the current wood: a photograph, the edition's gift line, four short paragraphs and the gifts by price. */
 export function Gifting() {
-  const wood = useWood();
-  const all = familiesIn(wood);
-
   return (
     <section id="gifting" className="x5-section" aria-labelledby="gifting-title">
       <Head
         id="gifting-title"
         n={sectionNo("gifting")}
-        title="Gifting"
+        title={
+          <>
+            Gifts in
+            <br />
+            <WT red="red" white="white" />
+          </>
+        }
         meta="Figure 15"
-        dek={<p>Personal gifts, gifts for occasions, and corporate orders in quantity.</p>}
+        dek={
+          <p>
+            <WT
+              red="Gifts that are kept: boxes, desk sets for teams, and a casket made nine times a year."
+              white="Gifts that are used: ritual sets, oil in a turned box, and trays packed by hand for weddings."
+            />
+          </p>
+        }
       />
 
       <div className="x5-gift">
         <figure className="x5-giftFig">
           <div className="x5-giftFrame">
-            <WPhoto red={{ p: PHOTOS.boxCarved }} white={{ p: PHOTOS.giftLinen }} sizes="(min-width: 768px) 40vw, 92vw" />
+            <WPhoto red={GIFT.red.photo} white={GIFT.white.photo} sizes="(min-width: 768px) 40vw, 92vw" />
           </div>
           <figcaption className="x5-caption">
             <b>Fig. 15</b>
-            <WT red="A hand-carved box, ready to give." white="A gift wrapped in linen, in a wooden tray." />
+            <span>
+              <WT red={GIFT.red.caption} white={GIFT.white.caption} />
+            </span>
           </figcaption>
         </figure>
 
         <p className="x5-giftLine">
-          Give something that remains<span className="x5-heroStop">.</span>
+          <WT red={GIFT.red.line} white={GIFT.white.line} />
+          <span className="x5-heroStop">.</span>
         </p>
 
-        <div className="x5-giftText">
-          <p>
-            A gift in sandalwood is kept. The presentation box is made for that: dovetailed, hand-finished, lined in raw cotton, with a
-            brass clasp and a drawer for the certificate. Choose it empty, or ask us to fill it with a mala, powder or oil.
-          </p>
-          <p>
-            Every gift leaves with its batch record, so the person who receives it knows what they hold. At checkout you can add a
-            message and ask us to leave the prices off the slip.
-          </p>
-          <p>
-            For companies, write with the number of pieces and the date you need them. We suggest pieces from this catalogue, quote per
-            piece, and say plainly what can be made in time.
-          </p>
-          <p>
-            Weddings, housewarmings and pujas ask for different things. A pair of coasters for a new home; a mala for someone who
-            counts; a jar of powder for the morning tilak. The list below regroups the catalogue by what you mean to spend.
-          </p>
-        </div>
-
-        <div className="x5-bands">
-          <p className="x5-bandsHead">The catalogue by price, in <WT red="red" white="white" /> sandalwood</p>
-          {BANDS.map((b) => {
-            const items = all.filter(({ f }) => b.test(f.variants[wood]!.price));
-            if (items.length === 0) return null;
-            return (
-              <div key={b.label} className="x5-bandRow">
-                <p className="x5-bandLabel">{b.label}</p>
-                <ul>
-                  {items.map(({ f, no }) => (
-                    <li key={f.slug}>
-                      <Link href={`/d/05/p/${f.slug}`} className="x5-bandLink">
-                        <span className="x5-bandNo">{no}</span>
-                        <span>{f.name}</span>
-                        <span className="x5-bandPrice">{formatINR(f.variants[wood]!.price)}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
-        </div>
+        <W red={<GiftText wood="red" />} white={<GiftText wood="white" />} />
+        <W red={<GiftBands wood="red" />} white={<GiftBands wood="white" />} />
       </div>
     </section>
   );

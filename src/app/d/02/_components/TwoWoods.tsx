@@ -2,9 +2,10 @@
 
 import { motion, useMotionValue, useMotionValueEvent, useReducedMotion, useSpring, useTransform, type MotionValue } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { WT } from "@/components/maison/W";
 import { Photo } from "@/components/Photo";
-import { WOOD_NAMES } from "@/lib/catalog";
 import { PHOTOS } from "@/lib/photos";
+import { CONTENT } from "@/lib/shop/content";
 import { switchWood, useWood } from "@/lib/wood";
 import { COMPARE } from "./copy";
 import { s } from "./cls";
@@ -85,8 +86,8 @@ export function TwoWoods() {
 
   const circle = (side: -1 | 1) => {
     const red = side < 0;
-    const name = WOOD_NAMES[red ? "red" : "white"];
-    const current = wood === (red ? "red" : "white");
+    const target = red ? "red" : "white";
+    const c = CONTENT[target];
     return (
       <motion.div
         className="absolute top-0"
@@ -101,20 +102,23 @@ export function TwoWoods() {
           style={{ width: D, height: D }}
         >
           <Photo p={red ? PHOTOS.redGrain : PHOTOS.whiteLog} sizes={`${Math.round(D)}px`} className="pointer-events-none select-none" />
-          <span aria-hidden className={`pointer-events-none absolute inset-0 rounded-full ring-inset transition-[box-shadow] duration-500 ${current ? "ring-[6px] ring-[var(--m-accent)]" : "ring-0"}`} />
+          <span aria-hidden data-for={target} className={`${s.curRing} pointer-events-none absolute inset-0 rounded-full transition-[box-shadow] duration-500`} />
         </div>
         <motion.div style={{ opacity: captionOpacity }} className={`mt-6 ${red ? "text-left" : "text-right"} ${wide ? "" : "hidden"} ${open ? "pointer-events-none" : ""}`}>
-          <p className={`${s.syne} text-[26px] font-bold leading-none tracking-[-0.03em]`}>{name.common}</p>
+          <p className={`${s.syne} text-[26px] font-bold leading-none tracking-[-0.03em]`}>{c.name}</p>
           <p className="mt-2 text-[14px] text-[var(--o-ink-2)]">
-            {name.latin}, <span className={s.deva}>{name.sa}</span>
+            <i>{c.latin}</i>, <span className={s.deva}>{c.sanskrit}</span>
           </p>
+          <p className="mt-1 text-[14px] text-[var(--o-muted)]">{c.oneLine}</p>
           <button
             type="button"
-            onClick={() => switchWood(red ? "red" : "white")}
-            disabled={current}
-            className="mt-3 rounded-full border border-[var(--o-line)] px-4 py-1.5 text-[13px] font-semibold transition-colors enabled:hover:border-[var(--o-ink)] disabled:bg-[var(--o-ink)] disabled:text-white"
+            data-for={target}
+            onClick={() => {
+              if (wood !== target) switchWood(target);
+            }}
+            className={`${s.cur} mt-3 rounded-full border border-[var(--o-line)] px-4 py-1.5 text-[13px] font-semibold transition-colors hover:border-[var(--o-ink)]`}
           >
-            {current ? "Showing this wood" : "Show this wood"}
+            <WT red={red ? "Showing this wood" : "Show this wood"} white={red ? "Show this wood" : "Showing this wood"} />
           </button>
         </motion.div>
       </motion.div>
@@ -126,11 +130,16 @@ export function TwoWoods() {
       <div className="mx-auto max-w-[1440px]">
         <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-12 md:items-end">
           <h2 className={`${s.display} text-[clamp(2.1rem,5.6vw,6rem)] md:col-span-7`}>
-            Two woods,
-            <span className="block text-[var(--o-muted)]">two characters.</span>
+            <WT red="Not the sandalwood" white="The sandalwood" />
+            <span className="block text-[var(--o-muted)]">
+              <WT red="of perfume." white="of temples." />
+            </span>
           </h2>
           <p className="max-w-[440px] text-[17px] leading-relaxed text-[var(--o-ink-2)] md:col-span-5 md:justify-self-end">
-            Both are called sandalwood. They are different trees with different rules. Pull the two circles apart to see where they differ.
+            <WT
+              red="Red sandalwood shares a name with the fragrant one and very little else: another tree, another family, another set of rules. Pull the two circles apart to see where they part ways."
+              white="White sandalwood is the one in the oil, the incense and the chandan paste. Red sandalwood shares the name, not the scent. Pull the two circles apart to see how far apart they are."
+            />
           </p>
         </div>
 

@@ -1,14 +1,29 @@
-/* Design 02, Orbit: studio white, ink, one wood-aware accent (var(--m-accent)). */
+/* Design 02, Orbit: two complete palettes (rose linen for red, ivory gold for white), one accent each.
+   The palette lives in registered custom properties so a wood switch eases instead of snapping. */
+
+@property --o-bg { syntax: "<color>"; inherits: true; initial-value: #f8f0ec; }
+@property --o-floor { syntax: "<color>"; inherits: true; initial-value: #efe1db; }
+@property --o-shade { syntax: "<color>"; inherits: true; initial-value: #e8d6cf; }
+@property --o-stone { syntax: "<color>"; inherits: true; initial-value: #f3e6e0; }
+@property --o-card { syntax: "<color>"; inherits: true; initial-value: #fffaf8; }
+@property --o-ink { syntax: "<color>"; inherits: true; initial-value: #24130e; }
+@property --o-ink-2 { syntax: "<color>"; inherits: true; initial-value: #4a2e26; }
+@property --o-muted { syntax: "<color>"; inherits: true; initial-value: #7a5a50; }
+@property --o-line { syntax: "<color>"; inherits: true; initial-value: rgb(36 19 14 / 0.13); }
 
 .o2-root {
-  --o-bg: #f7f6f3;
-  --o-floor: #eceae6;
-  --o-stone: #efede9;
-  --o-ink: #191714;
-  --o-ink-2: #3b3732;
-  --o-muted: #77716a;
-  --o-line: rgb(25 23 20 / 0.12);
-  --o-card: #fdfcfa;
+  /* red sandalwood: rose linen, deep red-brown ink, heartwood accent */
+  --o-bg: #f8f0ec;
+  --o-floor: #efe1db;
+  --o-shade: #e8d6cf;
+  --o-stone: #f3e6e0;
+  --o-card: #fffaf8;
+  --o-ink: #24130e;
+  --o-ink-2: #4a2e26;
+  --o-muted: #7a5a50;
+  --o-line: rgb(36 19 14 / 0.13);
+  --m-accent: #9b3520;
+  --m-accent-soft: #f1dcd4;
   --o-ease: cubic-bezier(0.22, 1, 0.36, 1);
   background: var(--o-bg);
   color: var(--o-ink);
@@ -16,8 +31,37 @@
   font-size: 16px;
   line-height: 1.55;
   min-height: 100svh;
+  /* turning rings and wide display type never widen the page (clip keeps sticky scenes working) */
+  overflow-x: clip;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition:
+    --o-bg 0.9s var(--o-ease),
+    --o-floor 0.9s var(--o-ease),
+    --o-shade 0.9s var(--o-ease),
+    --o-stone 0.9s var(--o-ease),
+    --o-card 0.9s var(--o-ease),
+    --o-ink 0.9s var(--o-ease),
+    --o-ink-2 0.9s var(--o-ease),
+    --o-muted 0.9s var(--o-ease),
+    --o-line 0.9s var(--o-ease),
+    --m-accent 0.9s var(--o-ease),
+    --m-accent-soft 0.9s var(--o-ease);
+}
+
+/* white sandalwood: pale ivory gold, warm umber ink, brass accent */
+html[data-wood="white"] .o2-root {
+  --o-bg: #faf6ee;
+  --o-floor: #f1e8d6;
+  --o-shade: #e9dcc3;
+  --o-stone: #f5eddf;
+  --o-card: #fffdf8;
+  --o-ink: #2a2216;
+  --o-ink-2: #4b3f2c;
+  --o-muted: #7d6c52;
+  --o-line: rgb(42 34 22 / 0.14);
+  --m-accent: #a07330;
+  --m-accent-soft: #efe3cc;
 }
 
 .o2-root ::selection {
@@ -28,6 +72,24 @@
 .o2-root :focus-visible {
   outline: 2px solid var(--m-accent);
   outline-offset: 3px;
+}
+
+/* Wood-only bits that cannot use <W> (SVG text, attributes): hide the other wood's copy. */
+html:not([data-wood="white"]) .o2-onlyWhite,
+html[data-wood="white"] .o2-onlyRed {
+  display: none !important;
+}
+
+/* Something that reads as "chosen" when its wood is showing (no client state, so no flash). */
+html:not([data-wood="white"]) .o2-cur[data-for="red"],
+html[data-wood="white"] .o2-cur[data-for="white"] {
+  background: var(--o-ink);
+  border-color: var(--o-ink);
+  color: #fff;
+}
+html:not([data-wood="white"]) .o2-curRing[data-for="red"],
+html[data-wood="white"] .o2-curRing[data-for="white"] {
+  box-shadow: inset 0 0 0 6px var(--m-accent);
 }
 
 .o2-syne {
@@ -59,8 +121,8 @@
 /* ---------- the soft studio floor under the ring ---------- */
 .o2-floor {
   background:
-    radial-gradient(ellipse 46% 30% at 50% 72%, #e4e1dc 0%, rgb(236 234 230 / 0.85) 38%, rgb(236 234 230 / 0) 100%),
-    radial-gradient(ellipse 80% 55% at 50% 70%, rgb(236 234 230 / 0.7) 0%, rgb(236 234 230 / 0) 100%);
+    radial-gradient(ellipse 46% 30% at 50% 72%, var(--o-shade) 0%, color-mix(in srgb, var(--o-floor) 85%, transparent) 38%, transparent 100%),
+    radial-gradient(ellipse 80% 55% at 50% 70%, color-mix(in srgb, var(--o-floor) 70%, transparent) 0%, transparent 100%);
 }
 
 /* ---------- wood swatches (knob, small discs) ---------- */
@@ -188,8 +250,13 @@ html[data-wood="white"] .o2-vdisc {
     border-color: var(--o-ink);
     box-shadow: 0 0 0 4px var(--m-accent-soft);
   }
-  .o2-field:user-invalid {
+  .o2-field:user-invalid,
+  .o2-field[aria-invalid="true"] {
     border-color: #b3261e;
+  }
+  .o2-field:disabled {
+    background: var(--o-stone);
+    color: var(--o-muted);
   }
   textarea.o2-field {
     height: auto;
@@ -211,10 +278,144 @@ html[data-wood="white"] .o2-vdisc {
   }
 }
 
+/* ---------- station fields: the value inside the capsule, under its label ---------- */
+@layer components {
+  .o2-stIn {
+    display: block;
+    width: 100%;
+    height: 1.75rem;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    color: var(--o-ink);
+    font-size: 16px;
+    font-weight: 500;
+    outline: none;
+  }
+  .o2-stIn::placeholder {
+    color: var(--o-muted);
+    opacity: 0.6;
+  }
+  .o2-stIn:focus-visible {
+    outline: none;
+  }
+  .o2-stIn:disabled {
+    color: var(--o-muted);
+    -webkit-text-fill-color: var(--o-muted);
+    opacity: 1;
+  }
+  select.o2-stIn {
+    appearance: none;
+    cursor: pointer;
+  }
+  select.o2-stIn:invalid,
+  select.o2-stIn option[value=""] {
+    color: var(--o-muted);
+  }
+}
+
+/* ---------- shop: a disc that turns over to show its second photograph ---------- */
+.o2-card {
+  perspective: 1100px;
+}
+.o2-flip {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 0.9s var(--o-ease);
+}
+.o2-face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 999px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  background: var(--o-floor);
+}
+.o2-face-back {
+  transform: rotateY(180deg);
+}
+.o2-orbit {
+  transition:
+    transform 1.2s var(--o-ease),
+    opacity 0.4s var(--o-ease);
+}
+@media (hover: hover) and (pointer: fine) {
+  .o2-card:hover .o2-flip[data-two="true"] {
+    transform: rotateY(180deg);
+  }
+  .o2-card:hover .o2-orbit {
+    transform: rotate(90deg);
+  }
+}
+
+/* the shop grid sits on a gentle wave: alternate columns drop a little */
+/* (the individual translate property, so it composes with the transforms motion animates) */
+.o2-wave > li {
+  transition: translate 0.6s var(--o-ease);
+}
+@media (max-width: 767px) {
+  .o2-wave > li:nth-child(even) {
+    translate: 0 2.5rem;
+  }
+}
+@media (min-width: 768px) and (max-width: 1279px) {
+  .o2-wave > li:nth-child(3n + 2) {
+    translate: 0 3rem;
+  }
+}
+@media (min-width: 1280px) {
+  .o2-wave > li:nth-child(4n + 2),
+  .o2-wave > li:nth-child(4n + 4) {
+    translate: 0 3.5rem;
+  }
+}
+
+/* the current tracking stage breathes */
+@keyframes o2-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+.o2-pulse {
+  animation: o2-pulse 2.2s var(--o-ease) infinite;
+}
+
+/* a quiet loading ring while client-only state (bag, session) arrives */
+.o2-loader {
+  animation: o2-spin 1.4s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .o2-root {
+    transition: none;
+  }
   .o2-spin,
-  .o2-spinSlow {
+  .o2-spinSlow,
+  .o2-pulse {
     animation: none;
+  }
+  .o2-flip,
+  .o2-orbit,
+  .o2-wave > li {
+    transition: none;
+  }
+  .o2-card:hover .o2-flip[data-two="true"] {
+    transform: none;
+  }
+  .o2-card .o2-face-back {
+    transform: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .o2-card:hover .o2-face-back {
+    opacity: 1;
   }
   .o2-vbtn,
   .o2-vbtn .o2-vnum {

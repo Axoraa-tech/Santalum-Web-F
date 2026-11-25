@@ -41,6 +41,14 @@ export function syncWoodFromStorage() {
   if (read() !== stored || !document.documentElement.dataset.wood) apply(stored);
 }
 
+/**
+ * Set the wood without the crossfade. For a product page opened directly: the page belongs to
+ * one wood, so the site follows it (call from an effect, not during render).
+ */
+export function setWoodQuietly(next: Wood) {
+  if (read() !== next || !document.documentElement.dataset.wood) apply(next);
+}
+
 export function useWood(): Wood {
   return useSyncExternalStore(subscribe, read, () => "red");
 }

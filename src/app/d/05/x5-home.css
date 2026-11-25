@@ -233,13 +233,22 @@
   color: var(--ink);
   font-size: 15px;
 }
-html:not([data-wood="white"]) .x5-nameWhite,
-html[data-wood="white"] .x5-nameRed {
-  opacity: 0.42;
-}
-html:not([data-wood="white"]) .x5-nameRed,
-html[data-wood="white"] .x5-nameWhite {
+.x5-heroNames .x5-nameA {
   border-top-color: var(--spot);
+}
+.x5-heroNames .x5-nameB dd {
+  margin-top: 2px;
+  font-family: var(--serif);
+  font-size: 15px;
+  color: var(--ink);
+}
+.x5-knda {
+  font-family: "Noto Sans Kannada", "Nirmala UI", Tunga, var(--sans);
+  font-style: normal;
+}
+.x5-heroNames .x5-knda {
+  color: var(--ink);
+  font-size: 14px;
 }
 .x5-heroFigure {
   grid-column: 2 / -1;
@@ -343,20 +352,56 @@ html[data-wood="white"] .x5-nameWhite {
   .x5-heroTitle {
     font-size: 15vw;
   }
+  /* the names hang beside the second line ("red." / "gold."), the short one in both woods: the first word
+     ("Dense") runs past column 5, so a caption set against it would be printed over */
   .x5-heroNames {
     grid-column: 5 / 8;
     grid-row: 2;
-    align-self: start;
-    margin-top: calc(clamp(28px, 4vw, 60px) + 1.2vw);
+    align-self: end;
+    margin-bottom: 1.4vw;
     position: relative;
     z-index: 1;
   }
+  /* "gold." runs a column further than "red.", to the edge of column 5: in white the names step one column
+     right and are set as a single column, so the full stop keeps its margin instead of touching the caption */
+  html[data-wood="white"] .x5-heroNames {
+    grid-column: 6 / 8;
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 14px;
+  }
 }
+/* On a wood switch the cover words are not cross-dissolved with the page (two headlines legible on top of
+   each other): the old pair is drawn up out of its line and the new one rises into it, as on first load. */
+html.wood-vt .x5-heroTitle {
+  view-transition-name: x5-cover;
+}
+html.wood-vt::view-transition-old(x5-cover) {
+  animation: x5-cover-out 0.3s cubic-bezier(0.5, 0, 0.75, 0) both;
+}
+html.wood-vt::view-transition-new(x5-cover) {
+  animation: x5-cover-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+}
+@keyframes x5-cover-out {
+  to {
+    transform: translateY(-4%);
+    clip-path: inset(0 0 100% 0);
+  }
+}
+@keyframes x5-cover-in {
+  from {
+    transform: translateY(6%);
+    clip-path: inset(100% 0 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
 @media (min-width: 1024px) and (max-width: 1279px) {
   .x5-heroNames {
     font-size: 12px;
   }
-  .x5-heroNames dd:last-child {
+  .x5-heroNames .x5-nameA dd:last-child {
     display: none;
   }
 }
@@ -385,9 +430,46 @@ html[data-wood="white"] .x5-nameWhite {
   border-top: 3px solid transparent;
   font-weight: 400;
 }
-html:not([data-wood="white"]) .x5-specRed,
-html[data-wood="white"] .x5-specWhite {
+.x5-spec thead .x5-specA {
   border-top-color: var(--spot);
+}
+.x5-spec thead .x5-specB {
+  border-top-color: var(--ink);
+}
+.x5-specCorner i {
+  font-family: var(--serif);
+  font-size: 14px;
+  color: var(--ink);
+}
+.x5-specLink {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: underline;
+  text-decoration-color: var(--spot);
+  text-underline-offset: 4px;
+  transition: color 0.25s var(--ease);
+}
+.x5-specLink:hover {
+  color: var(--spot);
+}
+.x5-specLink:active {
+  opacity: 0.6;
+}
+.x5-specFoot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px 24px;
+}
+.x5-specFoot .x5-footnote {
+  max-width: 70ch;
+}
+.x5-specFoot .x5-specSwitch {
+  margin-top: 14px;
+  font-size: 13px;
 }
 .x5-specCorner span {
   display: block;
@@ -505,7 +587,10 @@ html[data-wood="white"] .x5-specWhite {
   }
   .x5-spec tbody td {
     padding: 0;
-    font-size: 15.5px;
+    font-size: 16px;
+  }
+  .x5-spec tbody .x5-specSpan {
+    grid-column: 1 / -1;
   }
 }
 
@@ -1101,7 +1186,7 @@ html[data-wood="white"] .x5-specWhite {
   aspect-ratio: 4 / 5;
   overflow: hidden;
   background: var(--wash);
-  box-shadow: 0 30px 60px -28px rgb(17 17 17 / 0.5);
+  box-shadow: 0 30px 60px -28px color-mix(in srgb, var(--ink) 50%, transparent);
 }
 .x5-previewImg {
   position: absolute;
@@ -1162,6 +1247,8 @@ html[data-wood="white"] .x5-specWhite {
   transform-origin: 0 50%;
 }
 .x5-stepN {
+  --lit: 1;
+  color: color-mix(in srgb, var(--ink) calc(var(--lit) * 100%), var(--faint));
   grid-row: span 2;
   font-size: 64px;
   font-weight: 800;
@@ -1252,7 +1339,7 @@ html[data-wood="white"] .x5-specWhite {
   padding: 24px 18px 20px;
   box-shadow:
     0 1px 0 var(--rule),
-    0 44px 70px -54px rgb(17 17 17 / 0.4);
+    0 44px 70px -54px color-mix(in srgb, var(--ink) 40%, transparent);
 }
 .x5-docHead {
   display: grid;
@@ -1360,7 +1447,7 @@ html[data-wood="white"] .x5-specWhite {
   color: var(--paper);
   font-size: 15px;
   line-height: 1.4;
-  box-shadow: 0 18px 40px -20px rgb(17 17 17 / 0.6);
+  box-shadow: 0 18px 40px -20px color-mix(in srgb, var(--ink) 60%, transparent);
 }
 .x5-fnPop b {
   font-family: var(--sans);
@@ -1387,7 +1474,7 @@ html[data-wood="white"] .x5-specWhite {
   aspect-ratio: 4 / 5;
   overflow: hidden;
   border: 5px solid var(--white);
-  box-shadow: 0 14px 26px -14px rgb(17 17 17 / 0.5);
+  box-shadow: 0 14px 26px -14px color-mix(in srgb, var(--ink) 50%, transparent);
   background: var(--wash);
 }
 .x5-docPhoto .x5-caption {
@@ -1552,7 +1639,7 @@ html[data-wood="white"] .x5-specWhite {
   color: var(--white);
 }
 .x5-vaultCell[aria-pressed="true"] .x5-vaultNo {
-  color: rgb(255 255 255 / 0.8);
+  color: color-mix(in srgb, var(--paper) 80%, transparent);
 }
 .x5-vaultOrder {
   margin-top: 20px;

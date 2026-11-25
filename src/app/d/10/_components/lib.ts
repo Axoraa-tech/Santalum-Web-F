@@ -64,6 +64,11 @@ export function useStore<T>(s: Store<T>, server: T) {
 export type Takeover = { slug: string; top: number; height: number; vh: number } | null;
 export const takeoverStore = store<Takeover>(null);
 export const menuStore = store(false);
+/**
+ * A wood switch made on a product page: the piece belongs to one wood, so the site goes to the other wood's
+ * page first and only changes colours once that page is the one on screen (no red piece in white colours).
+ */
+export const woodRouteStore = store<{ wood: Wood; path: string } | null>(null);
 export const sheetStore = store(false);
 
 /** "Added to bag" notice for the big bag number. */
@@ -85,6 +90,11 @@ export function openTakeover(slug: string, from?: HTMLElement | null) {
   const top = r ? Math.max(0, Math.min(vh, r.top)) : vh / 2;
   const height = r ? Math.max(0, Math.min(vh - top, r.height)) : 0;
   takeoverStore.set({ slug, top, height, vh });
+}
+/** Swap the piece shown in an open takeover (the wood was flipped: show its counterpart). */
+export function swapTakeover(slug: string) {
+  const t = takeoverStore.get();
+  if (t) takeoverStore.set({ ...t, slug });
 }
 export function closeTakeover() {
   takeoverStore.set(null);
@@ -143,7 +153,7 @@ export const fv = (wdth: number, wght: number) => `"wdth" ${wdth.toFixed(1)}, "w
 let probe: HTMLSpanElement | null = null;
 
 /** Width of `text` set in Anybody at the given axes and size, in px. Needs the design root in the page. */
-export function measure(text: string, wdth: number, wght: number, size = 100, tracking = 0, italic = false) {
+export function measure(text: string, wdth: number, wght: number, size = 100, tracking = 0, italic = false, tnum = false) {
   if (!probe || !probe.isConnected) {
     probe = document.createElement("span");
     probe.setAttribute("aria-hidden", "true");
@@ -162,14 +172,25 @@ export function measure(text: string, wdth: number, wght: number, size = 100, tr
   probe.style.fontSize = `${size}px`;
   probe.style.letterSpacing = `${tracking}em`;
   probe.style.fontStyle = italic ? "italic" : "normal";
+  probe.style.fontVariantNumeric = tnum ? "tabular-nums" : "normal";
   probe.style.fontVariationSettings = fv(wdth, wght);
   probe.textContent = text;
   return probe.getBoundingClientRect().width;
 }
 
 /** Font size (px) that makes `text` exactly `width` wide at these axes. */
-export function fitSize(text: string, width: number, wdth: number, wght: number, tracking = 0) {
-  const w = measure(text, wdth, wght, 100, tracking);
+export function fitSize(text: string, width: number, wdth: number, wght: number, tracking = 0, tnum = false) {
+  const w = measure(text, wdth, wght, 100, tracking, false, tnum);
+  return w ? (width * 100) / w : 100;
+}
+
+/**
+ * Font size (px) that makes `text` exactly `width` wide when every letter is its own inline-block
+ * (the stretch-in titles): letters are measured one by one, so lost kerning and tabular figures count.
+ */
+export function fitLetters(text: string, width: number, wdth: number, wght: number, tnum = false) {
+  let w = 0;
+  for (const ch of text) w += measure(ch === " " ? " " : ch, wdth, wght, 100, 0, false, tnum);
   return w ? (width * 100) / w : 100;
 }
 

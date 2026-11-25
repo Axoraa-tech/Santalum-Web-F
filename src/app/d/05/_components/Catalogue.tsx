@@ -1,45 +1,40 @@
 "use client";
 
-import {
-  AnimatePresence,
-  motion,
-  useMotionValue,
-  useSpring,
-  useTransform,
-  useVelocity,
-} from "motion/react";
+import { AnimatePresence, motion, useMotionValue, useSpring, useTransform, useVelocity } from "motion/react";
+import Link from "next/link";
 import { useState, type PointerEvent } from "react";
 import { Photo } from "@/components/Photo";
-import { WT } from "@/components/maison/W";
-import { CATEGORIES, formatINR, type CategoryKey } from "@/lib/catalog";
-import { useWood } from "@/lib/wood";
-import { categoryLabel, EASE, familiesIn, sectionNo } from "./content";
+import { W, WT } from "@/components/maison/W";
+import { categoryOf, featured, priceLabel, type Product, type Wood } from "@/lib/shop/products";
+import { catNo, categoriesIn, countIn, EASE, sectionNo } from "./content";
 import { Entry } from "./Entry";
 import { Head } from "./Head";
+import { RatingLine } from "./Stars";
 
-type SortKey = "no" | "name" | "category" | "wood" | "price";
+type SortKey = "no" | "name" | "category" | "price";
 type Sort = { key: SortKey; dir: 1 | -1 };
 
-const COLS: { key: SortKey; label: string; cls: string }[] = [
+const COLS: { key: SortKey | null; label: string; cls: string }[] = [
   { key: "no", label: "No.", cls: "cNo" },
   { key: "name", label: "Name", cls: "cName" },
   { key: "category", label: "Category", cls: "cCat" },
-  { key: "wood", label: "Wood", cls: "cWood" },
+  { key: null, label: "Note", cls: "cWood" },
   { key: "price", label: "Price", cls: "cPrice" },
 ];
 
-const N_RED = familiesIn("red").length;
-const N_WHITE = familiesIn("white").length;
-
 const SPRING = { stiffness: 240, damping: 24, mass: 0.6 };
 
+const LEAD: Record<Wood, string> = {
+  red: "The red catalogue by category. Each opens the full list, with filters.",
+  white: "The white catalogue by category. Each opens the full list, with filters.",
+};
+
 /**
- * Every family made in the current wood, as a sortable table. Hovering a row brings a photograph that
- * follows the pointer on a spring and leans with its speed; clicking a row opens its entry in place.
+ * The selected pieces of one wood as a sortable table. Hovering a row brings a photograph that follows the
+ * pointer on a spring and leans with its speed; clicking a row opens its entry in place.
  */
-export function Catalogue() {
-  const wood = useWood();
-  const [cat, setCat] = useState<CategoryKey | "all">("all");
+function Selection({ wood }: { wood: Wood }) {
+  const all = featured(wood);
   const [sort, setSort] = useState<Sort>({ key: "no", dir: 1 });
   const [open, setOpen] = useState<string | null>(null);
   const [hover, setHover] = useState<string | null>(null);
@@ -51,22 +46,12 @@ export function Catalogue() {
   const vx = useVelocity(sx);
   const rotate = useTransform(vx, [-1800, 0, 1800], [-11, 0, 11]);
 
-  const all = familiesIn(wood);
-  const tabs = [
-    { key: "all" as const, label: "All", n: all.length },
-    ...CATEGORIES.map((c) => ({ key: c.key, label: c.label, n: all.filter((x) => x.f.category === c.key).length })).filter((c) => c.n > 0),
-  ];
-  const catLine = CATEGORIES.find((c) => c.key === cat)?.line;
-
-  const rows = (cat === "all" ? all : all.filter((x) => x.f.category === cat)).slice().sort((a, b) => {
-    const va = a.f.variants[wood]!;
-    const vb = b.f.variants[wood]!;
+  const rows = all.slice().sort((a: Product, b: Product) => {
     let d = 0;
-    if (sort.key === "no") d = a.no - b.no;
-    else if (sort.key === "name") d = a.f.name.localeCompare(b.f.name);
-    else if (sort.key === "category") d = categoryLabel(a.f.category).localeCompare(categoryLabel(b.f.category)) || a.no - b.no;
-    else if (sort.key === "wood") d = va.note.localeCompare(vb.note);
-    else d = va.price - vb.price;
+    if (sort.key === "no") d = catNo(a) - catNo(b);
+    else if (sort.key === "name") d = a.name.localeCompare(b.name);
+    else if (sort.key === "category") d = categoryOf(a).label.localeCompare(categoryOf(b).label) || catNo(a) - catNo(b);
+    else d = a.price - b.price;
     return d * sort.dir;
   });
 
@@ -86,59 +71,42 @@ export function Catalogue() {
   };
 
   const show = hover !== null && hover !== open;
-  const hovered = all.find((x) => x.f.slug === hover);
+  const hovered = all.find((p) => p.slug === hover);
+  const cats = categoriesIn(wood);
 
   return (
-    <section id="catalogue" className="x5-section" aria-labelledby="catalogue-title">
-      <Head
-        id="catalogue-title"
-        n={sectionNo("catalogue")}
-        title="Catalogue"
-        meta={`${rows.length} of ${all.length} shown`}
-        dek={
-          <p>
-            Every piece made in <WT red={`red sandalwood, ${N_RED}`} white={`white sandalwood, ${N_WHITE}`} /> in all. Sort by any column; open a row to read
-            its entry.
-          </p>
-        }
-      />
-
+    <>
       <div className="x5-filters">
-        <div className="x5-tabs" role="group" aria-label="Filter by category">
-          {tabs.map((t) => (
-            <button key={t.key} type="button" className="x5-tab" aria-pressed={cat === t.key} onClick={() => setCat(t.key)}>
-              {t.label}
-              <sup>{t.n}</sup>
-              {cat === t.key && <motion.span layoutId="idx-tab-line" className="x5-tabLine" transition={{ type: "spring", stiffness: 420, damping: 38 }} />}
-            </button>
+        <nav className="x5-tabs" aria-label={`The ${wood} catalogue by category`}>
+          {cats.map((c) => (
+            <Link key={c.id} href={`/d/05/shop?c=${c.id}`} className="x5-tab">
+              {c.label}
+              <sup>{c.n}</sup>
+            </Link>
           ))}
-        </div>
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.p
-            key={cat}
-            className="x5-catLine"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.3, ease: EASE }}
-          >
-            {catLine ?? "Objects, beads, powder and oil, gifting and jewellery, in catalogue order."}
-          </motion.p>
-        </AnimatePresence>
+        </nav>
+        <p className="x5-catLine">{LEAD[wood]}</p>
       </div>
 
       <div className="x5-table" onPointerMove={onMove} onPointerEnter={onEnter} onPointerLeave={() => setHover(null)}>
         <div className="x5-thead">
           {COLS.map((c) => {
-            const on = sort.key === c.key;
+            if (!c.key)
+              return (
+                <span key={c.label} className={`x5-th x5-${c.cls}`}>
+                  {c.label}
+                </span>
+              );
+            const key = c.key;
+            const on = sort.key === key;
             return (
               <button
-                key={c.key}
+                key={c.label}
                 type="button"
                 className={`x5-th x5-${c.cls}`}
                 aria-pressed={on}
                 aria-label={`Sort by ${c.label === "No." ? "number" : c.label.toLowerCase()}${on ? (sort.dir === 1 ? ", ascending" : ", descending") : ""}`}
-                onClick={() => toggleSort(c.key)}
+                onClick={() => toggleSort(key)}
               >
                 {c.label}
                 <span className="x5-sortMark" aria-hidden>
@@ -151,12 +119,11 @@ export function Catalogue() {
 
         <ol className="x5-rows">
           <AnimatePresence initial={false} mode="popLayout">
-            {rows.map(({ f, no }) => {
-              const v = f.variants[wood]!;
-              const isOpen = open === f.slug;
+            {rows.map((p) => {
+              const isOpen = open === p.slug;
               return (
                 <motion.li
-                  key={f.slug}
+                  key={p.slug}
                   layout="position"
                   className="x5-row"
                   data-open={isOpen || undefined}
@@ -170,19 +137,26 @@ export function Catalogue() {
                       type="button"
                       className="x5-rowBtn"
                       aria-expanded={isOpen}
-                      aria-controls={`entry-${f.slug}`}
-                      onClick={() => setOpen(isOpen ? null : f.slug)}
-                      onPointerEnter={(e) => e.pointerType === "mouse" && setHover(f.slug)}
+                      aria-controls={`entry-${p.slug}`}
+                      onClick={() => setOpen(isOpen ? null : p.slug)}
+                      onPointerEnter={(e) => e.pointerType === "mouse" && setHover(p.slug)}
                       onPointerLeave={() => setHover(null)}
                     >
-                      <span className="x5-cNo">{no}</span>
+                      <span className="x5-cNo">{catNo(p)}</span>
                       <span className="x5-cName">
-                        <span className="x5-rowName">{f.name}</span>
-                        {f.edition && <span className="x5-edition">{f.edition}</span>}
+                        <span className="x5-rowName">{p.name}</span>
+                        {p.edition ? (
+                          <span className="x5-edition">
+                            {p.edition.left} of {p.edition.size} left
+                          </span>
+                        ) : (
+                          p.badge && <span className="x5-edition">{p.badge}</span>
+                        )}
+                        <RatingLine slug={p.slug} />
                       </span>
-                      <span className="x5-cCat">{categoryLabel(f.category)}</span>
-                      <span className="x5-cWood">{v.note}</span>
-                      <span className="x5-cPrice">{formatINR(v.price)}</span>
+                      <span className="x5-cCat">{categoryOf(p).label}</span>
+                      <span className="x5-cWood">{p.short}</span>
+                      <span className="x5-cPrice">{priceLabel(p)}</span>
                       <span className="x5-rowToggle" aria-hidden>
                         {isOpen ? "Close" : "Open"}
                       </span>
@@ -191,7 +165,7 @@ export function Catalogue() {
                   <AnimatePresence initial={false}>
                     {isOpen && (
                       <motion.div
-                        id={`entry-${f.slug}`}
+                        id={`entry-${p.slug}`}
                         key="entry"
                         className="x5-entryWrap"
                         initial={{ height: 0, opacity: 0 }}
@@ -199,7 +173,7 @@ export function Catalogue() {
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ height: { duration: 0.7, ease: EASE }, opacity: { duration: 0.35 } }}
                       >
-                        <Entry family={f} wood={wood} no={no} onClose={() => setOpen(null)} />
+                        <Entry product={p} onClose={() => setOpen(null)} />
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -210,6 +184,17 @@ export function Catalogue() {
         </ol>
       </div>
 
+      <Link href="/d/05/shop" className="x5-toShop">
+        <span className="x5-toShopN">{countIn(wood)}</span>
+        <span className="x5-toShopText">
+          <b>All {countIn(wood)} {wood} sandalwood pieces</b>
+          <span>
+            The full catalogue, with every category, search, prices and the {wood === "red" ? "Vault and limited pieces" : "Reserve and limited pieces"}.
+          </span>
+        </span>
+        <span className="x5-toShopGo">Open the catalogue</span>
+      </Link>
+
       {/* the pointer-following preview */}
       <motion.div className="x5-preview" style={{ x: sx, y: sy, rotate }} aria-hidden>
         <div className="x5-previewOffset">
@@ -219,18 +204,49 @@ export function Catalogue() {
             animate={{ opacity: show ? 1 : 0, scale: show ? 1 : 0.86 }}
             transition={{ duration: 0.35, ease: EASE }}
           >
-            {all.map(({ f }) => {
-              const shot = f.variants[wood]!.shots[0];
+            {all.map((p) => {
+              const shot = p.shots[0];
               return (
-                <div key={f.slug} className="x5-previewImg" data-on={hover === f.slug || undefined}>
+                <div key={p.slug} className="x5-previewImg" data-on={hover === p.slug || undefined}>
                   <Photo p={shot.photo} tone={shot.tone} sizes="240px" />
                 </div>
               );
             })}
-            <span className="x5-previewLabel">{hovered ? `No. ${hovered.no}` : ""}</span>
+            <span className="x5-previewLabel">{hovered ? `No. ${catNo(hovered)}` : ""}</span>
           </motion.div>
         </div>
       </motion.div>
+    </>
+  );
+}
+
+/** The landing page's catalogue section: a selection, never the whole list. */
+export function Catalogue() {
+  const nRed = featured("red").length;
+  const nWhite = featured("white").length;
+  return (
+    <section id="catalogue" className="x5-section" aria-labelledby="catalogue-title">
+      <Head
+        id="catalogue-title"
+        n={sectionNo("catalogue")}
+        title={
+          <>
+            Selected
+            <br />
+            in <WT red="red" white="white" />
+          </>
+        }
+        meta={<WT red={`${nRed} of ${countIn("red")} pieces`} white={`${nWhite} of ${countIn("white")} pieces`} />}
+        dek={
+          <p>
+            <WT
+              red={`${nRed} of the ${countIn("red")} pieces in red sandalwood, chosen for this edition: beads, turned objects, powder, a box, a pendant and the Vault cuff. Sort by any column; open a row to read its entry.`}
+              white={`${nWhite} of the ${countIn("white")} pieces in white sandalwood, chosen for this edition: oils, attar, incense, chandan, a mala and a Mysuru fan. Sort by any column; open a row to read its entry.`}
+            />
+          </p>
+        }
+      />
+      <W red={<Selection wood="red" />} white={<Selection wood="white" />} />
     </section>
   );
 }

@@ -3,7 +3,7 @@
 import { motion, useMotionValue, useScroll, useTransform, type MotionValue } from "motion/react";
 import { createContext, use, useRef, type CSSProperties, type ReactNode } from "react";
 import { Photo } from "@/components/Photo";
-import type { Tone } from "@/lib/catalog";
+import type { Tone } from "@/lib/shop/products";
 import type { PhotoRef } from "@/lib/photos";
 import s from "../styles";
 import { WIDE, useMedia } from "./store";

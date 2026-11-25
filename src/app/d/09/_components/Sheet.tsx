@@ -2,14 +2,16 @@
 
 import { AnimatePresence, motion, useDragControls } from "motion/react";
 import Link from "next/link";
-import { useEffect, useId, useRef, useState, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { W, WT } from "@/components/maison/W";
 import { Photo } from "@/components/Photo";
-import { formatINR, getFamily, WOOD_NAMES } from "@/lib/catalog";
 import { PHOTOS } from "@/lib/photos";
-import { useWood, type Wood } from "@/lib/wood";
+import { CONTENT } from "@/lib/shop/content";
+import { formatINR, getProduct, priceOf } from "@/lib/shop/products";
 import s from "../styles";
-import { EASE, chapterBy, hhmm, hourOf, plain, ritualLine } from "./data";
-import { AddOrSwitch, WoodChoice } from "./Buy";
+import { AddToTray, EditionLamps, Keep, OptionPicker } from "./Buy";
+import { EASE, chapterBy, hhmm, hourOf } from "./data";
+import { Field } from "./forms";
 import { closeSheet, lockScroll, unlockScroll, useSheet } from "./store";
 
 /** Renders whichever bottom sheet is open. Lives in the layout. */
@@ -18,7 +20,7 @@ export function SheetHost() {
   return (
     <AnimatePresence>
       {sheet?.kind === "piece" && (
-        <Sheet key="piece" label={`${getFamily(sheet.slug)?.name ?? "Piece"}, ritual card`}>
+        <Sheet key="piece" label={`${getProduct(sheet.slug)?.name ?? "Piece"}, ritual card`}>
           <RitualCard key={sheet.slug} slug={sheet.slug} />
         </Sheet>
       )}
@@ -119,46 +121,49 @@ function Sheet({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-/* ---------- the ritual card: one piece, how it is used at its hour, wood, bag ---------- */
+/* ---------- the ritual card: one piece, how it is used at its hour, option, tray ---------- */
 function RitualCard({ slug }: { slug: string }) {
-  const wood = useWood();
   const [shot, setShot] = useState(0);
+  const [option, setOption] = useState<string | undefined>(undefined);
   const titleId = useId();
-  const f = getFamily(slug);
-  if (!f) return null;
-  const v = f.variants[wood];
-  const other: Wood = wood === "red" ? "white" : "red";
-  const shown = v ?? f.variants[other];
-  if (!shown) return null;
+  const p = getProduct(slug);
+  if (!p) return null;
+  const c = CONTENT[p.wood];
   const hour = hourOf(slug);
   const ch = chapterBy(hour.chapter);
-  const i = Math.min(shot, shown.shots.length - 1);
-  const sh = shown.shots[i];
+  const i = Math.min(shot, p.shots.length - 1);
+  const sh = p.shots[i];
+  const twin = p.counterpart ? getProduct(p.counterpart) : undefined;
 
   return (
     <article aria-labelledby={titleId} className="grid gap-8 px-5 pb-10 pt-2 sm:px-8 lg:grid-cols-12 lg:gap-12 lg:px-12 lg:pb-14">
       <div className="lg:col-span-5">
         <div className="relative mx-auto w-[min(100%,26rem)] lg:sticky lg:top-0">
-          <AnimatePresence mode="popLayout" initial={false}>
-            <motion.div
-              key={`${wood}-${i}`}
-              initial={{ opacity: 0, scale: 1.04 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.6, ease: EASE }}
-              className={`${s.mask} ${s.arch} aspect-[4/5] w-full`}
-            >
-              <Photo p={sh.photo} tone={sh.tone} sizes="(min-width: 1024px) 420px, 90vw" priority />
-            </motion.div>
-          </AnimatePresence>
-          {shown.shots.length > 1 && (
+          <div className="relative">
+            <AnimatePresence mode="popLayout" initial={false}>
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, scale: 1.04 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.6, ease: EASE }}
+                className={`${s.mask} ${s.arch} aspect-[4/5] w-full`}
+              >
+                <Photo p={sh.photo} tone={sh.tone} sizes="(min-width: 1024px) 420px, 90vw" priority />
+              </motion.div>
+            </AnimatePresence>
+            <div className="absolute bottom-3 right-3">
+              <Keep p={p} />
+            </div>
+          </div>
+          {p.shots.length > 1 && (
             <div className="mt-4 flex justify-center gap-3" role="group" aria-label="Photographs">
-              {shown.shots.map((x, k) => (
+              {p.shots.map((x, k) => (
                 <button
                   key={k}
                   type="button"
                   onClick={() => setShot(k)}
-                  aria-label={`Photograph ${k + 1} of ${shown.shots.length}: ${x.photo.alt}`}
+                  aria-label={`Photograph ${k + 1} of ${p.shots.length}: ${x.photo.alt}`}
                   aria-pressed={k === i}
                   className={`${s.press} ${s.mask} ${s.circle} size-14 ring-offset-2 ring-offset-[var(--paper)] transition-shadow ${
                     k === i ? "ring-1 ring-[var(--ink)]" : "opacity-70 hover:opacity-100"
@@ -174,58 +179,64 @@ function RitualCard({ slug }: { slug: string }) {
 
       <div className="lg:col-span-7 lg:pt-4">
         <p className="text-[14px] text-[var(--muted)]">
-          <span className={s.tab}>{hhmm(hour.min)}</span>, {ch.name.toLowerCase()}. {ch.theme}
+          <span className={s.tab}>{hhmm(hour.min)}</span>, {ch.name.toLowerCase()}. {ch.theme[p.wood]}
         </p>
         <h2 id={titleId} className={`${s.display} mt-3 text-[clamp(2.6rem,6vw,4.4rem)] leading-[0.95]`}>
-          {f.name}
+          {p.name}
         </h2>
-        <p className="mt-3 flex flex-wrap items-baseline gap-x-3 text-[18px]">
-          <span className={s.tab}>{formatINR(shown.price)}</span>
-          <span className="text-[14px] text-[var(--muted)]">{WOOD_NAMES[v ? wood : other].common}</span>
-          {f.edition && <span className="text-[14px] text-[var(--muted)]">{f.edition}</span>}
+        <p className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[18px]">
+          <span className={s.tab}>{formatINR(priceOf(p, option))}</span>
+          <span className="text-[14px] text-[var(--muted)]">
+            {c.name}, <i>{c.latin}</i>
+          </span>
+          {p.badge && <span className="text-[14px] text-[var(--m-accent)]">{p.badge}</span>}
         </p>
 
-        <div className="mt-7 border-l-2 border-[var(--m-accent)] pl-5">
-          <h3 className="text-[13px] text-[var(--muted)]">In the ritual</h3>
-          <p className={`${s.display} mt-1.5 text-[clamp(1.35rem,2.2vw,1.7rem)] leading-[1.25]`}>{ritualLine(slug, v ? wood : other)}</p>
-        </div>
+        {hour.use && (
+          <div className="mt-7 border-l-2 border-[var(--m-accent)] pl-5">
+            <h3 className="text-[13px] text-[var(--muted)]">In the ritual</h3>
+            <p className={`${s.display} mt-1.5 text-[clamp(1.35rem,2.2vw,1.7rem)] leading-[1.25]`}>{hour.use}</p>
+          </div>
+        )}
 
-        <p className="mt-6 max-w-[38rem] text-[16px] leading-[1.7]">{f.summary}</p>
-        <p className="mt-2 max-w-[38rem] text-[15px] leading-[1.7] text-[var(--muted)]">{shown.note}</p>
+        <p className="mt-6 max-w-[38rem] text-[16px] leading-[1.7]">{p.short}</p>
+        <p className="mt-2 max-w-[38rem] text-[16px] leading-[1.7] text-[var(--muted)]">{p.story[0]}</p>
 
-        <div className="mt-8">
-          <WoodChoice slug={slug} wood={wood} />
-        </div>
+        <EditionLamps p={p} className="mt-7" />
+
+        {p.options && (
+          <div className="mt-8">
+            <OptionPicker p={p} value={option} onChange={setOption} />
+          </div>
+        )}
 
         <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-4">
-          <AddOrSwitch slug={slug} wood={wood} />
+          <AddToTray p={p} option={option} />
           <Link href={`/d/09/p/${slug}`} onClick={closeSheet} className={s.link}>
             Open the full page
           </Link>
         </div>
+        {twin && (
+          <p className="mt-5 text-[15px] text-[var(--muted)]">
+            Also in {CONTENT[twin.wood].name.toLowerCase()}:{" "}
+            <Link href={`/d/09/p/${twin.slug}`} onClick={closeSheet} className={s.link}>
+              {twin.name}
+            </Link>
+          </p>
+        )}
 
         <dl className="mt-10 grid max-w-[40rem] grid-cols-1 gap-x-8 sm:grid-cols-2">
-          {f.details.map((d) => (
+          {p.details.map((d) => (
             <div key={d.label} className="border-t border-[var(--hair)] py-3">
               <dt className="text-[12px] text-[var(--muted)]">{d.label}</dt>
-              <dd className="mt-0.5 text-[15px]">{plain(d.value)}</dd>
+              <dd className="mt-0.5 text-[15px]">{d.value}</dd>
             </div>
           ))}
         </dl>
 
-        <div className="mt-8 grid max-w-[40rem] gap-6 sm:grid-cols-2">
-          <div>
-            <h3 className="text-[13px] text-[var(--muted)]">How it is made</h3>
-            {f.story.map((p) => (
-              <p key={p} className="mt-2 text-[15px] leading-[1.65]">
-                {p}
-              </p>
-            ))}
-          </div>
-          <div>
-            <h3 className="text-[13px] text-[var(--muted)]">Care</h3>
-            <p className="mt-2 text-[15px] leading-[1.65]">{hour.care}</p>
-          </div>
+        <div className="mt-8 max-w-[40rem]">
+          <h3 className="text-[13px] text-[var(--muted)]">Care</h3>
+          <p className="mt-2 text-[15px] leading-[1.65]">{p.care}</p>
         </div>
       </div>
     </article>
@@ -242,16 +253,21 @@ function Corporate() {
   return (
     <div className="grid gap-10 px-5 pb-12 pt-2 sm:px-8 lg:grid-cols-12 lg:px-12">
       <div className="lg:col-span-5">
-        <h2 className={`${s.display} text-[clamp(2.6rem,6vw,4.2rem)] leading-[0.95]`}>For teams, clients and weddings</h2>
+        <h2 className={`${s.display} text-[clamp(2.6rem,6vw,4.2rem)] leading-[0.95]`}>
+          <WT red="For teams and clients" white="For weddings and families" />
+        </h2>
         <p className="mt-5 max-w-[30rem] text-[16px] leading-[1.7] text-[var(--muted)]">
-          Tell us the occasion, how many pieces and by when. We will reply with suitable pieces, boxes and a card for your message, with prices.
+          <WT
+            red="Desk sets from ten, presentation boxes and the mala box, with room for a company card and engraving if you ask. Tell us the occasion, how many and by when, and we reply with pieces and prices."
+            white="Wedding trays from ten, ritual sets and oil in a turned box, packed by hand with names on the card. Tell us the occasion, how many and by when, and we reply with pieces and prices."
+          />
         </p>
         <div className="relative mt-8 hidden h-56 lg:block">
           <div className={`${s.mask} ${s.arch} absolute left-0 top-0 h-full w-40`}>
-            <Photo p={PHOTOS.giftLinen} sizes="160px" />
+            <W red={<Photo p={PHOTOS.penBox} sizes="160px" />} white={<Photo p={PHOTOS.giftLinen} sizes="160px" />} />
           </div>
           <div className={`${s.mask} ${s.circle} absolute left-32 top-20 size-32`}>
-            <Photo p={PHOTOS.boxes} sizes="128px" />
+            <W red={<Photo p={PHOTOS.boxRed} sizes="128px" />} white={<Photo p={PHOTOS.diyaHands} sizes="128px" />} />
           </div>
         </div>
       </div>
@@ -291,18 +307,5 @@ function Corporate() {
         )}
       </div>
     </div>
-  );
-}
-
-export function Field({
-  label,
-  className = "",
-  ...rest
-}: { label: string; className?: string } & InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <label className={`${s.field} ${className}`}>
-      <span className={s.fieldLabel}>{label}</span>
-      <input {...rest} />
-    </label>
   );
 }

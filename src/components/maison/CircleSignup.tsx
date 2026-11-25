@@ -21,10 +21,10 @@ export function CircleSignup({ className = "" }: { className?: string }) {
             key="done"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex h-14 items-center gap-3 rounded-full bg-paper px-5 text-[15px]"
+            className="flex h-14 items-center gap-3 rounded-full bg-(--mz-bg) px-5 text-[15px]"
             role="status"
           >
-            <span className="grid size-7 place-items-center rounded-full bg-accent text-paper">
+            <span className="grid size-7 place-items-center rounded-full bg-(--mz-accent) text-(--mz-bg)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
                 <path d="m5 12.5 4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
@@ -32,7 +32,7 @@ export function CircleSignup({ className = "" }: { className?: string }) {
             You&rsquo;re in. We&rsquo;ll write before the doors open.
           </motion.p>
         ) : (
-          <motion.div key="form" exit={{ opacity: 0, y: -8 }} className="flex h-14 items-center rounded-full bg-paper pl-5 pr-1.5 ring-1 ring-hair focus-within:ring-ink/30">
+          <motion.div key="form" exit={{ opacity: 0, y: -8 }} className="flex h-14 items-center rounded-full bg-(--mz-bg) pl-5 pr-1.5 ring-1 ring-(--mz-line) focus-within:ring-(--mz-ink)/30">
             <label htmlFor={id} className="sr-only">
               Email address
             </label>
@@ -42,12 +42,12 @@ export function CircleSignup({ className = "" }: { className?: string }) {
               required
               autoComplete="email"
               placeholder="Your email"
-              className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-ink-3"
+              className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-(--mz-ink-3)"
             />
             <button
               type="submit"
               aria-label="Join the Santalum Circle"
-              className="grid size-11 place-items-center rounded-full bg-ink text-paper transition-[background-color,transform] duration-300 hover:bg-accent active:scale-95"
+              className="grid size-11 place-items-center rounded-full bg-(--mz-ink) text-(--mz-bg) transition-[background-color,transform] duration-300 hover:bg-(--mz-accent) active:scale-95"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
                 <path d="M5 12h13m-5-5 5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />

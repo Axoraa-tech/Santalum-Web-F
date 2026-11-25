@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { TONE_FILTER, type Tone } from "@/lib/catalog";
+import { TONE_FILTER, type Tone } from "@/lib/shop/products";
 import type { Wood } from "@/lib/wood-boot";
 import { mulberry32 } from "./store";
 
@@ -154,7 +154,7 @@ export function photoTexture(id: string, tone?: Tone) {
   c.width = S;
   c.height = S;
   const ctx = c.getContext("2d")!;
-  ctx.fillStyle = "#e7e1d7";
+  ctx.fillStyle = tone === "pale" ? "#efe4d0" : "#e9d9d1";
   ctx.fillRect(0, 0, S, S);
   const t = finish(c);
   const img = new Image();

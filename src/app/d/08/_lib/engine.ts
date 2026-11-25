@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
-import { BOARD, TITLE, WAYPOINTS, cardRect, detailRect, union, type Rect } from "./board";
+import { BOARD, TITLE, boardFor, cardRect, detailRect, union, woodNow, woodOf, type Rect, type Waypoint } from "./board";
+import type { Wood } from "@/lib/wood";
 
 /**
  * The Atlas camera. One module-level instance drives the board: it writes the world transform,
@@ -45,6 +46,9 @@ function zoomPath(p0: [number, number, number], p1: [number, number, number], rh
   }
   return { f, ms: Math.abs(S) * 1000 * (rho / Math.SQRT2) };
 }
+
+/** Width the bottom-right instrument panel takes (272px wide, 16px from the edge), plus a little air. */
+const HUD_RESERVE = 300;
 
 class Atlas {
   vp: HTMLDivElement | null = null;
@@ -140,11 +144,13 @@ class Atlas {
     if (this.booted || this.vw === 0) return;
     this.booted = true;
     const start = this.startCam();
-    if (this.pending) {
+    const pendingRect = this.pending && woodOf(this.pending) === woodNow() ? cardRect(this.pending) : null;
+    if (this.pending && !pendingRect) this.pending = null;
+    if (this.pending && pendingRect) {
       const slug = this.pending;
       this.pending = null;
       this.introduced = true;
-      this.cam = this.frameRect(cardRect(slug), { maxZ: 1 });
+      this.cam = this.frameRect(pendingRect, { maxZ: 1 });
       this.reveal(false);
       this.openProduct(slug);
     } else if (!this.introduced) {
@@ -161,7 +167,8 @@ class Atlas {
     } else {
       this.reveal(false);
       // Re-attached (e.g. back from the list view): pick up an open product where it was.
-      if (this.ui.open) this.openProduct(this.ui.open);
+      if (this.ui.open && woodOf(this.ui.open) === woodNow()) this.openProduct(this.ui.open);
+      else if (this.ui.open) this.setUI({ open: null });
     }
     this.apply();
   }
@@ -200,7 +207,8 @@ class Atlas {
       t: (narrow ? 70 : 84) + (tour && !captionBelow ? (narrow ? 170 : 130) : 0),
       b: tour && captionBelow ? 136 : narrow ? 24 : 40,
       l: narrow ? 12 : 40,
-      r: narrow ? 12 : 40,
+      // from 768px the instrument panel (search, minimap, zoom, tour) stands bottom-right; frames keep clear of it
+      r: this.vw >= 768 ? HUD_RESERVE : narrow ? 12 : 40,
     };
   }
 
@@ -589,7 +597,7 @@ class Atlas {
 
   private onKey = (e: KeyboardEvent) => {
     if (!this.live || e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
-    const t = e.target as HTMLElement | null;
+    const t = e.target instanceof Element ? e.target : null;
     if (t && t.closest("input, textarea, select, [contenteditable='true'], [role='dialog'][aria-modal='true']")) return;
     if (this.ui.tour !== null) {
       if (e.key === "ArrowRight") return this.keyed(e, () => this.tourGo(this.ui.tour! + 1));
@@ -638,17 +646,24 @@ class Atlas {
   }
 
   /* ---------------- product, regions, tour ---------------- */
+  /** This wood's tour stops. */
+  get stops(): Waypoint[] {
+    return boardFor(woodNow()).waypoints;
+  }
+
   openProduct(slug: string) {
+    const card = cardRect(slug);
+    if (!card) return;
     if (this.ui.tour !== null) this.setUI({ tour: null });
     this.setUI({ open: slug });
     if (!this.vw) return;
     const narrow = this.vw < 900;
-    const target = narrow ? cardRect(slug) : union(cardRect(slug), detailRect(slug));
+    const target = narrow ? card : union(card, detailRect(slug));
     const pad = 40;
     this.flyToRect({ x: target.x - pad, y: target.y - pad, w: target.w + pad * 2, h: target.h + pad * 2 }, {
       maxZ: narrow ? 0.9 : 1.2,
-      // keep the detail clear of the minimap panel, bottom right
-      right: narrow ? 0 : 250,
+      // the instrument panel is already kept clear by insets()
+      right: 0,
       done: () => {
         const el = document.getElementById("a8-detail-title");
         el?.focus({ preventScroll: true });
@@ -668,29 +683,44 @@ class Atlas {
   /** The opening frame: the title plate and map; on a phone, just the headline. */
   startCam(): Cam {
     if (this.vw < 640) return this.frameRect({ x: TITLE.x - 20, y: TITLE.y + 60, w: 1180, h: 1100 }, { maxZ: 0.6 });
-    return this.frameRect(WAYPOINTS[0].rect, { maxZ: 0.95 });
+    return this.frameRect(this.stops[0].rect, { maxZ: 0.95 });
   }
 
   startTour() {
     this.setUI({ tour: 0, open: null });
-    this.flyTo(this.vw < 640 ? this.startCam() : this.frameRect(WAYPOINTS[0].rect, { maxZ: 0.95 }));
+    this.flyTo(this.vw < 640 ? this.startCam() : this.frameRect(this.stops[0].rect, { maxZ: 0.95 }));
   }
 
   tourGo(i: number) {
-    if (i < 0 || i >= WAYPOINTS.length) return;
+    const stops = this.stops;
+    if (i < 0 || i >= stops.length) return;
     this.setUI({ tour: i });
-    this.flyToRect(WAYPOINTS[i].rect, { maxZ: 1 });
+    this.flyToRect(stops[i].rect, { maxZ: 1 });
+  }
+
+  /** Fly to a named stop of this wood's board. */
+  go(id: string, maxZ = 1) {
+    const s = this.stops.find((w) => w.id === id);
+    if (s && this.live) this.flyToRect(s.rect, { maxZ });
   }
 
   endTour() {
     this.setUI({ tour: null });
   }
 
-  /** The wood pins: fly to a region. */
-  goRegion(w: "red" | "white") {
-    if (!this.live) return;
+  /**
+   * The wood changed. The layout stays, so the camera stays; a piece of the other wood closes,
+   * and a running tour re-frames its stop on the new board.
+   */
+  onWood(w: Wood) {
+    if (this.ui.open && woodOf(this.ui.open) !== w) this.setUI({ open: null });
+    if (this.ui.tour !== null && this.live) this.flyToRect(boardFor(w).waypoints[this.ui.tour].rect, { maxZ: 1 });
+  }
+
+  /** Turn the board to a wood and fly to its home on the map. */
+  turnTo(w: Wood) {
     this.setUI({ open: null, tour: null });
-    this.flyToRect(WAYPOINTS.find((p) => p.id === w)!.rect, { maxZ: 1 });
+    if (this.live) this.flyTo(this.frameRect(boardFor(w).waypoints[0].rect, { maxZ: 0.95 }));
   }
 }
 

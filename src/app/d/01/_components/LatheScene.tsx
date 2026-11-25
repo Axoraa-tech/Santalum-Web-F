@@ -7,6 +7,7 @@ import * as THREE from "three";
 import { useWood } from "@/lib/wood";
 import { CHAPTERS, mulberry32, storyPhase } from "./data";
 import { bounds, createLathe, createShavingGeometry, DISPLAY, lerpProfile, profile, PTS, radiusAt } from "./lathe";
+import type { ProfileKey } from "./data";
 import { story } from "./store";
 import { createSteel, createWoodMaterial, woodTextures } from "./woodMaterial";
 
@@ -64,6 +65,23 @@ function damp(a: number, b: number, lambda: number, dt: number) {
   return a + (b - a) * (1 - Math.exp(-lambda * dt));
 }
 
+const _d = { scale: 1, yaw: 0, pitch: 0, tail: 0 };
+const _d2 = { scale: 1, yaw: 0, pitch: 0, tail: 0 };
+let flip = false;
+
+/** Display settings for a chapter, eased between the red piece and the white one. */
+function display(r: ProfileKey, w: ProfileKey, k: number) {
+  const a = DISPLAY[r];
+  const b = DISPLAY[w];
+  flip = !flip;
+  const o = flip ? _d : _d2;
+  o.scale = a.scale + (b.scale - a.scale) * k;
+  o.yaw = a.yaw + (b.yaw - a.yaw) * k;
+  o.pitch = a.pitch + (b.pitch - a.pitch) * k;
+  o.tail = a.tail + (b.tail - a.tail) * k;
+  return o;
+}
+
 /** Set opacity on every material under a group (tool and tailstock fade in and out). */
 function fade(g: THREE.Object3D, v: number) {
   g.traverse((o) => {
@@ -85,7 +103,7 @@ function Work({ lite, reduced }: { lite: boolean; reduced: boolean }) {
     return m;
   }, []);
   const handle = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: "#1a1b1d", roughness: 0.55, metalness: 0.1, transparent: true }),
+    () => new THREE.MeshStandardMaterial({ color: "#221715", roughness: 0.55, metalness: 0.1, transparent: true }),
     [],
   );
   const tailSteel = useMemo(() => {
@@ -101,14 +119,16 @@ function Work({ lite, reduced }: { lite: boolean; reduced: boolean }) {
   const COUNT = lite ? SHAVINGS_LITE : SHAVINGS_FULL;
 
   const scratch = useMemo(() => new Float32Array(PTS * 2), []);
+  const scratchR = useMemo(() => new Float32Array(PTS * 2), []);
+  const scratchW = useMemo(() => new Float32Array(PTS * 2), []);
   const st = useRef({
     p: 0,
     spin: 0,
     cut: 0,
-    lastFrom: "",
-    lastTo: "",
+    lastC: -1,
     lastM: -1,
-    wood: 0,
+    lastW: -1,
+    wood: wood === "white" ? 1 : 0,
     side: 1,
     emit: 0,
     seed: mulberry32(42),
@@ -180,22 +200,31 @@ function Work({ lite, reduced }: { lite: boolean; reduced: boolean }) {
     // Scroll, softened so the lathe never jumps.
     s.p = damp(s.p, story.p, reduced ? 12 : 5, dtD);
     const ph = storyPhase(s.p);
-    const from = CHAPTERS[ph.from].profile;
-    const to = CHAPTERS[ph.to].profile;
+
+    // Wood eases with the switch: colour, and the shape itself, since each wood turns its own pieces.
+    const target = wood === "white" ? 1 : 0;
+    s.wood = damp(s.wood, target, 3.2, dtD);
+    if (Math.abs(s.wood - target) < 1e-4) s.wood = target;
+    const RED = CHAPTERS.red;
+    const WHITE = CHAPTERS.white;
 
     // Re-cut the profile only when it changes.
-    if (from !== s.lastFrom || to !== s.lastTo || Math.abs(ph.m - s.lastM) > 1e-5) {
-      lerpProfile(profile(from), profile(to), ph.m, scratch);
+    if (ph.c !== s.lastC || Math.abs(ph.m - s.lastM) > 1e-5 || s.wood !== s.lastW) {
+      lerpProfile(profile(RED[ph.from].profile), profile(RED[ph.to].profile), ph.m, scratchR);
+      if (s.wood > 0) {
+        lerpProfile(profile(WHITE[ph.from].profile), profile(WHITE[ph.to].profile), ph.m, scratchW);
+        lerpProfile(scratchR, scratchW, s.wood, scratch);
+      } else scratch.set(scratchR);
       lathe.update(scratch);
-      s.lastFrom = from;
-      s.lastTo = to;
+      s.lastC = ph.c;
       s.lastM = ph.m;
+      s.lastW = s.wood;
     }
     const prof = scratch;
     const b = bounds(prof);
 
-    const A = DISPLAY[from];
-    const B = DISPLAY[to];
+    const A = display(RED[ph.from].profile, WHITE[ph.from].profile, s.wood);
+    const B = display(RED[ph.to].profile, WHITE[ph.to].profile, s.wood);
     const mix = (x: number, y: number) => x + (y - x) * ph.m;
     const fit = (phone ? Math.min(1, viewport.width / 3.4) : Math.min(1, viewport.width / 7.4)) * 0.76;
     const scale = mix(A.scale, B.scale) * fit;
@@ -220,15 +249,12 @@ function Work({ lite, reduced }: { lite: boolean; reduced: boolean }) {
     g.scale.setScalar(scale);
 
     // Spin like work between centres; faster for small pieces, as on a real lathe.
-    const a = CHAPTERS[ph.from];
-    const c = CHAPTERS[ph.to];
-    const rpm = a.rpm + (c.rpm - a.rpm) * ph.rpmT;
+    const rpmA = RED[ph.from].rpm + (WHITE[ph.from].rpm - RED[ph.from].rpm) * s.wood;
+    const rpmB = RED[ph.to].rpm + (WHITE[ph.to].rpm - RED[ph.to].rpm) * s.wood;
+    const rpm = rpmA + (rpmB - rpmA) * ph.rpmT;
     s.spin += dt * (reduced ? 0.25 : 0.35 + (rpm / 2800) * 1.25);
     sp.rotation.y = s.spin;
 
-    // Wood colour eases with the switch.
-    const target = wood === "white" ? 1 : 0;
-    s.wood = damp(s.wood, target, 3.2, dtD);
     const woodMat = sp.material as THREE.MeshPhysicalMaterial;
     woodMat.userData.uniforms.uWood.value = s.wood;
     shavingMat.color.copy(redShaving).lerp(whiteShaving, s.wood);
@@ -436,7 +462,7 @@ function Work({ lite, reduced }: { lite: boolean; reduced: boolean }) {
       </group>
       <instancedMesh ref={shavings} args={[shavingGeo, shavingMat, COUNT]} frustumCulled={false} />
       <group ref={shadow} position={[0, -1.62, 0]}>
-        <ContactShadows scale={8} blur={2.4} far={2.4} opacity={0.5} resolution={lite ? 256 : 512} color="#1a1b1d" />
+        <ContactShadows scale={8} blur={2.4} far={2.4} opacity={0.5} resolution={lite ? 256 : 512} color={wood === "white" ? "#2a2318" : "#221715"} />
       </group>
     </>
   );

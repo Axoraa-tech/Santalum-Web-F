@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Footer } from "../_components/Footer";
 import { Register } from "../_components/Register";
 
 export const metadata: Metadata = {
@@ -7,5 +8,10 @@ export const metadata: Metadata = {
 };
 
 export default function CheckoutPage() {
-  return <Register />;
+  return (
+    <>
+      <Register />
+      <Footer />
+    </>
+  );
 }

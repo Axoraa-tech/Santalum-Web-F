@@ -2,7 +2,8 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef } from "react";
-import { getFamily } from "@/lib/catalog";
+import { getProduct } from "@/lib/shop/products";
+import { useWood } from "@/lib/wood";
 import { s } from "./cls";
 import { cx, STORIES } from "./data";
 import { ProductBento } from "./ProductBento";
@@ -22,7 +23,7 @@ export function Expansion() {
       {v && (
         <motion.div
           key="scrim"
-          className="fixed inset-0 z-[150] bg-[#eeede9]/80"
+          className="fixed inset-0 z-[150] bg-[var(--b-canvas)]/80"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -53,7 +54,8 @@ function Sheet({ v, phone }: { v: View; phone: boolean }) {
     };
   }, []);
 
-  const title = v.kind === "product" ? (getFamily(v.slug)?.name ?? "Piece") : STORIES[v.id].title;
+  const wood = useWood();
+  const title = v.kind === "product" ? (getProduct(v.slug)?.name ?? "Piece") : STORIES[wood][v.id].title;
   const enter = solo
     ? { initial: { opacity: 0, y: 40 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: 40 } }
     : {};
@@ -66,7 +68,7 @@ function Sheet({ v, phone }: { v: View; phone: boolean }) {
       aria-modal="true"
       aria-label={title}
       style={{ borderRadius: phone ? 0 : 28 }}
-      className="fixed inset-0 z-[160] overflow-hidden bg-[#e8e6e0] shadow-[0_40px_120px_-40px_rgba(20,20,20,0.45)] sm:inset-4"
+      className="fixed inset-0 z-[160] overflow-hidden bg-[var(--b-sheet)] shadow-[0_40px_120px_-40px_rgba(40,20,10,0.45)] sm:inset-4"
       {...enter}
     >
       <motion.button

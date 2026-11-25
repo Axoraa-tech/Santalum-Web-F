@@ -2,6 +2,7 @@
 
 import { motion, useMotionValue, useReducedMotion, useScroll, useTransform, type MotionValue } from "motion/react";
 import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
+import { WT } from "@/components/maison/W";
 
 type SlotState = {
   /** 0 → 1 while the card slides up into view. */
@@ -33,6 +34,7 @@ const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 export function Slot({
   id,
   label,
+  caption,
   index,
   total,
   tint,
@@ -41,6 +43,8 @@ export function Slot({
 }: {
   id: string;
   label: string;
+  /** The small corner caption, one per wood. */
+  caption?: { red: string; white: string };
   index: number;
   total: number;
   tint: string;
@@ -118,14 +122,14 @@ export function Slot({
       {children}
       <p
         aria-hidden
-        className="pointer-events-none absolute bottom-6 right-8 hidden items-baseline gap-2 text-[13px] text-[#77706A] lg:flex"
+        className="pointer-events-none absolute bottom-6 right-8 hidden items-baseline gap-2 text-[13px] text-(--s7-muted) lg:flex"
       >
         <span className="num">
           {index}/{total}
         </span>
-        <span>{label}</span>
+        <span>{caption ? <WT red={caption.red} white={caption.white} /> : label}</span>
       </p>
-      <motion.div aria-hidden className="pointer-events-none absolute inset-0 bg-[#1B1712]" style={{ opacity: dim }} />
+      <motion.div aria-hidden className="pointer-events-none absolute inset-0 bg-(--s7-ink)" style={{ opacity: dim }} />
     </motion.div>
   );
 
@@ -147,4 +151,72 @@ export function Slot({
 /** The deck itself: a plain relative parent so every card sticks within the same block. */
 export function Deck({ children }: { children: ReactNode }) {
   return <div className="relative">{children}</div>;
+}
+
+/**
+ * A smaller card for listings (shop results, tracking stages). Sticky like the deck's cards: it holds at the top
+ * while the next one slides over it, then sinks back and dims. Tall sheets stick higher, so their bottom edge
+ * stays clear of the dock.
+ */
+export function StackSheet({
+  children,
+  className = "",
+  tint = "var(--s7-surface)",
+  top = 14,
+}: {
+  children: ReactNode;
+  className?: string;
+  tint?: string;
+  top?: number;
+}) {
+  const marker = useRef<HTMLDivElement>(null);
+  const el = useRef<HTMLDivElement>(null);
+  const start = useMotionValue(0);
+  const height = useMotionValue(1);
+  const stick = useMotionValue(top);
+  const { scrollY } = useScroll();
+  const reduce = useReducedMotion();
+
+  useEffect(() => {
+    const measure = () => {
+      const m = marker.current;
+      const s = el.current;
+      if (!m || !s) return;
+      const v = window.innerHeight;
+      const h = s.offsetHeight;
+      const clear = window.innerWidth < 1024 ? 150 : 92;
+      start.set(m.getBoundingClientRect().top + window.scrollY);
+      height.set(Math.max(1, h));
+      stick.set(Math.min(top, v - h - clear));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(document.body);
+    if (el.current) ro.observe(el.current);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [top, start, height, stick]);
+
+  const covered = useTransform(() => clamp01((scrollY.get() - (start.get() - stick.get())) / height.get()));
+  const scale = useTransform(covered, (c) => (reduce ? 1 : 1 - 0.06 * c));
+  const y = useTransform(covered, (c) => (reduce ? 0 : -12 * c));
+  const dim = useTransform(covered, (c) => (reduce ? 0 : 0.16 * c));
+
+  return (
+    <>
+      <div ref={marker} aria-hidden className="mt-2 h-0 first:mt-0 md:mt-3" />
+      <motion.div ref={el} className="sticky" style={{ top: stick }}>
+        <motion.div
+          className={`relative overflow-hidden rounded-[28px] shadow-[0_-22px_50px_-34px_rgba(27,23,18,0.4)] md:rounded-[36px] ${className}`}
+          style={{ scale, y, originY: 0, backgroundColor: tint }}
+        >
+          {children}
+          <motion.div aria-hidden className="pointer-events-none absolute inset-0 bg-(--s7-ink)" style={{ opacity: dim }} />
+        </motion.div>
+      </motion.div>
+    </>
+  );
 }

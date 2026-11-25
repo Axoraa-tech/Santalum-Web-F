@@ -1,69 +1,88 @@
 "use client";
 
-import { AnimatePresence, motion, useMotionValue } from "motion/react";
 import Link from "next/link";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Photo } from "@/components/Photo";
-import { formatINR, getFamily, getVariant, WOOD_NAMES } from "@/lib/catalog";
-import { bag, bagTotals, useBag, type Line } from "@/lib/cart";
+import { signOut, useUser, type Address } from "@/lib/shop/account";
+import { bag, bagSummary, DELIVERY, useBag, type BagItem, type DeliveryId } from "@/lib/shop/bag";
+import { CONTENT } from "@/lib/shop/content";
+import { applyCoupon, formatDate, PAYMENTS, placeOrder, trackingFor, type Order, type PaymentId } from "@/lib/shop/orders";
+import { formatINR } from "@/lib/shop/products";
+import { useHydrated } from "@/lib/shop/store";
 import s from "../styles";
-import { EASE } from "./data";
-import { Field } from "./Sheet";
-import { Sky } from "./Sky";
-import { Sundial } from "./Sundial";
+import { AddressForm, AddressLines, AuthPanel, Field, PreviewNote } from "./forms";
+import { HeldSky } from "./Held";
+import { SunArc } from "./SunArc";
 
-const STATES = [
-  "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chandigarh", "Chhattisgarh",
-  "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir",
-  "Jharkhand", "Karnataka", "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya",
-  "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
-  "Uttar Pradesh", "Uttarakhand", "West Bengal",
-];
+type Addr = Omit<Address, "id" | "isDefault">;
+const strip = (a: Address): Addr => ({ label: a.label, name: a.name, phone: a.phone, line1: a.line1, line2: a.line2, city: a.city, state: a.state, pin: a.pin });
 
-const GIFT = 350;
-
-type Placed = { number: string; name: string; city: string; lines: Line[]; total: number; gift: boolean };
-
-/** Checkout, held at 19:25 under the evening sky. Payments are not connected: placing an order only confirms the preview. */
+/** Checkout, held at 19:25 under the evening sky. Signing in is required to place an order. */
 export function CheckoutDawn() {
-  const minutes = useMotionValue(1165);
+  const hydrated = useHydrated();
   const lines = useBag();
-  const { count, subtotal } = bagTotals(lines);
-  const [gift, setGift] = useState(false);
-  const [placed, setPlaced] = useState<Placed | null>(null);
-  const total = subtotal + (gift ? GIFT : 0);
+  const user = useUser();
+  const [placed, setPlaced] = useState<Order | null>(null);
+  const [addrId, setAddrId] = useState<string | null>(null);
+  const [oneOff, setOneOff] = useState<Addr | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [addrDone, setAddrDone] = useState(false);
+  const [delivery, setDelivery] = useState<DeliveryId>("standard");
+  const [payment, setPayment] = useState<PaymentId>("upi");
+  const [gift, setGift] = useState("");
+  const [payDone, setPayDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [applied, setApplied] = useState<string | null>(null);
+  const [codeErr, setCodeErr] = useState<string | null>(null);
 
-  const submit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const data = new FormData(e.currentTarget);
-    setPlaced({
-      number: `SM-${Date.now().toString(36).toUpperCase().slice(-6)}`,
-      name: String(data.get("name") ?? "").split(" ")[0],
-      city: String(data.get("city") ?? ""),
-      lines,
-      total,
-      gift,
-    });
-    bag.clear();
+  const sum = bagSummary(hydrated ? lines : [], delivery);
+  const promo = applied ? applyCoupon(applied, sum.subtotal) : null;
+  const discount = promo && promo.ok ? promo.discount : 0;
+  const total = sum.total - discount;
+  const tryCode = () => {
+    const r = applyCoupon(code, sum.subtotal);
+    if (r.ok) {
+      setApplied(r.code);
+      setCodeErr(null);
+    } else setCodeErr(r.error);
+  };
+  const saved = user?.addresses ?? [];
+  const chosen = saved.find((a) => a.id === addrId) ?? saved.find((a) => a.isDefault) ?? saved[0];
+  const address: Addr | null = oneOff ?? (chosen ? strip(chosen) : null);
+  const codBlocked = total >= 10000;
+  const pay = payment === "cod" && codBlocked ? "upi" : payment;
+
+  const signedIn = hydrated && !!user;
+  const step = !signedIn ? 1 : !addrDone || !address ? 2 : !payDone ? 3 : 4;
+  const state = (n: number) => (n < step ? "done" : n === step ? "open" : "locked");
+
+  const place = () => {
+    if (!address) return;
+    const r = placeOrder({ lines, address, delivery, payment: pay, giftNote: gift.trim() || undefined, coupon: promo && promo.ok ? promo.code : undefined });
+    if (!r.ok) {
+      setError(r.error);
+      return;
+    }
+    setPlaced(r.order);
     window.scrollTo({ top: 0 });
   };
 
   return (
     <>
-      <Sky minutes={minutes} />
-      <Sundial minutes={minutes} mode="link" />
-      <div className="relative mx-auto max-w-[1500px] px-5 pt-28 sm:px-8 lg:px-10 lg:pt-32">
+      <HeldSky min={1165} />
+      <div className={`${s.swap} relative mx-auto max-w-[1500px] px-5 pt-28 sm:px-8 lg:px-10 lg:pt-32`}>
         {placed ? (
           <Confirmation order={placed} />
-        ) : count === 0 ? (
+        ) : hydrated && sum.count === 0 ? (
           <div className="flex min-h-[60svh] flex-col justify-center">
             <h1 className={`${s.display} text-[clamp(3rem,10vw,7rem)] leading-[0.92]`}>The tray is empty</h1>
             <p className="mt-5 max-w-[30rem] text-[17px] leading-[1.7] text-[var(--muted)]">
-              Walk through the day and open any piece; whatever you add will wait here.
+              Walk through the day or the shop and open any piece; whatever you add will wait here.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
-              <Link href="/d/09#all-pieces" className={s.btn}>
-                See all pieces
+              <Link href="/d/09/shop" className={s.btn}>
+                Go to the shop
               </Link>
               <Link href="/d/09" className={s.ghost}>
                 Back to dawn
@@ -73,127 +92,249 @@ export function CheckoutDawn() {
         ) : (
           <>
             <h1 className={`${s.display} text-[clamp(3rem,10vw,7rem)] leading-[0.92]`}>Checkout</h1>
-            <p className="mt-6 inline-flex items-center gap-3 rounded-full bg-[var(--m-accent-soft)] px-4 py-2 text-[14px] leading-snug">
-              <span aria-hidden className="size-2 shrink-0 rounded-full bg-[var(--m-accent)]" />
-              Preview: payments are not connected yet. Nothing is charged and nothing is sent.
-            </p>
-
             <div className="mt-14 grid gap-14 lg:grid-cols-12 lg:gap-10">
-              <form onSubmit={submit} className="lg:col-span-7">
-                <Part n="1" title="Contact">
-                  <div className="grid gap-x-8 gap-y-7 sm:grid-cols-2">
-                    <Field label="Email" name="email" type="email" autoComplete="email" required />
-                    <Field label="Phone (WhatsApp)" name="phone" type="tel" autoComplete="tel" pattern="[0-9+ ]{10,15}" required />
-                  </div>
-                </Part>
+              <ol className="grid gap-12 lg:col-span-7">
+                <Step n={1} title="Account" state={state(1)}>
+                  {signedIn && user ? (
+                    <p className="text-[16px] leading-[1.6]">
+                      Signed in as {user.name}.{" "}
+                      <span className="text-[var(--muted)]">Not you?</span>{" "}
+                      <button type="button" onClick={signOut} className={s.link}>
+                        Sign out
+                      </button>
+                    </p>
+                  ) : (
+                    <div className="grid gap-5">
+                      <p className="max-w-[34rem] text-[16px] leading-[1.65] text-[var(--muted)]">
+                        Sign in, or create an account. The order waits on the tray, and you can follow the sun across it once it is placed.
+                      </p>
+                      <AuthPanel compact />
+                    </div>
+                  )}
+                </Step>
 
-                <Part n="2" title="Delivery in India">
-                  <div className="grid gap-x-8 gap-y-7 sm:grid-cols-2">
-                    <Field label="Full name" name="name" autoComplete="name" required className="sm:col-span-2" />
-                    <Field label="House and street" name="address1" autoComplete="address-line1" required className="sm:col-span-2" />
-                    <Field label="Landmark (optional)" name="address2" autoComplete="address-line2" className="sm:col-span-2" />
-                    <Field label="City" name="city" autoComplete="address-level2" required />
-                    <Field
-                      label="PIN code"
-                      name="pin"
-                      autoComplete="postal-code"
-                      inputMode="numeric"
-                      pattern="[1-9][0-9]{5}"
-                      maxLength={6}
-                      title="Six digits, not starting with 0"
-                      required
+                <Step n={2} title="Delivery address" state={state(2)}>
+                  {signedIn && user && (step > 2 && address ? (
+                    <Summary onChange={() => setAddrDone(false)}>
+                      <AddressLines a={address} />
+                    </Summary>
+                  ) : adding || saved.length === 0 ? (
+                    <AddressForm
+                      offerSave
+                      defaultName={user.name}
+                      defaultPhone={user.phone}
+                      submitLabel="Deliver here"
+                      onCancel={saved.length ? () => setAdding(false) : undefined}
+                      onSaved={(a, keep) => {
+                        setAdding(false);
+                        if (keep) {
+                          setAddrId(keep.id);
+                          setOneOff(null);
+                        } else setOneOff(strip({ ...a, id: "once" }));
+                        setAddrDone(true);
+                      }}
                     />
-                    <label className={`${s.field} sm:col-span-2`}>
-                      <span className={s.fieldLabel}>State or union territory</span>
-                      <select name="state" required defaultValue="" autoComplete="address-level1">
-                        <option value="" disabled>
-                          Select
-                        </option>
-                        {STATES.map((st) => (
-                          <option key={st} value={st}>
-                            {st}
-                          </option>
+                  ) : (
+                    <div className="grid gap-3">
+                      <div role="radiogroup" aria-label="Saved addresses" className="grid gap-3 sm:grid-cols-2">
+                        {saved.map((a) => (
+                          <label key={a.id} className={s.option}>
+                            <input
+                              type="radio"
+                              name="addr"
+                              checked={!oneOff && chosen?.id === a.id}
+                              onChange={() => {
+                                setAddrId(a.id);
+                                setOneOff(null);
+                              }}
+                            />
+                            <span aria-hidden className={s.optionMark} />
+                            <span className="min-w-0">
+                              <span className="block text-[13px] text-[var(--muted)]">
+                                {a.label}
+                                {a.isDefault ? ", default" : ""}
+                              </span>
+                              <AddressLines a={a} />
+                            </span>
+                          </label>
                         ))}
-                      </select>
-                      <svg className="pointer-events-none absolute bottom-3.5 right-1 text-[var(--muted)]" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-                        <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </label>
-                  </div>
-                </Part>
+                      </div>
+                      <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3">
+                        <button type="button" onClick={() => setAddrDone(true)} className={s.btn}>
+                          Deliver here
+                        </button>
+                        <button type="button" onClick={() => setAdding(true)} className={s.link}>
+                          Add a new address
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </Step>
 
-                <Part n="3" title="As a gift">
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={gift}
-                    onClick={() => setGift((g) => !g)}
-                    className="group flex w-full items-center gap-5 text-left"
-                  >
-                    <span className={`relative h-8 w-14 shrink-0 rounded-full border transition-colors duration-300 ${gift ? "border-[var(--m-accent)] bg-[var(--m-accent)]" : "border-[rgb(42_36_32/0.25)] bg-transparent group-hover:border-[var(--ink)]"}`}>
-                      <motion.span
-                        className={`absolute left-[3px] top-[3px] size-6 rounded-full ${gift ? "bg-[var(--paper)]" : "bg-[var(--ink)]"}`}
-                        animate={{ x: gift ? 24 : 0 }}
-                        transition={{ type: "spring", stiffness: 500, damping: 32 }}
-                      />
-                    </span>
-                    <span>
-                      <span className="block text-[16px]">Gift presentation, {formatINR(GIFT)}</span>
-                      <span className="mt-1 block text-[14px] leading-snug text-[var(--muted)]">
-                        Handmade paper, a wax seal and a handwritten card. No prices inside.
+                <Step n={3} title="Delivery and payment" state={state(3)}>
+                  {step > 3 ? (
+                    <Summary onChange={() => setPayDone(false)}>
+                      <span className="block text-[15px] leading-[1.6]">
+                        {DELIVERY[delivery].label}, {PAYMENTS.find((p) => p.id === pay)?.label}
+                        {gift.trim() && <span className="block text-[var(--muted)]">Gift note: {gift.trim()}</span>}
                       </span>
-                    </span>
-                  </button>
-                  <AnimatePresence initial={false}>
-                    {gift && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.45, ease: EASE }}
-                        className="overflow-hidden"
-                      >
-                        <label className={`${s.field} mt-6`}>
-                          <span className={s.fieldLabel}>Message for the card</span>
-                          <textarea name="message" rows={3} maxLength={240} />
+                    </Summary>
+                  ) : step === 3 ? (
+                    <div className="grid gap-8">
+                      <fieldset>
+                        <legend className="text-[13px] text-[var(--muted)]">Delivery</legend>
+                        <div className="mt-4 grid grid-cols-2 gap-3">
+                          {Object.values(DELIVERY).map((d) => (
+                            <label key={d.id} className={`${s.option} ${s.optionArch}`}>
+                              <input type="radio" name="delivery" checked={delivery === d.id} onChange={() => setDelivery(d.id)} />
+                              <span aria-hidden className={s.optionMark} />
+                              <span className="text-[15px] leading-snug">
+                                <span className={`${s.display} block text-[22px] leading-none`}>{d.id === "express" ? "Express" : "Standard"}</span>
+                                <span className="mt-1.5 block text-[var(--muted)]">{d.id === "express" ? "1–2 working days" : "3–5 working days"}</span>
+                                <span className={`${s.num} mt-0.5 block`}>{d.price ? formatINR(d.price) : "Free"}</span>
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </fieldset>
+                      <fieldset>
+                        <legend className="text-[13px] text-[var(--muted)]">Payment</legend>
+                        <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
+                          {PAYMENTS.map((p) => {
+                            const off = p.id === "cod" && codBlocked;
+                            return (
+                              <label key={p.id} className={`${s.option} ${s.optionArch}`}>
+                                <input type="radio" name="payment" disabled={off} checked={pay === p.id} onChange={() => setPayment(p.id)} />
+                                <span aria-hidden className={s.optionMark} />
+                                <span className="text-[15px] leading-snug">
+                                  <span className={`${s.display} block text-[22px] leading-none`}>{p.label}</span>
+                                  <span className="mt-1.5 block text-[var(--muted)]">{off ? "Only for orders under ₹10,000" : p.note}</span>
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                        <div className="mt-4">
+                          <PreviewNote>Payments are not connected yet, so no money is taken. Preview: accounts and orders are saved in this browser until our store opens.</PreviewNote>
+                        </div>
+                      </fieldset>
+                      <div className={s.field}>
+                        <label htmlFor="d09-gift" className={s.fieldLabel}>
+                          A card for the tray (optional)
                         </label>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </Part>
+                        <textarea
+                          id="d09-gift"
+                          rows={3}
+                          maxLength={240}
+                          value={gift}
+                          onChange={(e) => setGift(e.target.value)}
+                          placeholder="Written by hand on the card that travels with the pieces"
+                        />
+                      </div>
+                      <div>
+                        <button type="button" onClick={() => setPayDone(true)} className={s.btn}>
+                          Review the order
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </Step>
 
-                <Part n="4" title="Payment">
-                  <p className="max-w-[34rem] text-[15px] leading-[1.7] text-[var(--muted)]">
-                    UPI, cards and netbanking will appear here once the payment gateway is connected. Until then, placing the order only
-                    shows a confirmation.
-                  </p>
-                </Part>
-
-                <button type="submit" className={`${s.btn} mt-12 w-full justify-between sm:w-auto sm:min-w-[22rem]`}>
-                  <span>Place order</span>
-                  <span className={`${s.tab} opacity-75`}>{formatINR(total)}</span>
-                </button>
-              </form>
+                <Step n={4} title="Review and place" state={state(4)}>
+                  {step === 4 && (
+                    <div className="grid gap-5">
+                      <p className="max-w-[34rem] text-[16px] leading-[1.65] text-[var(--muted)]">
+                        {sum.count} {sum.count === 1 ? "piece" : "pieces"}, delivered {delivery === "express" ? "by express" : "free"} to {address?.city}. Each
+                        leaves with its batch record or lot.
+                      </p>
+                      {error && (
+                        <p role="alert" className={s.error}>
+                          {error}
+                        </p>
+                      )}
+                      <button type="button" onClick={place} className={`${s.btn} w-full justify-between sm:w-auto sm:min-w-[22rem]`}>
+                        <span>Place order</span>
+                        <span className={`${s.tab} opacity-75`}>{formatINR(total)}</span>
+                      </button>
+                    </div>
+                  )}
+                </Step>
+              </ol>
 
               <aside className="lg:col-span-5">
                 <div className="lg:sticky lg:top-28">
                   <div className={`${s.slip} px-6 pb-7 pt-7 sm:px-8`}>
                     <p className={`${s.display} text-[32px] leading-none`}>
-                      On the tray <span className={`${s.tab} text-[16px] text-[var(--muted)]`}>{count}</span>
+                      On the tray{" "}
+                      <span className={`${s.tab} text-[15px] text-[var(--muted)]`} style={{ fontFamily: "var(--font-mulish)" }}>
+                        {sum.count} {sum.count === 1 ? "piece" : "pieces"}
+                      </span>
                     </p>
                     <ul className="mt-6">
-                      {lines.map((l) => (
-                        <SummaryLine key={`${l.slug}-${l.wood}-${l.custom ?? ""}`} line={l} />
+                      {sum.items.map((it) => (
+                        <SummaryLine key={it.key} item={it} />
                       ))}
                     </ul>
                     <dl className="mt-4 space-y-2 border-t border-[var(--hair)] pt-4 text-[15px]">
-                      <Row k="Subtotal" v={formatINR(subtotal)} />
-                      {gift && <Row k="Gift presentation" v={formatINR(GIFT)} />}
+                      <Row k="Subtotal" v={formatINR(sum.subtotal)} />
+                      <Row k="Delivery" v={sum.shipping ? formatINR(sum.shipping) : "Free"} />
+                      {promo && promo.ok && <Row k={`${promo.code}, ${promo.label}`} v={`− ${formatINR(discount)}`} />}
                       <div className="flex items-baseline justify-between pt-2">
                         <dt>Total</dt>
-                        <dd className={`${s.display} ${s.tab} text-[34px] leading-none`}>{formatINR(total)}</dd>
+                        <dd className={`${s.num} text-[32px] leading-none`}>{formatINR(total)}</dd>
                       </div>
                     </dl>
+                    <div className="mt-6 border-t border-dotted border-[rgb(42_36_32/0.22)] pt-5">
+                      {applied && promo ? (
+                        <div className="flex items-baseline justify-between gap-4 text-[15px]">
+                          <p>
+                            {promo.ok ? (
+                              <>
+                                Code <span className={s.tab}>{promo.code}</span> applied
+                              </>
+                            ) : (
+                              <span className={s.error}>{promo.error}</span>
+                            )}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setApplied(null);
+                              setCode("");
+                            }}
+                            className={s.link}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ) : (
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            tryCode();
+                          }}
+                          noValidate
+                          className="flex items-end gap-4"
+                        >
+                          <Field
+                            label="A code, if you have one"
+                            name="coupon"
+                            autoComplete="off"
+                            autoCapitalize="characters"
+                            value={code}
+                            onChange={(e) => setCode(e.target.value)}
+                            error={codeErr}
+                            className="flex-1"
+                          />
+                          <button type="submit" disabled={!code.trim()} className={`${s.ghost} mb-1 min-h-[2.75rem] shrink-0 px-5 text-[14px]`}>
+                            Apply
+                          </button>
+                        </form>
+                      )}
+                      <p className="mt-3 text-[13px] leading-[1.55] text-[var(--muted)]">
+                        Preview codes: <span className={s.tab}>WELCOME10</span>, <span className={s.tab}>CIRCLE500</span>, <span className={s.tab}>HEARTWOOD15</span>.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </aside>
@@ -205,15 +346,26 @@ export function CheckoutDawn() {
   );
 }
 
-function Part({ n, title, children }: { n: string; title: string; children: ReactNode }) {
+function Step({ n, title, state, children }: { n: number; title: string; state: "done" | "open" | "locked"; children: ReactNode }) {
   return (
-    <fieldset className="mt-12 first:mt-0">
-      <legend className="flex items-baseline gap-4">
-        <span className={`${s.display} ${s.tab} text-[22px] text-[var(--muted)]`}>{n}</span>
-        <span className={`${s.display} text-[32px] leading-none`}>{title}</span>
-      </legend>
-      <div className="mt-7">{children}</div>
-    </fieldset>
+    <li className={s.step} data-state={state} aria-current={state === "open" ? "step" : undefined}>
+      <span aria-hidden className={`${s.stepDot} ${s.tab}`}>
+        {state === "done" ? "✓" : n}
+      </span>
+      <h2 className={`${s.display} text-[30px] leading-none lg:text-[34px]`}>{title}</h2>
+      <div className="mt-6">{state === "locked" ? <p className="text-[15px] text-[var(--muted)]">After the step before.</p> : children}</div>
+    </li>
+  );
+}
+
+function Summary({ children, onChange }: { children: ReactNode; onChange: () => void }) {
+  return (
+    <div className="flex items-start justify-between gap-6">
+      <div className="min-w-0">{children}</div>
+      <button type="button" onClick={onChange} className={`${s.link} shrink-0`}>
+        Change
+      </button>
+    </div>
   );
 }
 
@@ -226,47 +378,49 @@ function Row({ k, v }: { k: string; v: string }) {
   );
 }
 
-function SummaryLine({ line }: { line: Line }) {
-  const f = getFamily(line.slug);
-  const v = getVariant(line.slug, line.wood);
-  if (!f || !v) return null;
-  const sh = v.shots[0];
+function SummaryLine({ item }: { item: BagItem }) {
+  const p = item.product;
   return (
     <li className="flex items-center gap-4 border-b border-dotted border-[rgb(42_36_32/0.2)] py-3 last:border-b-0">
       <span className={`${s.mask} ${s.circle} size-14 shrink-0`}>
-        <Photo p={sh.photo} tone={sh.tone} sizes="56px" />
+        <Photo p={p.shots[0].photo} tone={p.shots[0].tone} sizes="56px" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className={`${s.display} block truncate text-[19px] leading-tight`}>{f.name}</span>
-        <span className="block text-[12px] text-[var(--muted)]">
-          {WOOD_NAMES[line.wood].common}, quantity {line.qty}
+        <span className={`${s.display} block truncate text-[19px] leading-tight`}>{p.name}</span>
+        <span className="block text-[13px] text-[var(--muted)]">
+          {CONTENT[p.wood].name}
+          {item.optionValue ? `, ${item.optionValue.label}` : ""}, quantity {item.qty}
         </span>
-        {line.custom && <span className="block truncate text-[12px] text-[var(--muted)]">Custom: {line.custom}</span>}
+        {item.note && <span className="block truncate text-[13px] text-[var(--muted)]">Note: {item.note}</span>}
       </span>
-      <span className={`${s.tab} text-[14px]`}>{formatINR(v.price * line.qty)}</span>
+      <span className="flex flex-col items-end gap-1">
+        <span className={`${s.tab} text-[14px]`}>{formatINR(item.total)}</span>
+        <button type="button" onClick={() => bag.remove(item.key)} className="text-[12px] text-[var(--muted)] underline-offset-2 hover:underline">
+          Remove
+        </button>
+      </span>
     </li>
   );
 }
 
-function Confirmation({ order }: { order: Placed }) {
+function Confirmation({ order }: { order: Order }) {
+  const est = trackingFor(order, order.placedAt).estimate;
   return (
-    <div className="grid min-h-[70svh] gap-12 lg:grid-cols-12 lg:items-center">
+    <div className="grid gap-12 pt-4 lg:grid-cols-12 lg:items-center lg:pt-10">
       <div className="lg:col-span-7">
-        <p className={`${s.tab} text-[14px] text-[var(--muted)]`}>Order {order.number}</p>
-        <h1 className={`${s.display} mt-3 text-[clamp(3rem,9vw,6.5rem)] leading-[0.92]`}>
-          Thank you{order.name ? `, ${order.name}` : ""}.
-        </h1>
+        <p className={`${s.tab} text-[15px] text-[var(--muted)]`}>Order {order.id}</p>
+        <h1 className={`${s.display} mt-3 text-[clamp(3rem,9vw,6.5rem)] leading-[0.92]`}>Thank you, {order.name.split(" ")[0]}.</h1>
         <p className="mt-6 max-w-[34rem] text-[17px] leading-[1.7] text-[var(--muted)]">
-          This was a preview, so nothing has been charged and nothing will be sent. When payments are connected, this is where you
-          will see your order confirmed{order.city ? ` for delivery to ${order.city}` : ""}
-          {order.gift ? ", gift-wrapped with your card" : ""}.
+          Your order is placed. Expected between {formatDate(est.from)} and {formatDate(est.to)}, to {order.address.city}. No money was taken: payments are not
+          connected yet.
         </p>
-        <div className="mt-9 flex flex-wrap gap-4">
-          <Link href="/d/09" className={s.btn}>
-            Back to dawn
+        <SunArc current={0} labelled className="mt-8 max-w-[34rem]" />
+        <div className="mt-8 flex flex-wrap gap-4">
+          <Link href={`/d/09/track?o=${order.id}`} className={s.btn}>
+            Track this order
           </Link>
-          <Link href="/d/09#all-pieces" className={s.ghost}>
-            See all pieces
+          <Link href="/d/09/account" className={s.ghost}>
+            Your orders
           </Link>
         </div>
       </div>
@@ -275,12 +429,27 @@ function Confirmation({ order }: { order: Placed }) {
           <p className="text-[13px] text-[var(--muted)]">What was on the tray</p>
           <ul className="mt-3">
             {order.lines.map((l) => (
-              <SummaryLine key={`${l.slug}-${l.wood}-${l.custom ?? ""}`} line={l} />
+              <li key={`${l.slug}-${l.option ?? ""}`} className="flex items-baseline justify-between gap-4 border-b border-dotted border-[rgb(42_36_32/0.2)] py-3 last:border-b-0">
+                <span className="min-w-0">
+                  <span className={`${s.display} block text-[19px] leading-tight`}>{l.name}</span>
+                  <span className="block text-[13px] text-[var(--muted)]">
+                    {CONTENT[l.wood].name}
+                    {l.optionLabel ? `, ${l.optionLabel}` : ""}, quantity {l.qty}
+                  </span>
+                </span>
+                <span className={`${s.tab} text-[14px]`}>{formatINR(l.unitPrice * l.qty)}</span>
+              </li>
             ))}
           </ul>
+          {order.coupon && order.discount ? (
+            <p className="mt-4 flex items-baseline justify-between text-[15px] text-[var(--muted)]">
+              <span>Code {order.coupon}</span>
+              <span className={s.tab}>− {formatINR(order.discount)}</span>
+            </p>
+          ) : null}
           <div className="mt-4 flex items-baseline justify-between border-t border-[var(--hair)] pt-4">
             <span className="text-[15px]">Total</span>
-            <span className={`${s.display} ${s.tab} text-[32px] leading-none`}>{formatINR(order.total)}</span>
+            <span className={`${s.num} text-[30px] leading-none`}>{formatINR(order.total)}</span>
           </div>
         </div>
       </div>

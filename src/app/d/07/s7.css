@@ -1,14 +1,88 @@
-/* Design 07 "Stack". Every rule is scoped under .s7 so nothing leaks into other designs. */
+/* Design 07 "Stack". Every rule is scoped under .s7 (or :root:has(.s7)) so nothing leaks into other designs. */
+
+/* ---------- two palettes, one per wood ----------
+   Registered so the whole house eases from one wood to the other instead of snapping. */
+@property --s7-page { syntax: "<color>"; inherits: true; initial-value: #f8f1ee; }
+@property --s7-sand { syntax: "<color>"; inherits: true; initial-value: #f1e5df; }
+@property --s7-clay { syntax: "<color>"; inherits: true; initial-value: #f3e1d8; }
+@property --s7-sage { syntax: "<color>"; inherits: true; initial-value: #ebe0dc; }
+@property --s7-stone { syntax: "<color>"; inherits: true; initial-value: #eee3de; }
+@property --s7-surface { syntax: "<color>"; inherits: true; initial-value: #fffcfb; }
+@property --s7-ink { syntax: "<color>"; inherits: true; initial-value: #24130e; }
+@property --s7-ink-2 { syntax: "<color>"; inherits: true; initial-value: #3a221a; }
+@property --s7-body { syntax: "<color>"; inherits: true; initial-value: #4a322b; }
+@property --s7-muted { syntax: "<color>"; inherits: true; initial-value: #7a5a50; }
+@property --s7-line { syntax: "<color>"; inherits: true; initial-value: rgb(36 19 14 / 0.13); }
+@property --s7-accent { syntax: "<color>"; inherits: true; initial-value: #9b3520; }
+@property --s7-accent-deep { syntax: "<color>"; inherits: true; initial-value: #5e1d10; }
+@property --s7-accent-soft { syntax: "<color>"; inherits: true; initial-value: #f1dcd4; }
+@property --s7-select { syntax: "<color>"; inherits: true; initial-value: #e7b8a8; }
+
+/* Red sandalwood: rose-linen paper, brick accent, a dark brown-red ink. */
+:root:has(.s7),
+.s7 [data-s7-wood="red"] {
+  --s7-page: #f8f1ee;
+  --s7-sand: #f1e5df;
+  --s7-clay: #f3e1d8;
+  --s7-sage: #ebe0dc;
+  --s7-stone: #eee3de;
+  --s7-surface: #fffcfb;
+  --s7-ink: #24130e;
+  --s7-ink-2: #3a221a;
+  --s7-body: #4a322b;
+  --s7-muted: #7a5a50;
+  --s7-line: rgb(36 19 14 / 0.13);
+  --s7-accent: #9b3520;
+  --s7-accent-deep: #5e1d10;
+  --s7-accent-soft: #f1dcd4;
+  --s7-select: #e7b8a8;
+}
+
+/* White sandalwood: pale ivory-gold paper, brass accent, a warm olive-brown ink. */
+html[data-wood="white"]:has(.s7),
+.s7 [data-s7-wood="white"] {
+  --s7-page: #faf6ee;
+  --s7-sand: #f3ecdc;
+  --s7-clay: #f5ecda;
+  --s7-sage: #ebe9da;
+  --s7-stone: #efe8d9;
+  --s7-surface: #fffdf8;
+  --s7-ink: #2a2216;
+  --s7-ink-2: #41372a;
+  --s7-body: #4b4130;
+  --s7-muted: #7d6c52;
+  --s7-line: rgb(42 34 22 / 0.13);
+  --s7-accent: #a07330;
+  --s7-accent-deep: #6b4a1c;
+  --s7-accent-soft: #efe3cc;
+  --s7-select: #e6cf9f;
+}
+
+:root:has(.s7) {
+  transition:
+    --m-accent 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    --m-accent-soft 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    --s7-page 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    --s7-sand 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    --s7-clay 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    --s7-sage 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    --s7-stone 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    --s7-surface 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    --s7-ink 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    --s7-ink-2 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    --s7-body 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    --s7-muted 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    --s7-line 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    --s7-accent 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    --s7-accent-deep 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    --s7-accent-soft 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    --s7-select 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+:root:has(.s7) body {
+  background-color: var(--s7-page) !important;
+}
 
 .s7 {
-  --s7-page: #f8f6f2;
-  --s7-sand: #efe9e0;
-  --s7-sage: #e4e8e0;
-  --s7-clay: #f1e6dc;
-  --s7-stone: #e9e5dc;
-  --s7-ink: #1b1712;
-  --s7-muted: #77706a;
-  --s7-line: rgb(27 23 18 / 0.12);
   --s7-ease: cubic-bezier(0.22, 1, 0.36, 1);
   background: var(--s7-page);
   color: var(--s7-ink);
@@ -19,8 +93,70 @@
 }
 
 .s7 ::selection {
-  background: var(--m-accent);
-  color: #fff;
+  background: var(--s7-select);
+  color: var(--s7-ink);
+}
+
+/* W / WT wrappers are display:contents; let cards that size from their parent see through them. */
+.s7 .w-red,
+.s7 .w-white {
+  min-height: inherit;
+}
+
+/* Two versions stacked in one grid cell; the current wood fades in, the other fades out. */
+.s7 .s7-cell {
+  display: grid;
+}
+.s7 .s7-cell > * {
+  grid-area: 1 / 1;
+}
+/* Out first, then in: the leaving wood is gone before the arriving one shows, so the two never print over each other. */
+.s7 .s7-on-red,
+.s7 .s7-on-white {
+  transition:
+    opacity 0.42s var(--s7-ease) 0.2s,
+    transform 0.42s var(--s7-ease) 0.2s,
+    visibility 0s linear 0.2s;
+}
+.s7 .s7-on-white,
+html[data-wood="white"] .s7 .s7-on-red {
+  opacity: 0;
+  transform: translateY(14px);
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.18s linear,
+    transform 0.18s var(--s7-ease),
+    visibility 0s linear 0.18s;
+}
+html[data-wood="white"] .s7 .s7-on-white {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    opacity 0.42s var(--s7-ease) 0.2s,
+    transform 0.42s var(--s7-ease) 0.2s,
+    visibility 0s linear 0.2s;
+}
+
+/* The wood switch in this design: no cross-dissolve. The new wood is dealt up over the old one like the next
+   card of the deck, its top edge rising from the bottom of the screen, so no frame shows both woods' text. */
+html.wood-vt:has(.s7)::view-transition-old(root),
+html.wood-vt:has(.s7)::view-transition-new(root) {
+  mix-blend-mode: normal;
+  animation: none;
+}
+html.wood-vt:has(.s7)::view-transition-new(root) {
+  animation: s7-deal-up 0.62s cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+@keyframes s7-deal-up {
+  from {
+    clip-path: inset(100% 0 0 0 round 48px 48px 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0 round 0);
+  }
 }
 
 /* Display cuts of Bricolage Grotesque: condensed and optically large. Text stays normal width. */
@@ -47,7 +183,7 @@
 }
 
 .s7 :focus-visible {
-  outline: 2px solid var(--m-accent);
+  outline: 2px solid var(--s7-accent);
   outline-offset: 3px;
 }
 
@@ -70,43 +206,357 @@
   -webkit-backface-visibility: hidden;
 }
 
-/* Form controls */
-.s7 .s7-input {
-  width: 100%;
-  border-radius: 18px;
-  border: 1px solid var(--s7-line);
-  background: #fff;
-  padding: 0.85rem 1rem;
-  font-size: 16px;
-  color: var(--s7-ink);
-  transition:
-    border-color 0.25s var(--s7-ease),
-    box-shadow 0.25s var(--s7-ease);
-}
-.s7 .s7-input:hover {
-  border-color: rgb(27 23 18 / 0.28);
-}
-.s7 .s7-input:focus {
-  outline: none;
-  border-color: var(--m-accent);
-  box-shadow: 0 0 0 4px var(--m-accent-soft);
-}
-.s7 .s7-input:user-invalid {
-  border-color: #b3261e;
+/* Form controls. In the components layer so Tailwind utilities on an element (h-11, py-0, pl-11) win. */
+@layer components {
+  /* the colour of a field card: white on tinted cards, a shade darker on white ones */
+  .s7,
+  .s7 .s7-on-page {
+    --s7-slip: var(--s7-surface);
+  }
+  .s7 .s7-on-surface {
+    --s7-slip: color-mix(in oklab, var(--s7-ink) 4.5%, var(--s7-page));
+  }
+  .s7 .s7-input {
+    width: 100%;
+    border-radius: 18px;
+    border: 1px solid var(--s7-line);
+    background: var(--s7-surface);
+    padding: 0.85rem 1rem;
+    font-size: 16px;
+    color: var(--s7-ink);
+    transition:
+      border-color 0.25s var(--s7-ease),
+      box-shadow 0.25s var(--s7-ease);
+  }
+  .s7 .s7-input::placeholder {
+    color: var(--s7-muted);
+    opacity: 0.75;
+  }
+  .s7 .s7-input:hover {
+    border-color: color-mix(in oklab, var(--s7-ink) 30%, transparent);
+  }
+  .s7 .s7-input:focus {
+    outline: none;
+    border-color: var(--s7-accent);
+    box-shadow: 0 0 0 4px var(--s7-accent-soft);
+  }
+  .s7 .s7-input[aria-invalid="true"] {
+    border-color: #b3261e;
+  }
+  .s7 select.s7-input {
+    appearance: none;
+    padding-right: 2.6rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23777' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+  }
+  .s7 .s7-err {
+    color: #a3261e;
+    font-size: 13.5px;
+  }
+
+  /* A field is an index card with its label on a divider tab, like the folder tabs of the account and checkout.
+     The card and its tab share one silhouette; focusing a field pulls that card up out of the file. */
+  .s7 .s7-slip {
+    display: grid;
+    align-content: start;
+    min-width: 0;
+  }
+  .s7 .s7-slip-body {
+    display: grid;
+    filter: drop-shadow(0 1px 0 var(--s7-line));
+    transition:
+      transform 0.4s var(--s7-ease),
+      filter 0.4s var(--s7-ease);
+  }
+  .s7 .s7-slip-tab {
+    position: relative;
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    height: 28px;
+    max-width: calc(100% - 14px);
+    padding: 0 0.85rem;
+    margin-bottom: -1px;
+    border-radius: 12px 12px 0 0;
+    background: var(--s7-slip);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--s7-muted);
+    white-space: nowrap;
+    transition: color 0.3s var(--s7-ease);
+  }
+  /* the concave fillet where the tab meets the card */
+  .s7 .s7-slip-tab::after {
+    content: "";
+    position: absolute;
+    right: -12px;
+    bottom: 0;
+    width: 12px;
+    height: 12px;
+    background: radial-gradient(circle at 100% 0, transparent 11.5px, var(--s7-slip) 12px);
+  }
+  .s7 .s7-slip-tab::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    margin-left: -0.2rem;
+    border-radius: 999px;
+    background: var(--s7-accent);
+    transform: scale(0);
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .s7 .s7-slip-card {
+    position: relative;
+    border-radius: 0 16px 16px 16px;
+    background: var(--s7-slip);
+    box-shadow: inset 0 -2px 0 transparent;
+    transition: box-shadow 0.3s var(--s7-ease);
+  }
+  .s7 .s7-slip .s7-input {
+    border: 0;
+    border-radius: inherit;
+    background-color: transparent;
+    box-shadow: none;
+    padding: 0.55rem 1rem 0.8rem;
+  }
+  .s7 .s7-slip select.s7-input {
+    padding-right: 2.6rem;
+  }
+  .s7 .s7-slip .s7-input:focus,
+  .s7 .s7-slip .s7-input:focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
+  .s7 .s7-slip .s7-input[readonly] {
+    color: var(--s7-muted);
+  }
+  .s7 .s7-slip:focus-within .s7-slip-body {
+    transform: translateY(-3px);
+    filter: drop-shadow(0 14px 14px rgb(27 23 18 / 0.13)) drop-shadow(0 1px 0 var(--s7-line));
+  }
+  .s7 .s7-slip:focus-within .s7-slip-tab {
+    color: var(--s7-ink);
+  }
+  .s7 .s7-slip:focus-within .s7-slip-tab::before {
+    transform: scale(1);
+  }
+  .s7 .s7-slip:focus-within .s7-slip-card {
+    box-shadow: inset 0 -2px 0 var(--s7-accent);
+  }
+  .s7 .s7-slip[data-invalid] .s7-slip-tab {
+    color: #a3261e;
+  }
+  .s7 .s7-slip[data-invalid] .s7-slip-tab::before {
+    transform: scale(1);
+    background: #a3261e;
+  }
+  .s7 .s7-slip[data-invalid] .s7-slip-card {
+    box-shadow: inset 0 -2px 0 #a3261e;
+  }
+  .s7 .s7-slip-note {
+    padding: 0.4rem 0.9rem 0;
+    font-size: 13px;
+    line-height: 1.35;
+    color: var(--s7-muted);
+  }
+
+  /* A choice is a card dealt from a small hand: the chosen one lifts out of the row and turns face-dark. */
+  .s7 .s7-deal {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+    cursor: pointer;
+    border-radius: 20px;
+    padding: 0.75rem 1rem 0.95rem;
+    background: var(--s7-slip);
+    box-shadow:
+      inset 0 0 0 1px var(--s7-line),
+      0 0 0 transparent;
+    transition:
+      transform 0.45s var(--s7-ease),
+      background-color 0.3s var(--s7-ease),
+      color 0.3s var(--s7-ease),
+      box-shadow 0.45s var(--s7-ease);
+  }
+  .s7 .s7-deal:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      inset 0 0 0 1px color-mix(in oklab, var(--s7-ink) 28%, transparent),
+      0 12px 22px -20px rgb(27 23 18 / 0.6);
+  }
+  .s7 .s7-deal[data-on] {
+    transform: translateY(-6px);
+    background: var(--s7-ink);
+    color: var(--s7-page);
+    box-shadow:
+      inset 0 0 0 1px var(--s7-ink),
+      0 20px 30px -20px rgb(27 23 18 / 0.75);
+  }
+  .s7 .s7-deal[data-off] {
+    cursor: not-allowed;
+    opacity: 0.5;
+    transform: none;
+    box-shadow: inset 0 0 0 1px var(--s7-line);
+    background-image: repeating-linear-gradient(-45deg, transparent 0 9px, color-mix(in oklab, var(--s7-ink) 6%, transparent) 9px 10px);
+  }
+  .s7 .s7-deal:has(:focus-visible) {
+    outline: 2px solid var(--s7-accent);
+    outline-offset: 3px;
+  }
+  .s7 .s7-deal-index {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.35rem;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--s7-muted);
+  }
+  .s7 .s7-deal[data-on] .s7-deal-index,
+  .s7 .s7-deal[data-on] .s7-deal-sub {
+    color: color-mix(in oklab, var(--s7-page) 70%, transparent);
+  }
+  .s7 .s7-deal-pip {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--s7-ink) 30%, transparent);
+    transition:
+      background-color 0.3s var(--s7-ease),
+      box-shadow 0.3s var(--s7-ease),
+      transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .s7 .s7-deal[data-on] .s7-deal-pip {
+    background: var(--s7-accent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--s7-page) 18%, transparent);
+    transform: scale(1.25);
+  }
+  .s7 .s7-deal-sub {
+    font-size: 14px;
+    line-height: 1.35;
+    color: var(--s7-muted);
+  }
+
+  /* A tick is a small card dropped onto a pile: off, two blank cards lie fanned; on, an ink card with the wood's
+     pip in its corner lands square on top of them. */
+  .s7 .s7-tick {
+    position: relative;
+    width: 30px;
+    height: 34px;
+    flex-shrink: 0;
+  }
+  .s7 .s7-tick::before,
+  .s7 .s7-tick-under,
+  .s7 .s7-tick-top {
+    position: absolute;
+    top: 2px;
+    left: 4px;
+    width: 22px;
+    height: 30px;
+    border-radius: 6px;
+  }
+  .s7 .s7-tick::before {
+    content: "";
+    background: var(--s7-accent-soft);
+    box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--s7-ink) 18%, transparent);
+    transform: translate(4px, 1px) rotate(11deg);
+  }
+  .s7 .s7-tick-under {
+    background: var(--s7-surface);
+    box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--s7-ink) 34%, transparent);
+    transform: translate(-3px, 1px) rotate(-8deg);
+    transition: transform 0.45s var(--s7-ease);
+  }
+  .s7 .s7-tick-top {
+    display: grid;
+    place-items: center;
+    background: var(--s7-ink);
+    color: var(--s7-page);
+    box-shadow: 0 6px 10px -6px rgb(27 23 18 / 0.7);
+    opacity: 0;
+    transform: translate(12px, -16px) rotate(24deg) scale(0.9);
+    transition:
+      transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+      opacity 0.2s linear;
+  }
+  /* the corner index, like the playing-card numbers on the choice cards */
+  .s7 .s7-tick-top::before {
+    content: "";
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 4px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--s7-accent);
+  }
+  .s7 input:checked + .s7-tick .s7-tick-top {
+    opacity: 1;
+    transform: rotate(-1deg);
+  }
+  .s7 input:checked + .s7-tick .s7-tick-under {
+    transform: translate(-4px, 2px) rotate(-11deg);
+  }
+  .s7 input:focus-visible + .s7-tick {
+    outline: 2px solid var(--s7-accent);
+    outline-offset: 4px;
+    border-radius: 8px;
+  }
 }
 
 /* Slim scrollbars inside the bag sheet */
 .s7 .s7-scroll {
   scrollbar-width: thin;
-  scrollbar-color: rgb(27 23 18 / 0.2) transparent;
+  scrollbar-color: color-mix(in oklab, var(--s7-ink) 22%, transparent) transparent;
+}
+.s7 .s7-noscroll {
+  scrollbar-width: none;
+}
+.s7 .s7-noscroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* A live dot for the current tracking stage */
+@keyframes s7-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--s7-accent) 55%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 14px transparent;
+  }
+}
+.s7 .s7-live {
+  animation: s7-pulse 1.8s var(--s7-ease) infinite;
+}
+
+/* Second shot on hover (desktop pointers only) */
+.s7 .s7-shot2 {
+  opacity: 0;
+  transition: opacity 0.6s var(--s7-ease);
+}
+@media (hover: hover) and (pointer: fine) {
+  .s7 .group:hover .s7-shot2 {
+    opacity: 1;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  :root:has(.s7) {
+    transition: none;
+  }
   .s7 *,
   .s7 *::before,
   .s7 *::after {
     transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
     scroll-behavior: auto !important;
+  }
+  .s7 .s7-live {
+    animation: none;
   }
 }
 
@@ -144,3 +594,22 @@
     animation: none;
   }
 }
+
+/* The wipe on the "two woods" card: the line sits on the current wood's side before hydration. */
+.s7 .s7-wipe {
+  --w: 0.64;
+}
+html[data-wood="white"] .s7 .s7-wipe {
+  --w: 0.36;
+}
+.s7 .s7-lab-red,
+html[data-wood="white"] .s7 .s7-lab-white {
+  background: #fff;
+  color: #1b1712;
+}
+.s7 .s7-lab-white,
+html[data-wood="white"] .s7 .s7-lab-red {
+  background: rgb(27 23 18 / 0.55);
+  color: #fff;
+}
+

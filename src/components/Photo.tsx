@@ -1,6 +1,6 @@
 import Image from "next/image";
 import type { CSSProperties } from "react";
-import { TONE_FILTER, type Tone } from "@/lib/catalog";
+import { TONE_FILTER, type Tone } from "@/lib/shop/products";
 import type { PhotoRef } from "@/lib/photos";
 
 /** Full-cover photo for a positioned parent. `tone` warms or pales a placeholder photo to suit a wood. */

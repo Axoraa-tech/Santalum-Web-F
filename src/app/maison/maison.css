@@ -1,0 +1,430 @@
+/* ============================================================
+   Maison (design 00): one layout, two woods.
+   Every colour on the site comes from these tokens. Red sits on a
+   warm rose linen, white on a pale ivory gold. Both stay light.
+   Classes added for this design are prefixed mz-.
+   ============================================================ */
+
+@property --mz-bg {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #f7efeb;
+}
+@property --mz-surface {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #efe1da;
+}
+@property --mz-surface-2 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #e6d1c8;
+}
+@property --mz-ink {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #24130e;
+}
+@property --mz-ink-2 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #6a4a40;
+}
+@property --mz-ink-3 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #95766b;
+}
+@property --mz-line {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgb(36 19 14 / 0.1);
+}
+@property --mz-accent {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #9b3520;
+}
+@property --mz-accent-deep {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #5e1d10;
+}
+@property --mz-accent-soft {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #f0d5ca;
+}
+@property --mz-sel {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #9b3520;
+}
+
+/* Red sandalwood: rose linen, brick accent, a brown-black ink. */
+html .maison {
+  --mz-bg: #f7efeb;
+  --mz-surface: #efe1da;
+  --mz-surface-2: #e6d1c8;
+  --mz-ink: #24130e;
+  --mz-ink-2: #6a4a40;
+  --mz-ink-3: #95766b;
+  --mz-line: rgb(36 19 14 / 0.1);
+  --mz-accent: #9b3520;
+  --mz-accent-deep: #5e1d10;
+  --mz-accent-soft: #f0d5ca;
+  --mz-sel: #9b3520;
+  /* the shared accent utilities (bg-accent, text-accent, the range track) follow this design's palette */
+  --m-accent: var(--mz-accent);
+  --m-accent-soft: var(--mz-accent-soft);
+  background: var(--mz-bg);
+  color: var(--mz-ink);
+  transition:
+    --mz-bg 0.9s var(--ease-out-soft),
+    --mz-surface 0.9s var(--ease-out-soft),
+    --mz-surface-2 0.9s var(--ease-out-soft),
+    --mz-ink 0.9s var(--ease-out-soft),
+    --mz-ink-2 0.9s var(--ease-out-soft),
+    --mz-ink-3 0.9s var(--ease-out-soft),
+    --mz-line 0.9s var(--ease-out-soft),
+    --mz-accent 0.9s var(--ease-out-soft),
+    --mz-accent-deep 0.9s var(--ease-out-soft),
+    --mz-accent-soft 0.9s var(--ease-out-soft),
+    --mz-sel 0.9s var(--ease-out-soft);
+}
+
+/* White sandalwood: ivory and pale gold, a brass accent, a warm olive-brown ink. */
+html[data-wood="white"] .maison {
+  --mz-bg: #faf6ec;
+  --mz-surface: #f2e9d6;
+  --mz-surface-2: #e8dbc0;
+  --mz-ink: #2a2216;
+  --mz-ink-2: #6c5d45;
+  --mz-ink-3: #978868;
+  --mz-line: rgb(42 34 22 / 0.11);
+  --mz-accent: #a07330;
+  --mz-accent-deep: #6b4a1c;
+  --mz-accent-soft: #eedfc2;
+  --mz-sel: #c99b4f;
+}
+
+html .maison ::selection {
+  background: var(--mz-sel);
+  color: var(--mz-bg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html .maison {
+    transition: none;
+  }
+}
+
+/* ---------- the two woods, side by side: the current one comes forward (no JS, no flash) ---------- */
+.mz-disc {
+  transition:
+    transform 0.9s var(--ease-out-soft),
+    opacity 0.9s var(--ease-out-soft),
+    filter 0.9s var(--ease-out-soft);
+}
+html:not([data-wood="white"]) .mz-disc[data-w="white"],
+html[data-wood="white"] .mz-disc[data-w="red"] {
+  transform: scale(0.86);
+  opacity: 0.72;
+  filter: grayscale(0.35);
+}
+html:not([data-wood="white"]) .mz-disc[data-w="white"]:hover,
+html[data-wood="white"] .mz-disc[data-w="red"]:hover {
+  transform: scale(0.9);
+  opacity: 1;
+  filter: none;
+}
+.mz-disc-chip {
+  display: none;
+}
+html:not([data-wood="white"]) .mz-disc[data-w="white"] .mz-disc-chip,
+html[data-wood="white"] .mz-disc[data-w="red"] .mz-disc-chip {
+  display: block;
+}
+.mz-disc-text {
+  transition: opacity 0.9s var(--ease-out-soft);
+}
+html:not([data-wood="white"]) .mz-disc-text[data-w="white"],
+html[data-wood="white"] .mz-disc-text[data-w="red"] {
+  opacity: 0.62;
+}
+
+/* ---------- the wood switch: knob position follows <html data-wood>, so it is right before hydration ---------- */
+.mz-knob {
+  transition: transform 0.75s cubic-bezier(0.34, 1.45, 0.5, 1);
+}
+html[data-wood="white"] .mz-knob {
+  transform: translateX(74px) rotate(240deg);
+}
+.mz-knob-red,
+.mz-knob-white,
+.mz-tg-red,
+.mz-tg-white {
+  transition:
+    opacity 0.5s var(--ease-out-soft),
+    transform 0.5s var(--ease-out-soft);
+}
+.mz-knob-white,
+.mz-tg-white {
+  opacity: 0;
+}
+.mz-tg-white {
+  transform: translateX(-0.5rem);
+}
+html[data-wood="white"] .mz-knob-red,
+html[data-wood="white"] .mz-tg-red {
+  opacity: 0;
+}
+html[data-wood="white"] .mz-tg-red {
+  transform: translateX(0.5rem);
+}
+html[data-wood="white"] .mz-knob-white,
+html[data-wood="white"] .mz-tg-white {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------- grain studio sliders in this design's palette ---------- */
+.maison .grain-range::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, var(--mz-accent) var(--fill, 50%), var(--mz-surface-2) var(--fill, 50%));
+}
+.maison .grain-range::-moz-range-track {
+  background: linear-gradient(to right, var(--mz-accent) var(--fill, 50%), var(--mz-surface-2) var(--fill, 50%));
+}
+.maison .grain-range::-webkit-slider-thumb {
+  background: var(--mz-bg);
+}
+.maison .grain-range::-moz-range-thumb {
+  background: var(--mz-bg);
+}
+
+/* ---------- tracking: each stage is a growth ring ---------- */
+.mz-ring-now {
+  animation: mz-ring-breathe 2.4s var(--ease-out-soft) infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+@keyframes mz-ring-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mz-ring-now {
+    animation: none;
+  }
+}
+
+/* Thin scrollbars for the horizontal strips (category pills, mobile galleries) */
+.mz-strip {
+  scrollbar-width: none;
+}
+.mz-strip::-webkit-scrollbar {
+  display: none;
+}
+
+/* Native select in this design's field shape */
+.mz-select {
+  appearance: none;
+  -webkit-appearance: none;
+}
+.maison select option {
+  background: var(--mz-bg);
+  color: var(--mz-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mz-disc,
+  .mz-disc-text,
+  .mz-knob,
+  .mz-knob-red,
+  .mz-knob-white,
+  .mz-tg-red,
+  .mz-tg-white {
+    transition: none;
+  }
+}
+
+/* ---------- turning the page: a product page flipped to the other wood ---------- */
+.maison main {
+  transition: opacity 0.45s var(--ease-out-soft);
+}
+html[data-mz-turning] .maison main {
+  /* at once: the colour crossfade carries the old piece away in its own wood */
+  opacity: 0;
+  pointer-events: none;
+  transition: none;
+}
+.mz-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.3s var(--ease-out-soft),
+    visibility 0s linear 0.3s;
+}
+html[data-mz-turning] .mz-veil {
+  opacity: 1;
+  visibility: visible;
+  /* a quick turn (a prefetched page) never shows the slice at all */
+  transition:
+    opacity 0.35s var(--ease-out-soft) 0.15s,
+    visibility 0s linear 0s;
+}
+.mz-veil-disc {
+  animation: mz-roll 1.8s linear infinite;
+  box-shadow: 0 10px 30px -10px rgb(23 19 15 / 0.35);
+}
+@keyframes mz-roll {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- the review tool's design switcher, dressed as a small slice of the wood ----------
+   The switcher is shared by every design; here it folds to a slice and its number, sits under
+   the bag island's veil, and opens to its full name on hover or focus. */
+.mz-switch > div {
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 35;
+  font-family: inherit;
+  color: var(--mz-ink);
+}
+.mz-switch > div > div:last-child {
+  gap: 0;
+  padding: 3px;
+  border-color: var(--mz-line);
+  background: color-mix(in oklab, var(--mz-bg) 92%, transparent);
+  box-shadow: 0 10px 28px -14px rgb(23 19 15 / 0.4);
+}
+.mz-switch > div > div:last-child > a {
+  width: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition:
+    width 0.45s var(--ease-out-soft),
+    opacity 0.3s var(--ease-out-soft);
+}
+.mz-switch > div > div:last-child > button {
+  height: 2rem;
+  gap: 0.45rem;
+  padding: 0 0.7rem 0 0.3rem;
+}
+.mz-switch > div > div:last-child > button::before {
+  content: "";
+  width: 1.45rem;
+  height: 1.45rem;
+  flex: none;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 46% 44%, #4a1209 0 3%, transparent 4%),
+    repeating-radial-gradient(circle at 46% 44%, #8a2a17 0 2px, #b2482b 2px 4.5px, #9a3520 4.5px 6px, #c0583a 6px 9px);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+  transition: transform 0.7s var(--ease-out-soft);
+}
+html[data-wood="white"] .mz-switch > div > div:last-child > button::before {
+  background:
+    radial-gradient(circle at 46% 44%, #8a6534 0 3%, transparent 4%),
+    repeating-radial-gradient(circle at 46% 44%, #c49d63 0 1.5px, #e6cd9f 1.5px 4.5px, #d4b47f 4.5px 6px, #efdcb6 6px 9px);
+}
+.mz-switch > div > div:last-child > button > span:first-child {
+  color: var(--mz-ink-3);
+}
+.mz-switch > div > div:last-child > button > span:last-child {
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  transition:
+    max-width 0.45s var(--ease-out-soft),
+    opacity 0.3s var(--ease-out-soft);
+}
+.mz-switch > div:hover > div:last-child > a,
+.mz-switch > div:focus-within > div:last-child > a,
+.mz-switch > div:has(button[aria-expanded="true"]) > div:last-child > a {
+  width: 2rem;
+  opacity: 1;
+}
+.mz-switch > div:hover > div:last-child > button > span:last-child,
+.mz-switch > div:focus-within > div:last-child > button > span:last-child,
+.mz-switch > div:has(button[aria-expanded="true"]) > div:last-child > button > span:last-child {
+  max-width: 8rem;
+  opacity: 1;
+}
+.mz-switch > div:hover > div:last-child > button::before,
+.mz-switch > div:focus-within > div:last-child > button::before {
+  transform: rotate(120deg);
+}
+.mz-switch > div > div:last-child a:hover,
+.mz-switch > div > div:last-child button:hover {
+  background: var(--mz-surface);
+}
+
+/* ---------- the shop's category bar: an opaque pill on a band of mist, so nothing reads through it ---------- */
+.mz-catbar {
+  background: linear-gradient(to bottom, var(--mz-bg) 0 62%, color-mix(in oklab, var(--mz-bg) 0%, transparent));
+  transition: top 0.55s var(--ease-out-soft);
+}
+/* when the header slides away on the way down, the bar rises to the top edge, so nothing scrolls past above it */
+.maison:has(> header[data-hidden]) .mz-catbar {
+  top: 0;
+}
+
+/* on phones, a horizontal strip that scrolls shows a soft edge where it continues */
+@media (max-width: 639.98px) {
+  .mz-strip-fade {
+    mask-image: linear-gradient(to right, #000 0 80%, transparent);
+  }
+  /* and the review switcher folds to the slice alone, half tucked behind the left edge so it stays in the
+     page gutter; a tap brings it out */
+  .mz-switch > div {
+    left: 0;
+    bottom: 0.75rem;
+    transform: translateX(-50%);
+    transition: transform 0.45s var(--ease-out-soft);
+  }
+  .mz-switch > div:is(:hover, :focus-within),
+  .mz-switch > div:has(button[aria-expanded="true"]) {
+    transform: translateX(0.625rem);
+  }
+  .mz-switch > div > div:last-child > button {
+    gap: 0;
+    padding: 0 0.275rem;
+  }
+  .mz-switch > div > div:last-child > button > span:first-child {
+    display: none;
+  }
+  .mz-switch > div:is(:hover, :focus-within) > div:last-child > button,
+  .mz-switch > div:has(button[aria-expanded="true"]) > div:last-child > button {
+    gap: 0.45rem;
+    padding: 0 0.7rem 0 0.3rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mz-veil-disc {
+    animation: none;
+  }
+  .maison main,
+  .mz-veil,
+  .mz-catbar,
+  .mz-switch > div,
+  .mz-switch > div > div:last-child > a,
+  .mz-switch > div > div:last-child > button > span:last-child {
+    transition: none;
+  }
+}

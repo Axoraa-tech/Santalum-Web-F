@@ -1,5 +1,5 @@
 import { Photo } from "@/components/Photo";
-import type { Tone } from "@/lib/catalog";
+import type { Tone } from "@/lib/shop/products";
 import type { PhotoRef } from "@/lib/photos";
 
 type Shot = { p: PhotoRef; tone?: Tone };

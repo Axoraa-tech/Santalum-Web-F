@@ -2,14 +2,18 @@
 
 import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll, useSpring, useTransform } from "motion/react";
 import { useRef, useState } from "react";
+import { W, WT } from "@/components/maison/W";
 import { Photo } from "@/components/Photo";
 import { PHOTOS } from "@/lib/photos";
-import { useWood } from "@/lib/wood";
-import { EASE, STEPS } from "./copy";
+import { CONTENT } from "@/lib/shop/content";
+import { EASE, MAKING_LINES } from "./copy";
 import { s } from "./cls";
 import { scrollToY } from "./store";
 
-const N = STEPS.length;
+/** Each wood has its own five steps (red is turned; white is seasoned, distilled or carved). */
+const RED = CONTENT.red.making.map((m, i) => ({ ...m, ...MAKING_LINES.red[i] }));
+const WHITE = CONTENT.white.making.map((m, i) => ({ ...m, ...MAKING_LINES.white[i] }));
+const N = RED.length;
 const STEP_DEG = 360 / N;
 const TICKS = Array.from({ length: 120 }, (_, i) => i);
 
@@ -23,7 +27,6 @@ function dwell(v: number) {
 
 /** A dial with the five making steps around it. Scrolling turns it so the current step sits at the top. */
 export function MakingDial() {
-  const wood = useWood();
   const reduced = !!useReducedMotion();
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
@@ -36,7 +39,6 @@ export function MakingDial() {
   const photoScale = useTransform(scrollYProgress, [0, 1], [1.18, 1]);
   const [step, setStep] = useState(0);
   useMotionValueEvent(raw, "change", (x) => setStep(Math.min(N - 1, Math.max(0, Math.round(x)))));
-  const cur = STEPS[step];
 
   const goTo = (i: number) => {
     const el = ref.current;
@@ -76,18 +78,20 @@ export function MakingDial() {
                 );
               })}
             </svg>
-            {STEPS.map((st, i) => {
+            {RED.map((st, i) => {
               const a = (i * STEP_DEG * Math.PI) / 180;
               const r = 38.5;
               const on = i === step;
               return (
-                <div key={st.name} className="absolute" style={{ left: `${(50 + Math.sin(a) * r).toFixed(2)}%`, top: `${(50 - Math.cos(a) * r).toFixed(2)}%` }}>
+                <div key={st.title} className="absolute" style={{ left: `${(50 + Math.sin(a) * r).toFixed(2)}%`, top: `${(50 - Math.cos(a) * r).toFixed(2)}%` }}>
                   <motion.div style={{ rotate: counter }} className="-translate-x-1/2 -translate-y-1/2">
                     <div className={`flex flex-col items-center transition-[opacity,transform] duration-500 ${on ? "scale-110 opacity-100" : "opacity-45"}`}>
                       <span className={`grid size-7 place-items-center rounded-full text-[12px] font-bold tabular-nums transition-colors duration-500 md:size-8 ${on ? "bg-[var(--o-ink)] text-white" : "border border-[var(--o-line)] bg-[var(--o-bg)]"}`}>
                         {i + 1}
                       </span>
-                      <span className={`${s.syne} mt-1 rounded-full bg-[var(--o-bg)] px-2 text-[14px] font-bold tracking-[-0.02em] md:text-[18px]`}>{st.name}</span>
+                      <span className={`${s.syne} mt-1 whitespace-nowrap rounded-full bg-[var(--o-bg)] px-2 text-[14px] font-bold tracking-[-0.02em] md:text-[18px]`}>
+                        <WT red={st.title} white={WHITE[i].title} />
+                      </span>
                     </div>
                   </motion.div>
                 </div>
@@ -97,18 +101,20 @@ export function MakingDial() {
           {/* centre: the carver at work */}
           <div className="absolute inset-[26%] overflow-hidden rounded-full bg-[var(--o-floor)] shadow-[0_30px_60px_-30px_rgb(25_23_20/0.6)]">
             <motion.div className="absolute inset-0" style={{ scale: reduced ? 1 : photoScale }}>
-              <Photo p={PHOTOS.carving} sizes="(min-width: 1024px) 30vw, 50vw" />
+              <W red={<Photo p={PHOTOS.carving} sizes="(min-width: 1024px) 30vw, 50vw" />} white={<Photo p={PHOTOS.oilHands} sizes="(min-width: 1024px) 30vw, 50vw" />} />
             </motion.div>
           </div>
         </div>
 
         {/* the current step */}
         <div className="relative mx-auto mt-6 w-full max-w-[560px] flex-1 lg:ml-[6vw] lg:mt-0 lg:max-w-[600px]">
-          <p className="hidden text-[15px] text-[var(--o-muted)] lg:block">How a piece is made</p>
+          <p className="hidden text-[15px] text-[var(--o-muted)] lg:block">
+            <WT red="How a red piece is turned" white="How the fragrance is kept" />
+          </p>
           <div className="relative mt-2 min-h-[260px] md:min-h-[300px] lg:min-h-[420px]">
             <AnimatePresence initial={false}>
               <motion.div
-                key={cur.name}
+                key={step}
                 className="absolute inset-x-0 top-0"
                 initial={reduced ? { opacity: 0 } : { opacity: 0, y: 40 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -118,22 +124,31 @@ export function MakingDial() {
                 <p className="text-[14px] font-semibold tabular-nums text-[var(--m-accent)]">
                   Step {step + 1} of {N}
                 </p>
-                <h2 className={`${s.display} mt-2 text-[clamp(3.2rem,6vw,7rem)]`}>{cur.name}</h2>
-                <p className={`${s.syne} mt-4 text-[clamp(1.15rem,1.8vw,1.6rem)] font-semibold leading-snug tracking-[-0.02em]`}>{cur.line}</p>
+                <h2 className={`${s.display} mt-2 text-[clamp(2.8rem,5.4vw,6.4rem)]`}>
+                  <WT red={RED[step].title} white={WHITE[step].title} />
+                </h2>
+                <p className={`${s.syne} mt-4 text-[clamp(1.15rem,1.8vw,1.6rem)] font-semibold leading-snug tracking-[-0.02em]`}>
+                  <WT red={RED[step].line} white={WHITE[step].line} />
+                </p>
                 <div className="mt-5 flex items-start gap-5">
-                  <span className="relative hidden size-[92px] shrink-0 overflow-hidden rounded-full bg-[var(--o-floor)] sm:block">
-                    <Photo p={cur.photo[wood]} tone={cur.photo[wood] === PHOTOS.turned && wood === "red" ? "red" : undefined} sizes="92px" />
-                  </span>
-                  <p className="max-w-[440px] text-[16px] leading-relaxed text-[var(--o-ink-2)]">{cur.body}</p>
+                  <div className="relative hidden size-[92px] shrink-0 overflow-hidden rounded-full bg-[var(--o-floor)] sm:block">
+                    <W
+                      red={<Photo p={RED[step].photo} tone={RED[step].tone} sizes="92px" />}
+                      white={<Photo p={WHITE[step].photo} tone={WHITE[step].tone} sizes="92px" />}
+                    />
+                  </div>
+                  <p className="max-w-[440px] text-[16px] leading-relaxed text-[var(--o-ink-2)]">
+                    <WT red={RED[step].text} white={WHITE[step].text} />
+                  </p>
                 </div>
               </motion.div>
             </AnimatePresence>
           </div>
           <ol className="mt-4 hidden items-start gap-3 lg:flex" aria-label="The five steps">
-            {STEPS.map((st, i) => {
+            {RED.map((st, i) => {
               const on = i === step;
               return (
-                <li key={st.name}>
+                <li key={st.title}>
                   <button
                     type="button"
                     onClick={() => goTo(i)}
@@ -145,10 +160,10 @@ export function MakingDial() {
                         on ? "shadow-[0_0_0_2px_var(--o-bg),0_0_0_4px_var(--m-accent)]" : "opacity-70 grayscale-[0.4]"
                       }`}
                     >
-                      <Photo p={st.photo[wood]} sizes="68px" />
+                      <W red={<Photo p={st.photo} tone={st.tone} sizes="68px" />} white={<Photo p={WHITE[i].photo} tone={WHITE[i].tone} sizes="68px" />} />
                     </span>
-                    <span className={`${s.syne} text-[13px] font-bold ${on ? "text-[var(--o-ink)]" : "text-[var(--o-muted)]"}`}>
-                      {i + 1}. {st.name}
+                    <span className={`${s.syne} text-[13px] font-bold leading-tight ${on ? "text-[var(--o-ink)]" : "text-[var(--o-muted)]"}`}>
+                      {i + 1}. <WT red={st.title} white={WHITE[i].title} />
                     </span>
                   </button>
                 </li>

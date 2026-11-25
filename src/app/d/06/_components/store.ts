@@ -26,9 +26,9 @@ export type View =
   | { kind: "story"; id: StoryId; from: string; img: boolean };
 
 const viewS = store<View | null>(null);
-const bagS = store<{ open: boolean; from: string }>({ open: false, from: "bag-dock" });
+const bagS = store<{ open: boolean; from: BagFrom }>({ open: false, from: "bag-top" });
+const menuS = store(false);
 const palS = store(false);
-const heroBagS = store(false);
 const addedS = store(0);
 
 let returnTo: HTMLElement | null = null;
@@ -54,8 +54,10 @@ export const views = {
   },
 };
 
+export type BagFrom = "bag-hero" | "bag-top";
+
 export const bagUI = {
-  open(from: "bag-dock" | "bag-hero" = "bag-dock") {
+  open(from: BagFrom = "bag-top") {
     remember();
     bagS.set({ open: true, from });
   },
@@ -83,13 +85,26 @@ export const palette = {
   },
 };
 
-export const heroBag = { set: (v: boolean) => heroBagS.set(v) };
+/** The phone menu: a pill in the top bar that grows into a tile of links. */
+export const menu = {
+  open() {
+    remember();
+    menuS.set(true);
+  },
+  close(restoreFocus = true) {
+    if (!menuS.get()) return;
+    menuS.set(false);
+    if (restoreFocus) restore();
+    else returnTo = null;
+  },
+};
+
 export const added = { bump: () => addedS.set(addedS.get() + 1) };
 
 export const useView = () => useSyncExternalStore(viewS.sub, viewS.get, () => null);
 export const useBagUI = () => useSyncExternalStore(bagS.sub, bagS.get, bagS.get);
+export const useMenu = () => useSyncExternalStore(menuS.sub, menuS.get, () => false);
 export const usePalette = () => useSyncExternalStore(palS.sub, palS.get, () => false);
-export const useHeroBag = () => useSyncExternalStore(heroBagS.sub, heroBagS.get, () => false);
 export const useAdded = () => useSyncExternalStore(addedS.sub, addedS.get, () => 0);
 
 /* ---------- media ---------- */

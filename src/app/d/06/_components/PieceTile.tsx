@@ -3,49 +3,39 @@
 import { motion } from "motion/react";
 import type { CSSProperties } from "react";
 import { Photo } from "@/components/Photo";
-import { CATEGORIES, formatINR, type Family } from "@/lib/catalog";
-import type { Wood } from "@/lib/wood-boot";
+import { categoryOf, priceLabel, type Product } from "@/lib/shop/products";
+import { seededRating } from "@/lib/shop/reviews-data";
 import { s } from "./cls";
-import { cx, variantFor } from "./data";
+import { cx, shotsOf } from "./data";
 import { views } from "./store";
-import { Corner } from "./ui";
+import { Corner, Stars } from "./ui";
 
 /**
  * A product tile. It owns layoutId `id` (and `${id}-img` for its photo) so the product view can
  * grow out of it. Hovering reveals the second photograph.
  */
 export function PieceTile({
-  family,
-  wood,
+  product,
   id,
   style,
   className,
   sizes = "(min-width:1024px) 25vw, (min-width:640px) 40vw, 50vw",
-  enter = false,
   label,
 }: {
-  family: Family;
-  wood: Wood;
+  product: Product;
   id: string;
   style?: CSSProperties;
   className?: string;
   sizes?: string;
-  enter?: boolean;
   label?: string;
 }) {
-  const { variant } = variantFor(family, wood);
-  const [a, b] = variant.shots;
-  const cat = CATEGORIES.find((c) => c.key === family.category)?.label;
+  const [a, b] = shotsOf(product);
+  const cat = categoryOf(product).label;
+  const rating = seededRating(product.slug);
+  const tag = label ?? (product.edition ? `Edition of ${product.edition.size}` : (product.badge ?? cat));
 
   return (
-    <motion.div
-      layoutId={id}
-      style={{ borderRadius: 28, ...style }}
-      className={cx(s.tile, s.t2, s.opener, "group", className)}
-      initial={enter ? { opacity: 0, scale: 0.94 } : false}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={enter ? { opacity: 0, scale: 0.94 } : undefined}
-    >
+    <motion.div layoutId={id} style={{ borderRadius: 28, ...style }} className={cx(s.tile, s.t2, s.opener, "group", className)}>
       <motion.div layoutId={`${id}-img`} className="absolute inset-0 overflow-hidden" style={{ borderRadius: 28 }}>
         <div className={s.zoom}>
           <Photo p={a.photo} tone={a.tone} sizes={sizes} />
@@ -60,27 +50,30 @@ export function PieceTile({
         </div>
       </motion.div>
 
-      <span className={cx(s.mono, "pointer-events-none absolute left-3 top-3 z-[3] rounded-full bg-white px-2.5 py-1 text-[10.5px]")}>
-        {label ?? family.edition ?? family.level}
-      </span>
+      <span className={cx(s.mono, "pointer-events-none absolute left-3 top-3 z-[3] max-w-[calc(100%-76px)] truncate rounded-full bg-[var(--b-tile)] px-2.5 py-1 text-[10.5px]")}>{tag}</span>
       <Corner />
 
       <motion.div
         layout="position"
-        className="pointer-events-none absolute inset-x-2 bottom-2 z-[3] flex flex-col gap-1 rounded-[20px] bg-white px-3.5 py-3 @min-[250px]:flex-row @min-[250px]:items-end @min-[250px]:justify-between @min-[250px]:gap-3 @min-[250px]:px-4"
+        className="pointer-events-none absolute inset-x-2 bottom-2 z-[3] flex flex-col gap-1 rounded-[20px] bg-[var(--b-tile)] px-3.5 py-3 @min-[250px]:flex-row @min-[250px]:items-end @min-[250px]:justify-between @min-[250px]:gap-3 @min-[250px]:px-4"
       >
         <span className="min-w-0">
-          <span className="block text-[clamp(15px,4.4cqw,21px)] font-medium leading-tight tracking-[-0.025em] @min-[250px]:truncate">{family.name}</span>
-          <span className={cx(s.mono, s.muted, "block truncate text-[10.5px]")}>{cat}</span>
+          <span className="block text-[clamp(15px,4.4cqw,21px)] font-medium leading-tight tracking-[-0.025em] @min-[250px]:truncate">{product.name}</span>
+          <span className="mt-0.5 flex items-center gap-1.5">
+            <Stars value={rating.avg} size={11} />
+            <span className={cx(s.mono, s.muted, "truncate text-[10.5px]")}>
+              {rating.avg.toFixed(1)} ({rating.count})
+            </span>
+          </span>
         </span>
-        <span className={cx(s.mono, "shrink-0 text-[12.5px]")}>{formatINR(variant.price)}</span>
+        <span className={cx(s.mono, "shrink-0 text-[12.5px]")}>{priceLabel(product)}</span>
       </motion.div>
 
       <button
         type="button"
         className={s.hit}
-        onClick={() => views.open({ kind: "product", slug: family.slug, from: id, img: true })}
-        aria-label={`Open ${family.name}, ${formatINR(variant.price)}`}
+        onClick={() => views.open({ kind: "product", slug: product.slug, from: id, img: true })}
+        aria-label={`Open ${product.name}, ${priceLabel(product)}, rated ${rating.avg} from ${rating.count} reviews`}
       />
     </motion.div>
   );

@@ -96,3 +96,68 @@ export function IconClose(p: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** Three cards fanned: the shop. */
+export function IconShop(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(p)}>
+      <rect x="7.5" y="5" width="9" height="13" rx="2.2" />
+      <path d="M6.2 7.4l-2.4.9 3.4 10.2 3-1" />
+      <path d="M17.8 7.4l2.4.9-3.4 10.2-3-1" />
+    </svg>
+  );
+}
+
+/** A route from the workshop to a door. */
+export function IconTrack(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(p)}>
+      <circle cx="6" cy="6.5" r="2.2" />
+      <path d="M6 8.7v2.3a3 3 0 0 0 3 3h6a3 3 0 0 1 3 3v.3" />
+      <path d="M15.6 18.4h4.8" />
+      <path d="M18 16v4.8" />
+    </svg>
+  );
+}
+
+export function IconUser(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(p)}>
+      <circle cx="12" cy="8.4" r="3.6" />
+      <path d="M4.8 20c.9-3.6 3.7-5.6 7.2-5.6s6.3 2 7.2 5.6" />
+    </svg>
+  );
+}
+
+export function IconHeart({ filled, ...p }: SVGProps<SVGSVGElement> & { filled?: boolean }) {
+  return (
+    <svg {...base(p)} fill={filled ? "currentColor" : "none"}>
+      <path d="M12 19.5s-7.5-4.4-7.5-10A4.2 4.2 0 0 1 12 7a4.2 4.2 0 0 1 7.5 2.5c0 5.6-7.5 10-7.5 10z" />
+    </svg>
+  );
+}
+
+export function IconSearch(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(p)}>
+      <circle cx="10.5" cy="10.5" r="6" />
+      <path d="M15 15l5 5" />
+    </svg>
+  );
+}
+
+export function IconCheck(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(p)} strokeWidth={2.2}>
+      <path d="M5 12.5l4.5 4.5L19 7.5" />
+    </svg>
+  );
+}
+
+export function IconPlus(p: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(p)}>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}

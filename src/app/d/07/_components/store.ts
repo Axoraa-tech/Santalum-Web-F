@@ -1,7 +1,16 @@
 import type Lenis from "lenis";
 import { useSyncExternalStore } from "react";
-import { CATEGORIES, FAMILIES, type CategoryKey } from "@/lib/catalog";
-import type { Wood } from "@/lib/wood";
+import { getProduct, productsFor, type Product } from "@/lib/shop/products";
+import { switchWood, type Wood } from "@/lib/wood";
+
+/* ---------- routes ---------- */
+export const HOME = "/d/07";
+export const SHOP = `${HOME}/shop`;
+export const CHECKOUT = `${HOME}/checkout`;
+export const ACCOUNT = `${HOME}/account`;
+export const TRACK = `${HOME}/track`;
+export const productHref = (slug: string) => `${HOME}/p/${slug}`;
+export const shopHref = (category?: string) => (category ? `${SHOP}?c=${category}` : SHOP);
 
 /* ---------- the bag sheet: open / closed ---------- */
 const sheetListeners = new Set<() => void>();
@@ -60,47 +69,42 @@ export function scrollToCard(id: string) {
   return true;
 }
 
+/* A wood waiting for the next page to land (see chooseWood). */
+let pendingWood: Wood | null = null;
+export function takePendingWood() {
+  const w = pendingWood;
+  pendingWood = null;
+  return w;
+}
+
+/**
+ * Flip the wood. On a product page the page belongs to one wood, so we go to the piece's counterpart in the
+ * other wood (or that wood's shop when there is none) first, and the wood changes when that page lands:
+ * the old piece is never shown in the new wood's colours. Returns true when it navigated.
+ */
+export function chooseWood(next: Wood, pathname: string, push: (href: string) => void) {
+  const m = pathname.match(/^\/d\/07\/p\/([^/?#]+)/);
+  const p = m ? getProduct(decodeURIComponent(m[1])) : undefined;
+  if (p && p.wood !== next) {
+    pendingWood = next;
+    push(p.counterpart ? productHref(p.counterpart) : SHOP);
+    return true;
+  }
+  switchWood(next);
+  return false;
+}
+
 /* ---------- small shared data ---------- */
 export const EASE = [0.22, 1, 0.36, 1] as const;
+export const WOODS: Wood[] = ["red", "white"];
+export const otherWood = (w: Wood): Wood => (w === "red" ? "white" : "red");
 
-export const inWood = (wood: Wood) => FAMILIES.filter((f) => f.variants[wood]);
+/** Small pieces to begin with: no options to choose, lowest price first. */
+export const starters = (wood: Wood, n = 3): Product[] =>
+  productsFor(wood)
+    .filter((p) => !p.options && !p.edition)
+    .sort((a, b) => a.price - b.price)
+    .slice(0, n);
 
-export const catLabel = (key: CategoryKey) => CATEGORIES.find((c) => c.key === key)?.label ?? key;
-
-export const CARE: Record<CategoryKey, string[]> = {
-  objects: [
-    "Keep dry and out of direct sun.",
-    "Wipe with a soft, dry cloth. No water, no cleaners.",
-    "A drop of natural oil once a season brings the colour back.",
-  ],
-  beads: [
-    "Take the beads off before bathing or swimming.",
-    "Perfume and lotion darken the wood; let them dry before you put the beads on.",
-    "Keep them in their pouch, away from heat.",
-  ],
-  powder: [
-    "Keep the jar or vial closed, upright and away from light.",
-    "Use a dry spoon; moisture spoils powder.",
-    "Patch-test before use on skin.",
-  ],
-  gifting: [
-    "Keep the box away from radiators and direct sun.",
-    "Dust with a soft, dry cloth.",
-    "A drop of oil on the wood once a season; none on the brass.",
-  ],
-  jewellery: [
-    "Take it off before washing your hands or bathing.",
-    "Polish silver with a dry cloth only.",
-    "Store each piece in its own box so the wood is not scratched.",
-  ],
-};
-
-export const STATES = [
-  "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chandigarh", "Chhattisgarh",
-  "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir",
-  "Jharkhand", "Karnataka", "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya",
-  "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
-  "Uttar Pradesh", "Uttarakhand", "West Bengal",
-];
-
-export const HOME = "/d/07";
+export const pad2 = (n: number) => String(n).padStart(2, "0");
+export const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name;

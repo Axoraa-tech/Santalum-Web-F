@@ -2,7 +2,9 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { useState, type FormEvent } from "react";
-import { EASE, sectionNo } from "./content";
+import { WT } from "@/components/maison/W";
+import { CONTENT } from "@/lib/shop/content";
+import { CIRCLE, EASE, sectionNo } from "./content";
 
 /** The Santalum Circle sign-up, written as one sentence with the field inside it. Front-end only. */
 export function Circle() {
@@ -23,7 +25,7 @@ export function Circle() {
           The Santalum Circle
         </h2>
         <p className="x5-circleAbout">
-          Our letter. It comes when there is something new to show: a new piece, a new batch, a note from the workshop. Nothing else.
+          <WT red={CONTENT.red.circle.text} white={CONTENT.white.circle.text} /> Nothing else.
         </p>
       </div>
 
@@ -37,7 +39,7 @@ export function Circle() {
             transition={{ duration: 0.5, ease: EASE }}
           >
             <p className="x5-sentence">
-              We will write to you at <span className="x5-sentEmail">{sent}</span> when new pieces arrive.
+              We will write to you at <span className="x5-sentEmail">{sent}</span> when <WT red={CIRCLE.red.when} white={CIRCLE.white.when} />.
             </p>
             <button
               type="button"
@@ -74,14 +76,18 @@ export function Circle() {
                   className="x5-inlineInput"
                 />
               </span>{" "}
-              when new pieces arrive.
+              when <WT red={CIRCLE.red.when} white={CIRCLE.white.when} />.
             </p>
             <div className="x5-circleActions">
               <button type="submit" className="x5-addBtn">
                 <span>Join the Circle</span>
-                <span>Free</span>
+                <span>
+                  <WT red="Red letters" white="White letters" />
+                </span>
               </button>
-              <p className="x5-circleFine">One address, no account. Leave whenever you like from any letter.</p>
+              <p className="x5-circleFine">
+                <WT red={CIRCLE.red.fine} white={CIRCLE.white.fine} />
+              </p>
             </div>
           </motion.form>
         )}

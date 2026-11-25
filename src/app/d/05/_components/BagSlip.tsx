@@ -3,8 +3,9 @@
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
-import { formatINR, getFamily, getVariant, WOOD_NAMES } from "@/lib/catalog";
-import { bag, bagTotals, useBag, type Line } from "@/lib/cart";
+import { bag, bagSummary, useBag, type BagItem } from "@/lib/shop/bag";
+import { CONTENT } from "@/lib/shop/content";
+import { formatINR } from "@/lib/shop/products";
 import { EASE } from "./content";
 import { slipFlag, useFlag } from "./store";
 
@@ -13,8 +14,7 @@ const close = () => slipFlag.set(false);
 /** The bag: a narrow printed order slip that slides down from under the top-right controls. */
 export function BagSlip() {
   const open = useFlag(slipFlag);
-  const lines = useBag();
-  const { count, subtotal } = bagTotals(lines);
+  const { items, count, subtotal } = bagSummary(useBag());
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -69,14 +69,14 @@ export function BagSlip() {
 
               {count === 0 ? (
                 <div className="x5-slipEmpty">
-                  <p>Nothing on the slip yet. Open any row of the catalogue to add a piece.</p>
-                  <Link href="/d/05#catalogue" onClick={close}>
+                  <p>Nothing on the slip yet. Every piece in the catalogue has an Add or a Choose beside it.</p>
+                  <Link href="/d/05/shop" onClick={close}>
                     Open the catalogue
                   </Link>
                 </div>
               ) : (
                 <>
-                  <SlipLines lines={lines} editable />
+                  <SlipLines items={items} editable />
                   <dl className="x5-totals">
                     <div>
                       <dt>Subtotal</dt>
@@ -84,7 +84,7 @@ export function BagSlip() {
                     </div>
                     <div>
                       <dt>Delivery in India</dt>
-                      <dd>Confirmed at checkout</dd>
+                      <dd>Free; express ₹350</dd>
                     </div>
                     <div className="x5-totalRow">
                       <dt>Total</dt>
@@ -95,7 +95,7 @@ export function BagSlip() {
                     <span>Go to checkout</span>
                     <span>{formatINR(subtotal)}</span>
                   </Link>
-                  <p className="x5-slipNote">Preview: payments are not connected yet.</p>
+                  <p className="x5-slipNote">Sign in or create an account at checkout to place the order.</p>
                 </>
               )}
             </motion.aside>
@@ -106,49 +106,53 @@ export function BagSlip() {
   );
 }
 
-/** The printed lines of the slip. Shared with the checkout. */
-export function SlipLines({ lines, editable = false }: { lines: Line[]; editable?: boolean }) {
+/** The printed lines of the slip. Shared with the checkout and the confirmation. */
+export function SlipLines({ items, editable = false }: { items: BagItem[]; editable?: boolean }) {
   return (
     <ol className="x5-lines">
-      {lines.map((l, i) => {
-        const f = getFamily(l.slug);
-        const v = getVariant(l.slug, l.wood);
-        if (!f || !v) return null;
-        return (
-          <li key={`${l.slug}-${l.wood}-${l.custom ?? ""}`} className="x5-line">
-            <span className="x5-lineN">{i + 1}</span>
-            <span className="x5-lineName">{f.name}</span>
-            <span className="x5-linePrice">{formatINR(v.price * l.qty)}</span>
-            <span className="x5-lineMeta">
-              {WOOD_NAMES[l.wood].common}
-              {l.custom ? `, ${l.custom}` : ""}
-              {!editable && l.qty > 1 ? `, ${l.qty} at ${formatINR(v.price)}` : ""}
-            </span>
-            {editable && (
-              <span className="x5-lineQty">
-                <button type="button" className="x5-qtyBtn" aria-label={`One fewer ${f.name}`} onClick={() => bag.setQty(l, l.qty - 1)}>
-                  −
-                </button>
-                <span className="x5-qtyN" aria-label={`Quantity ${l.qty}`}>
-                  {l.qty}
-                </span>
-                <button
-                  type="button"
-                  className="x5-qtyBtn"
-                  aria-label={`One more ${f.name}`}
-                  disabled={l.qty >= 9}
-                  onClick={() => bag.setQty(l, l.qty + 1)}
-                >
-                  +
-                </button>
-                <button type="button" className={`x5-textBtn x5-qtyRemove`} onClick={() => bag.setQty(l, 0)}>
-                  Remove
-                </button>
-              </span>
+      {items.map((l, i) => (
+        <li key={l.key} className="x5-line">
+          <span className="x5-lineN">{i + 1}</span>
+          <span className="x5-lineName">
+            {editable ? (
+              <Link href={`/d/05/p/${l.slug}`} onClick={close} className="x5-lineLink">
+                {l.product.name}
+              </Link>
+            ) : (
+              l.product.name
             )}
-          </li>
-        );
-      })}
+          </span>
+          <span className="x5-linePrice">{formatINR(l.total)}</span>
+          <span className="x5-lineMeta">
+            {CONTENT[l.product.wood].name}
+            {l.optionValue ? `, ${l.optionValue.label}` : ""}
+            {l.note ? `, ${l.note}` : ""}
+            {!editable && l.qty > 1 ? `, ${l.qty} at ${formatINR(l.unitPrice)}` : ""}
+          </span>
+          {editable && (
+            <span className="x5-lineQty">
+              <button type="button" className="x5-qtyBtn" aria-label={`One fewer ${l.product.name}`} onClick={() => bag.setQty(l.key, l.qty - 1)}>
+                −
+              </button>
+              <span className="x5-qtyN" aria-label={`Quantity ${l.qty}`}>
+                {l.qty}
+              </span>
+              <button
+                type="button"
+                className="x5-qtyBtn"
+                aria-label={`One more ${l.product.name}`}
+                disabled={l.qty >= 9}
+                onClick={() => bag.setQty(l.key, l.qty + 1)}
+              >
+                +
+              </button>
+              <button type="button" className="x5-textBtn x5-qtyRemove" onClick={() => bag.remove(l.key)}>
+                Remove
+              </button>
+            </span>
+          )}
+        </li>
+      ))}
     </ol>
   );
 }

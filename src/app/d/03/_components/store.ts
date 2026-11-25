@@ -55,11 +55,11 @@ export type Journey = {
   keys: Keys;
   /** product slugs on the strand, in order */
   slugs: string[];
-  /** DOM labels (name and price) for every family, placed by the 3D engine each frame */
+  /** DOM labels (name and price) for every medallion, placed by the 3D engine each frame */
   labelEls: (HTMLElement | null)[];
 };
 
-const initial = layoutStrand(10);
+const initial = layoutStrand(8);
 export const J: Journey = {
   p: 0,
   s: initial.beads[0] + 2.2,

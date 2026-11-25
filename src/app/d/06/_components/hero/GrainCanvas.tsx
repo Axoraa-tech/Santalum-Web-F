@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, type PointerEvent as RPointerEvent } from "react";
-import { useWood } from "@/lib/wood";
 
 /**
  * A live 2D wood grain. Grain lines run roughly parallel with a shared slow undulation;
@@ -47,13 +46,7 @@ const rgba = (c: RGB, a = 1) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`
 
 export function GrainCanvas({ className = "" }: { className?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const woodRef = useRef<"red" | "white">("red");
   const ptr = useRef({ x: 0.64, y: 0.4, on: false });
-  const wood = useWood();
-
-  useEffect(() => {
-    woodRef.current = wood;
-  }, [wood]);
 
   useEffect(() => {
     const c = canvasRef.current;
@@ -77,7 +70,8 @@ export function GrainCanvas({ className = "" }: { className?: string }) {
     ro.observe(c);
     resize();
 
-    let mix = woodRef.current === "white" ? 1 : 0;
+    const isWhite = () => (document.documentElement.dataset.wood === "white" ? 1 : 0);
+    let mix = isWhite();
     let kx = ptr.current.x;
     let ky = ptr.current.y;
     let ks = 0.5;
@@ -91,7 +85,9 @@ export function GrainCanvas({ className = "" }: { className?: string }) {
       t0 = now;
       if (!reduce) clock += dt;
       const p = ptr.current;
-      mix += ((woodRef.current === "white" ? 1 : 0) - mix) * 0.05;
+      // follow <html data-wood> directly, and quickly, so the grain turns with the rest of the board
+      const target = isWhite();
+      mix = reduce ? target : mix + (target - mix) * 0.16;
       kx += (p.x - kx) * 0.07;
       ky += (p.y - ky) * 0.07;
       ks += ((p.on ? 1 : 0.5) - ks) * 0.05;

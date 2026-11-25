@@ -1,10 +1,12 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
+import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from "react";
-import { BOARD, CONTOURS, MAP, MINI_SHAPES, SEARCH, WAYPOINTS, type SearchItem } from "../_lib/board";
+import { useWood } from "@/lib/wood";
+import { BOARD, BOARDS, MAP, type SearchItem } from "../_lib/board";
 import { atlas, useAtlasUI } from "../_lib/engine";
-import { LAND_PATH } from "../_lib/geo";
+import { REGION } from "../_lib/geo";
 import { Board } from "./Board";
 import { DetailInWorld, DetailSheet, Wash } from "./Detail";
 import { s } from "./styles";
@@ -14,11 +16,17 @@ export function Canvas() {
   const world = useRef<HTMLDivElement>(null);
   const grid = useRef<HTMLDivElement>(null);
   const ui = useAtlasUI();
+  const wood = useWood();
 
   useEffect(() => {
     if (!vp.current || !world.current || !grid.current) return;
     return atlas.attach(vp.current, world.current, grid.current);
   }, []);
+
+  // A piece of the other wood closes when the wood changes (the toggle may live outside the board).
+  useEffect(() => {
+    atlas.onWood(wood);
+  }, [wood]);
 
   return (
     <>
@@ -39,6 +47,8 @@ export function Canvas() {
 
 /* ---------------- minimap ---------------- */
 function Minimap() {
+  const wood = useWood();
+  const spec = BOARDS[wood];
   const svg = useRef<SVGSVGElement>(null);
   const view = useRef<SVGRectElement>(null);
   useEffect(() => {
@@ -82,54 +92,64 @@ function Minimap() {
       className="block cursor-crosshair touch-none rounded-[8px] bg-(--a-paper)"
       aria-hidden
     >
-      <path d={CONTOURS.red[0]} fill="#9b3520" fillOpacity="0.09" />
-      <path d={CONTOURS.white[0]} fill="#a57a38" fillOpacity="0.12" />
-      {MINI_SHAPES.map((m, i) => (
+      <path d={spec.contour[0]} fill="var(--a-accent)" fillOpacity="0.1" />
+      <path d={spec.contourUse[0]} fill="var(--a-accent)" fillOpacity="0.06" />
+      {spec.mini.map((m, i) => (
         <rect
           key={i}
           x={m.r.x}
           y={m.r.y}
           width={m.r.w}
           height={m.r.h}
-          fill={m.kind === "photo" ? "#cbbfab" : m.kind === "card" ? "#fbfaf7" : "#1f1d1a"}
+          fill={m.kind === "photo" ? "var(--a-paper-2)" : m.kind === "card" ? "var(--a-card)" : "var(--a-ink)"}
           fillOpacity={m.kind === "text" ? 0.12 : 1}
-          stroke={m.kind === "card" ? "#1f1d1a" : "none"}
+          stroke={m.kind === "card" ? "var(--a-ink)" : "none"}
           strokeOpacity="0.35"
           strokeWidth="10"
         />
       ))}
-      <path d={LAND_PATH} transform={`translate(${MAP.x} ${MAP.y})`} fill="#e3dccb" stroke="#1f1d1a" strokeOpacity="0.5" strokeWidth="8" />
-      <rect ref={view} fill="var(--m-accent)" fillOpacity="0.08" stroke="var(--m-accent)" strokeWidth="2" vectorEffect="non-scaling-stroke" rx="40" />
+      <svg x={MAP.x} y={MAP.y} width={MAP.w} height={MAP.h} viewBox={`0 0 ${MAP.w} ${MAP.h}`}>
+        <rect width={MAP.w} height={MAP.h} fill="var(--a-card)" />
+        <path d={REGION[wood].land} fill="var(--a-land)" stroke="var(--a-ink)" strokeOpacity="0.5" strokeWidth="8" />
+        <circle cx={REGION[wood].pin[0]} cy={REGION[wood].pin[1] - 30} r="34" fill="var(--a-accent)" />
+      </svg>
+      <rect ref={view} fill="var(--a-accent)" fillOpacity="0.08" stroke="var(--a-accent)" strokeWidth="2" vectorEffect="non-scaling-stroke" rx="40" />
     </svg>
   );
 }
 
 /* ---------------- search ---------------- */
 function useResults(q: string) {
+  const wood = useWood();
   return useMemo(() => {
     const t = q.trim().toLowerCase();
     if (!t) return [];
     const words = t.split(/\s+/);
-    return SEARCH.filter((i) => words.every((w) => i.terms.includes(w) || i.label.toLowerCase().includes(w)))
-      .sort((a, b) => Number(b.label.toLowerCase().startsWith(t)) - Number(a.label.toLowerCase().startsWith(t)))
-      .slice(0, 6);
-  }, [q]);
-}
-
-function go(item: SearchItem) {
-  if ("slug" in item.target) atlas.openProduct(item.target.slug);
-  else atlas.flyToRect(item.target.rect, { maxZ: 1.1 });
+    const hits = BOARDS[wood].search
+      .filter((i) => words.every((w) => i.terms.includes(w) || i.label.toLowerCase().includes(w)))
+      .sort(
+        (a, b) =>
+          Number(b.label.toLowerCase().startsWith(t)) - Number(a.label.toLowerCase().startsWith(t)) ||
+          Number("slug" in b.target) - Number("slug" in a.target),
+      )
+      .slice(0, 5);
+    const shop: SearchItem = { key: "shop-q", label: `Search the shop for “${q.trim()}”`, hint: "Shop", terms: "", target: { href: `/d/08/shop?q=${encodeURIComponent(q.trim())}` } };
+    return [...hits, shop];
+  }, [q, wood]);
 }
 
 function Search({ autoFocus = false, onDone }: { autoFocus?: boolean; onDone?: () => void }) {
   const [q, setQ] = useState("");
   const [active, setActive] = useState(0);
   const results = useResults(q);
+  const router = useRouter();
   const id = useId();
   const listId = `${id}-list`;
   const open = results.length > 0;
   const pick = (item: SearchItem) => {
-    go(item);
+    if ("slug" in item.target) atlas.openProduct(item.target.slug);
+    else if ("rect" in item.target) atlas.flyToRect(item.target.rect, { maxZ: 1.1 });
+    else router.push(item.target.href);
     setQ("");
     setActive(0);
     onDone?.();
@@ -173,7 +193,7 @@ function Search({ autoFocus = false, onDone }: { autoFocus?: boolean; onDone?: (
             onDone?.();
           }
         }}
-        className="h-10 w-full rounded-full border border-(--a-line-2) bg-(--a-card) pl-9 pr-3 text-[16px] text-(--a-ink) outline-none transition-[border-color,box-shadow] placeholder:text-(--a-muted) hover:border-(--a-ink) focus:border-(--m-accent) focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--m-accent)_20%,transparent)] md:text-[14px]"
+        className="h-10 w-full rounded-full border border-(--a-line-2) bg-(--a-card) pl-9 pr-3 text-[16px] text-(--a-ink) outline-none transition-[border-color,box-shadow] placeholder:text-(--a-muted) hover:border-(--a-ink) focus:border-(--a-accent) focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--a-accent)_20%,transparent)] md:text-[14px]"
       />
       <ul
         id={listId}
@@ -199,13 +219,12 @@ function Search({ autoFocus = false, onDone }: { autoFocus?: boolean; onDone?: (
           </li>
         ))}
       </ul>
-      {q.trim() && !open && <p className="absolute bottom-[calc(100%+8px)] left-0 right-0 rounded-[12px] border border-(--a-line) bg-(--a-card) px-3 py-2 text-[13px] text-(--a-muted) max-md:bottom-auto max-md:top-[calc(100%+8px)]">Nothing on the board by that name.</p>}
     </div>
   );
 }
 
 /* ---------------- controls ---------------- */
-const iconBtn = `${s.btn} grid size-10 place-items-center rounded-full text-(--a-ink) hover:bg-black/[0.05] active:bg-black/10`;
+const iconBtn = `${s.btn} grid size-10 place-items-center rounded-full text-(--a-ink) hover:bg-(--a-ink)/[0.05] active:bg-(--a-ink)/10`;
 
 function ZoomIcons({ kind }: { kind: "in" | "out" | "fit" | "tour" | "search" }) {
   return (
@@ -306,7 +325,9 @@ function Controls() {
 
 /* ---------------- tour ---------------- */
 function TourCaption({ step }: { step: number | null }) {
-  const wp = step !== null ? WAYPOINTS[step] : null;
+  const wood = useWood();
+  const stops = BOARDS[wood].waypoints;
+  const wp = step !== null ? stops[step] : null;
   return (
     <AnimatePresence>
       {wp && step !== null && (
@@ -323,13 +344,13 @@ function TourCaption({ step }: { step: number | null }) {
             <div className="min-w-0 flex-[1_1_300px]" aria-live="polite">
               <p className="flex items-center gap-3 text-[12px] tabular-nums text-(--a-muted)">
                 <span>
-                  Stop {step + 1} of {WAYPOINTS.length}
+                  Stop {step + 1} of {stops.length}
                 </span>
                 <span className="flex gap-1" aria-hidden>
-                  {WAYPOINTS.map((w, i) => (
+                  {stops.map((w, i) => (
                     <span
                       key={w.id}
-                      className={`h-1 rounded-full transition-all duration-500 ${i === step ? "w-5 bg-(--m-accent)" : i < step ? "w-1 bg-(--a-ink)" : "w-1 bg-(--a-line-2)"}`}
+                      className={`h-1 rounded-full transition-all duration-500 ${i === step ? "w-5 bg-(--a-accent)" : i < step ? "w-1 bg-(--a-ink)" : "w-1 bg-(--a-line-2)"}`}
                     />
                   ))}
                 </span>
@@ -350,7 +371,7 @@ function TourCaption({ step }: { step: number | null }) {
               >
                 Back
               </button>
-              {step < WAYPOINTS.length - 1 ? (
+              {step < stops.length - 1 ? (
                 <button type="button" onClick={() => atlas.tourGo(step + 1)} className={`${s.btn} ${s.btnInk} h-10 px-5 text-[14px] font-medium`}>
                   Next
                 </button>

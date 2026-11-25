@@ -10,6 +10,7 @@ export const s = {
   hatch: "l01-hatch",
   sheet: "l01-sheet",
   field: "l01-field",
+  err: "l01-err",
   plate: "l01-plate",
   engraved: "l01-engraved",
   screw: "l01-screw",
@@ -18,4 +19,10 @@ export const s = {
   late: "l01-late",
   scrollCue: "l01-cue",
   noScrollbar: "l01-noscroll",
+  woodsheet: "l01-woodsheet",
+  chip: "l01-chip",
+  icon: "l01-icon",
+  corners: "l01-corners",
+  live: "l01-live",
+  fill: "l01-fill",
 } as const;

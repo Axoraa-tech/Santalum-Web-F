@@ -1,6 +1,7 @@
 import * as THREE from "three";
-import { FAMILIES } from "@/lib/catalog";
 import type { Wood } from "@/lib/wood";
+import { BEAD, BG } from "./palette";
+import { STRAND } from "./strand-list";
 import { J } from "./store";
 import {
   BEAD_R,
@@ -12,19 +13,21 @@ import {
   controlPoints,
   layoutStrand,
   pathKappa,
+  pathPoint,
   pointInto,
   railInto,
+  railPoint,
   type StrandLayout,
+  type V3,
 } from "./strand-math";
 
 /**
  * The 3D mala, built imperatively so the frame loop can do everything in one pass:
- * 108 instanced beads with knots, eleven product beads with hanging photo medallions,
+ * 108 instanced beads with knots, sixteen product beads with hanging photo medallions (eight per wood),
  * the cord, the guru bead and tassel, and the camera that rides beside the cord.
  * React (Scene.tsx) only mounts it and feeds it the wood and the photos.
  */
 
-export const LINEN = "#F6F1E9";
 const THREAD = "#B08D57";
 const BRASS = "#b48c4a";
 
@@ -48,7 +51,110 @@ export type Rig = {
 export const DESK_RIG: Rig = { side: 3.2, lift: 1.8, back: 3.4, fov: 42, near: 7, far: 34, endDist: 7.6, segs: [32, 24], tube: 1500 };
 export const PHONE_RIG: Rig = { side: 2.7, lift: 2.2, back: 4.4, fov: 56, near: 5.5, far: 25, endDist: 8.2, segs: [20, 14], tube: 900 };
 
-const WOOD_COL: Record<Wood, THREE.Color> = { red: new THREE.Color("#7a2a1d"), white: new THREE.Color("#d4b383") };
+/** How far the camera steps back from the rail to see a piece with the strand around it. */
+const stepBack = (mobile: boolean) => (mobile ? 1.2 : 1.9);
+
+/* ---------- framing: where the camera stands for each piece, so nothing on the strand crosses it ---------- */
+
+const v3sub = (a: V3, b: V3): V3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const v3dot = (a: V3, b: V3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const v3len = (a: V3) => Math.hypot(a[0], a[1], a[2]);
+
+/** Centre and face axes of a medallion hanging from a product bead at P, turned to face `view` (as update() hangs it). */
+function medallionFace(P: V3, view: V3) {
+  const yaw = Math.atan2(view[0] - P[0], view[2] - P[2]);
+  const fx = Math.sin(yaw);
+  const fz = Math.cos(yaw);
+  const medY = P[1] - PRODUCT_R - MED_DROP;
+  const elev = Math.atan2(view[1] - medY, Math.hypot(view[0] - P[0], view[2] - P[2]));
+  const t = Math.max(-0.2, Math.min(0.6, elev * 0.72));
+  const pivotY = P[1] - PRODUCT_R - (DROP + RING_R * 2 - 0.03);
+  const c: V3 = [P[0] + fx * MED_R * Math.sin(t), pivotY - MED_R * Math.cos(t), P[2] + fz * MED_R * Math.sin(t)];
+  const u: V3 = [Math.cos(yaw), 0, -Math.sin(yaw)];
+  const v: V3 = [fx * Math.sin(t), Math.cos(t), fz * Math.sin(t)];
+  return { c, u, v };
+}
+
+/**
+ * For each product slot, the camera position when that piece is in focus. The default view (beside the cord,
+ * stepped back) is turned around the medallion, a few degrees at a time, until no bead and no stretch of cord
+ * lies between the lens and the photograph, with some room to spare for the sway. Pure maths, run once.
+ */
+function frameViews(layout: StrandLayout, rail: ReturnType<typeof cameraRail>, rig: Rig, mobile: boolean): V3[] {
+  // everything on the strand that could stand in front of a medallion, a little fatter than drawn
+  const things: { c: V3; r: number }[] = [];
+  for (const s of layout.beads) things.push({ c: pathPoint(s), r: BEAD_R * 1.05 + 0.07 });
+  for (let s = 0; s <= LENGTH; s += 0.06) things.push({ c: pathPoint(s), r: 0.07 });
+  things.push({ c: pathPoint(layout.guru), r: GURU_R * 1.08 + 0.07 });
+  layout.products.forEach((s) => things.push({ c: pathPoint(s), r: PRODUCT_R + 0.05 }));
+
+  // sample points over the photograph
+  const disc: [number, number][] = [];
+  for (let ri = 0; ri < 5; ri++) {
+    const r = ((ri + 0.5) / 5) * MED_R * 0.96;
+    const n = ri === 0 ? 4 : 6 + ri * 5;
+    for (let k = 0; k < n; k++) disc.push([Math.cos((k / n) * Math.PI * 2) * r, Math.sin((k / n) * Math.PI * 2) * r]);
+  }
+
+  const blocked = (cam: V3, face: ReturnType<typeof medallionFace>, P: V3) => {
+    const seg = v3sub(face.c, cam);
+    const segL2 = v3dot(seg, seg);
+    const near = things.filter((o) => {
+      if (v3len(v3sub(o.c, P)) < PRODUCT_R + 0.06) return false; // the piece's own bead
+      const t = Math.max(0, Math.min(1, v3dot(v3sub(o.c, cam), seg) / segL2));
+      const q: V3 = [cam[0] + seg[0] * t, cam[1] + seg[1] * t, cam[2] + seg[2] * t];
+      return v3len(v3sub(o.c, q)) < MED_R + o.r + 0.05;
+    });
+    let hits = 0;
+    for (const [a, b] of disc) {
+      const pt: V3 = [face.c[0] + face.u[0] * a + face.v[0] * b, face.c[1] + face.u[1] * a + face.v[1] * b, face.c[2] + face.u[2] * a + face.v[2] * b];
+      const d = v3sub(pt, cam);
+      const dl = v3len(d);
+      const dir: V3 = [d[0] / dl, d[1] / dl, d[2] / dl];
+      for (const o of near) {
+        const oc = v3sub(o.c, cam);
+        const tca = v3dot(oc, dir);
+        if (tca < 0.2 || tca > dl - 0.08) continue;
+        if (v3dot(oc, oc) - tca * tca < o.r * o.r) {
+          hits++;
+          break;
+        }
+      }
+    }
+    return hits / disc.length;
+  };
+  const nearest = (cam: V3) => things.reduce((m, o) => Math.min(m, v3len(v3sub(o.c, cam)) - o.r), 1e9);
+
+  return layout.products.map((ps) => {
+    const P = pathPoint(ps);
+    const pos0 = railPoint(rail, ps - rig.back);
+    const look: V3 = [P[0], P[1] - (PRODUCT_R + MED_DROP * 0.62), P[2]];
+    const back = v3sub(pos0, look);
+    const bl = v3len(back) || 1;
+    const step = stepBack(mobile);
+    const cam0: V3 = [pos0[0] + (back[0] / bl) * step, pos0[1] + (back[1] / bl) * step + 0.2, pos0[2] + (back[2] / bl) * step];
+    const at = (deg: number): V3 => {
+      const a = (deg * Math.PI) / 180;
+      const rx = cam0[0] - look[0];
+      const rz = cam0[2] - look[2];
+      return [look[0] + rx * Math.cos(a) + rz * Math.sin(a), cam0[1], look[2] - rx * Math.sin(a) + rz * Math.cos(a)];
+    };
+    let best = { score: Infinity, cam: cam0 };
+    for (let deg = -45; deg <= 45; deg += 3) {
+      const cam = at(deg);
+      const face = medallionFace(P, cam);
+      // the medallion sways a little, so the view has to stay clear a few degrees either side
+      const worst = Math.max(blocked(at(deg - 5), face, P), blocked(cam, face, P), blocked(at(deg + 5), face, P));
+      const nr = nearest(cam);
+      const score = worst * 10 + (Math.abs(deg) / 45) * 0.6 + (nr < 1.2 ? (1.2 - nr) * 8 : 0);
+      if (score < best.score) best = { score, cam };
+    }
+    return best.cam;
+  });
+}
+
+const WOOD_COL: Record<Wood, THREE.Color> = { red: new THREE.Color(BEAD.red), white: new THREE.Color(BEAD.white) };
+const BG_COL: Record<Wood, THREE.Color> = { red: new THREE.Color(BG.red), white: new THREE.Color(BG.white) };
 const TASSEL_COL: Record<Wood, THREE.Color> = { red: new THREE.Color("#8c2b1b"), white: new THREE.Color("#b48f57") };
 
 function mulberry32(seed: number) {
@@ -139,6 +245,10 @@ function woodMaterial(grain: THREE.Texture, mobile: boolean, color = "#ffffff") 
 
 type Prod = {
   slug: string;
+  wood: Wood;
+  /** scale is held at `hold` until `wait` (seconds), then eases to scT: outgoing pieces fold first, incoming open after */
+  wait: number;
+  hold: number;
   root: THREE.Group;
   axis: THREE.Group;
   hang: THREE.Group;
@@ -157,6 +267,8 @@ type Prod = {
   from: THREE.Color;
   to: THREE.Color;
   phase: number;
+  /** which of the eight places on the strand this piece hangs in */
+  slot: number;
 };
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -171,6 +283,8 @@ export class StrandEngine {
   private readonly mobile: boolean;
   private readonly reduced: boolean;
   private readonly rail: ReturnType<typeof cameraRail>;
+  /** camera position when each slot's piece is in focus (see frameViews) */
+  private readonly views: THREE.Vector3[];
   private readonly cord: THREE.Mesh;
   private readonly beads: THREE.InstancedMesh;
   private readonly knots: THREE.InstancedMesh;
@@ -191,6 +305,7 @@ export class StrandEngine {
   private layout: StrandLayout;
   private wood: Wood | null = null;
   private wave = { start: -100, origin: 0 };
+  private bg = { from: new THREE.Color(BG.red), to: new THREE.Color(BG.red), now: new THREE.Color(BG.red), start: -100 };
   private t0 = -1;
   private roll = 0;
   private first = true;
@@ -215,7 +330,8 @@ export class StrandEngine {
     this.reduced = opts.reduced;
     this.rig = opts.mobile ? PHONE_RIG : DESK_RIG;
     this.rail = cameraRail(this.rig.side, this.rig.lift);
-    this.layout = layoutStrand(10);
+    this.layout = layoutStrand(8);
+    this.views = frameViews(this.layout, this.rail, this.rig, this.mobile).map((p) => new THREE.Vector3(p[0], p[1], p[2]));
     const rnd = mulberry32(108);
     for (let i = 0; i < PLAIN; i++) this.jitter.push({ spin: rnd() * Math.PI * 2, size: 0.95 + rnd() * 0.09, tone: 0.84 + rnd() * 0.26 });
 
@@ -266,7 +382,7 @@ export class StrandEngine {
     const photoGeo = new THREE.CircleGeometry(MED_R - 0.012, 64);
     this.disposables.push(brass, pGeo, capGeo, dropGeo, ringGeo, backGeo, bezelGeo, photoGeo);
 
-    FAMILIES.forEach((f, k) => {
+    STRAND.forEach((f, k) => {
       const root = new THREE.Group();
       const axis = new THREE.Group();
       const woodMat = woodMaterial(grainB, this.mobile);
@@ -312,6 +428,9 @@ export class StrandEngine {
 
       this.products.push({
         slug: f.slug,
+        wood: f.wood,
+        wait: 0,
+        hold: 0,
         root,
         axis,
         hang,
@@ -329,12 +448,13 @@ export class StrandEngine {
         scT: 0,
         from: new THREE.Color(),
         to: new THREE.Color(),
-        phase: k * 1.73,
+        phase: (k % 8) * 1.73,
+        slot: k % 8,
       });
     });
 
     /* guru bead and tassel */
-    this.guruS = layoutStrand(11).guru;
+    this.guruS = layoutStrand(8).guru;
     this.guruMat = woodMaterial(grainB, this.mobile);
     this.tasselMat = new THREE.MeshStandardMaterial({ color: "#8c2b1b", roughness: 0.92, metalness: 0 });
     this.disposables.push(this.guruMat, this.tasselMat);
@@ -393,31 +513,41 @@ export class StrandEngine {
     this.group.add(this.key, this.key.target);
   }
 
-  /** Re-lay the strand for a wood: products not made in it leave, the rest slide along the cord; colour runs out from the camera. */
+  /**
+   * Show a wood: its eight medallions open on the strand, the other eight fold into the cord in the same places.
+   * Colour runs out along the strand from the camera, and each slot swaps as the colour reaches it.
+   */
   setWood(wood: Wood, now: number) {
     if (wood === this.wood) return;
     const firstTime = this.wood === null;
     this.wood = wood;
-    const avail = FAMILIES.map((f) => Boolean(f.variants[wood]));
-    const count = avail.filter(Boolean).length;
-    this.layout = layoutStrand(count);
+    this.layout = layoutStrand(STRAND.filter((p) => p.wood === wood).length);
     for (let i = 0; i < PLAIN; i++) {
       this.beadT[i] = this.layout.beads[i];
       if (firstTime) this.beadS[i] = this.beadT[i];
     }
-    let j = 0;
-    this.products.forEach((p, k) => {
-      if (avail[k]) {
-        p.sT = this.layout.products[j++];
+    const slot: Record<Wood, number> = { red: 0, white: 0 };
+    this.products.forEach((p) => {
+      p.slot = Math.min(this.layout.products.length - 1, slot[p.wood]++);
+      const at = this.layout.products[p.slot];
+      const delay = this.reduced ? 0 : Math.abs(at - J.s) * 0.02;
+      if (p.wood === wood) {
+        // incoming: appears in its slot once the outgoing piece there has folded
+        p.sT = at;
+        if (firstTime || p.sc < 0.02) p.s = at;
         p.scT = 1;
+        p.hold = firstTime ? 1 : p.sc;
+        p.wait = firstTime ? -1 : now + delay + (this.reduced ? 0 : 0.5);
+        if (firstTime) p.sc = 1;
       } else {
-        // a missing piece folds into the cord where it sits
+        // outgoing: folds into the cord where it hangs
+        if (firstTime) {
+          p.s = p.sT = at;
+          p.sc = 0;
+        }
         p.scT = 0;
-        if (p.sT === 0) p.sT = k > 0 ? this.products[k - 1].sT + 2 : 10;
-      }
-      if (firstTime) {
-        p.s = p.sT;
-        p.sc = p.scT;
+        p.hold = p.sc;
+        p.wait = firstTime ? -1 : now + delay;
       }
     });
 
@@ -446,6 +576,10 @@ export class StrandEngine {
     this.tasselCol.from.copy(firstTime ? TASSEL_COL[wood] : this.tasselMat.color);
     this.tasselCol.to.copy(TASSEL_COL[wood]);
     this.wave = { start: firstTime ? -100 : now, origin: J.s };
+    // the room behind the strand follows the page palette
+    this.bg.from.copy(firstTime ? BG_COL[wood] : this.bg.now);
+    this.bg.to.copy(BG_COL[wood]);
+    this.bg.start = firstTime ? -100 : now;
   }
 
   setPhoto(slug: string, tex: THREE.Texture | null) {
@@ -525,8 +659,10 @@ export class StrandEngine {
     this.products.forEach((p, idx) => {
       const d = p.sT - p.s;
       if (Math.abs(d) > 1e-4) p.s += d * k;
-      p.sc += (p.scT - p.sc) * k;
-      const before = this.layout.before[Math.min(this.layout.before.length - 1, Math.max(0, idx))] ?? 0;
+      const want = now < p.wait ? p.hold : p.scT;
+      p.sc += (want - p.sc) * (1 - Math.exp(-dt * 5));
+      if (p.sc < 0.02 && p.scT > 0.5 && Math.abs(p.sT - p.s) > 1e-3) p.s = p.sT;
+      const before = this.layout.before[Math.min(this.layout.before.length - 1, Math.max(0, idx % 8))] ?? 0;
       const intro = 1 - easeOut((it - 0.5 - before * 0.012) / 1.3);
       const s = Math.min(LENGTH - 0.5, p.s + intro * 24);
       const scale = p.sc * (1 - intro * 0.6);
@@ -537,7 +673,7 @@ export class StrandEngine {
       this.tangentInto(s, this.v2);
       p.axis.quaternion.setFromUnitVectors(UP, this.v2);
       // the medallion turns to face the camera as it will be when this piece is in focus
-      railInto(this.rail, s - rig.back, this.v);
+      this.v.copy(this.views[p.slot] ?? railInto(this.rail, s - rig.back, this.v));
       const yaw = Math.atan2(this.v.x - p.root.position.x, this.v.z - p.root.position.z);
       const sway = this.reduced ? 0 : 1;
       p.hang.rotation.set(0, yaw + Math.sin(now * 0.55 + p.phase) * 0.07 * sway, Math.sin(now * 0.9 + p.phase) * 0.045 * sway);
@@ -547,7 +683,11 @@ export class StrandEngine {
       // colour
       const w = this.waveAt(p.s, now);
       p.woodMat.color.copy(p.from).lerp(p.to, w);
-      if (p.photo.visible && p.photoFade < 1) {
+      // a piece of the other wood folds away: its photograph goes first, so it never shows on the new strand
+      if (p.scT < 0.5 && p.photoFade > 0) {
+        p.photoFade = Math.max(0, p.photoFade - dt * 9);
+        p.photoMat.opacity = p.photoFade;
+      } else if (p.scT > 0.5 && p.photo.visible && p.photoFade < 1 && (now >= p.wait || p.sc > 0.5)) {
         p.photoFade = Math.min(1, p.photoFade + dt * 1.6);
         p.photoMat.opacity = p.photoFade;
       }
@@ -613,8 +753,11 @@ export class StrandEngine {
       look.lerp(this.v3, w);
       // step back a little to see the piece with the strand around it
       this.v3.subVectors(pos, look).normalize();
-      pos.addScaledVector(this.v3, w * (this.mobile ? 1.2 : 1.9));
+      pos.addScaledVector(this.v3, w * stepBack(this.mobile));
       pos.y += w * 0.2;
+      // then round the medallion to the side where nothing on the strand crosses it
+      const view = this.views[p.slot];
+      if (view) pos.lerp(view, w);
     }
     // framing: the card sits to the right on desktop, the sheet below on phones
     const right = this.right.subVectors(look, pos).normalize().cross(UP).normalize();
@@ -669,9 +812,13 @@ export class StrandEngine {
     camera.updateMatrixWorld();
 
     // fog opens up a little for the closing shot
+    const bgT = this.reduced ? 1 : smooth(0, 0.9, now - this.bg.start);
+    this.bg.now.copy(this.bg.from).lerp(this.bg.to, bgT);
+    if (scene.background instanceof THREE.Color) scene.background.copy(this.bg.now);
     if (scene.fog instanceof THREE.Fog) {
       scene.fog.near = rig.near + end * 3;
       scene.fog.far = rig.far + end * 8;
+      scene.fog.color.copy(this.bg.now);
     }
 
     // key light over the shoulder
@@ -690,7 +837,8 @@ export class StrandEngine {
       if (p.root.visible && p.scT > 0.5 && idx !== this.active) {
         p.labelAnchor.getWorldPosition(this.v);
         const d = camera.position.distanceTo(this.v);
-        o = (1 - smooth(10, 17, d)) * smooth(2.6, 4, d) * (1 - end) * (1 - hero) * Math.min(1, p.sc);
+        // a tag is either readable or gone: no half-faded names drifting in empty space
+        o = smooth(0.35, 0.75, (1 - smooth(10, 17, d)) * smooth(2.6, 4, d) * (1 - end) * (1 - hero) * Math.min(1, p.sc));
         if (o > 0.01) {
           this.v.project(camera);
           if (this.v.z > 1) o = 0;
